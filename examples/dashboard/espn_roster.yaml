@@ -1,0 +1,73 @@
+# ESPN-style roster board.
+#
+# This uses only a native Home Assistant Markdown card. Replace the entity_id
+# list with every ESPN Fantasy player sensor on your roster so the card updates
+# whenever a player's score or attributes change.
+#
+# The template discovers the players from those entities and groups them by
+# lineup slot: starters first, then bench and IR.
+
+type: markdown
+title: My Fantasy Team
+card_size: 8
+entity_id:
+  # Replace these with your player sensor entity IDs.
+  - sensor.espn_fantasy_173951588_sam_darnold
+  # - sensor.espn_fantasy_<player>_<name>
+  # - sensor.espn_fantasy_<player>_<name>
+content: |
+  {% set ns = namespace(players=[]) %}
+  {% for e in states.sensor %}
+    {% if e.attributes.player_id is defined and e.entity_id in config.entity_id %}
+      {% set ns.players = ns.players + [e] %}
+    {% endif %}
+  {% endfor %}
+
+  {% set slots = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'D/ST'] %}
+
+  {% for slot in slots %}
+    {% set players = ns.players | selectattr('attributes.roster_slot', 'equalto', slot) | list %}
+    {% if players | length > 0 %}
+      <div style="font-size:0.78em; font-weight:700; text-transform:uppercase; opacity:0.65; margin-top:10px;">
+        {{ slot }}
+      </div>
+      {% for p in players %}
+        <div style="display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--divider-color);">
+          <img src="{{ p.attributes.headshot }}" width="42" height="42" style="border-radius:50%; object-fit:cover;">
+          <div style="flex:1; min-width:0;">
+            <strong>{{ p.attributes.friendly_name | default(p.name) }}</strong><br>
+            <span style="font-size:0.82em; opacity:0.7;">
+              {{ p.attributes.nfl_team }}{% if p.attributes.opponent %} · vs {{ p.attributes.opponent }}{% endif %}
+              {% if p.attributes.injury_status and p.attributes.injury_status != 'NORMAL' %} · {{ p.attributes.injury_status }}{% endif %}
+            </span>
+          </div>
+          <div style="text-align:right; min-width:70px;">
+            <strong style="font-size:1.15em;">{{ '%.2f' | format(p.state | float(0)) }}</strong><br>
+            <span style="font-size:0.72em; opacity:0.65;">{% if p.attributes.live_points is not none %}🔴 LIVE{% else %}pts{% endif %}</span>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+
+  {% for slot in ['Bench', 'IR'] %}
+    {% set players = ns.players | selectattr('attributes.roster_slot', 'equalto', slot) | list %}
+    {% if players | length > 0 %}
+      <div style="font-size:0.78em; font-weight:700; text-transform:uppercase; opacity:0.65; margin-top:14px;">
+        {{ slot }}
+      </div>
+      {% for p in players %}
+        <div style="display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--divider-color);">
+          <img src="{{ p.attributes.headshot }}" width="42" height="42" style="border-radius:50%; object-fit:cover;">
+          <div style="flex:1; min-width:0;">
+            <strong>{{ p.attributes.friendly_name | default(p.name) }}</strong><br>
+            <span style="font-size:0.82em; opacity:0.7;">{{ p.attributes.position }} · {{ p.attributes.nfl_team }}</span>
+          </div>
+          <div style="text-align:right; min-width:70px;">
+            <strong style="font-size:1.15em;">{{ '%.2f' | format(p.state | float(0)) }}</strong><br>
+            <span style="font-size:0.72em; opacity:0.65;">{{ p.attributes.roster_slot }}</span>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
