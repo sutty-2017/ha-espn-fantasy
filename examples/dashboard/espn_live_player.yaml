@@ -1,0 +1,77 @@
+# Compact player card for a player who is currently playing.
+#
+# Copy this card once for each player you want on your live-game dashboard.
+# Replace both entity IDs with the player's entities from Home Assistant.
+# The visibility condition uses the integration's Game Active binary sensor,
+# so the card appears automatically when ESPN reports that player's game live.
+
+type: markdown
+entity_id:
+  - sensor.espn_fantasy_173951588_sam_darnold
+  - binary_sensor.espn_fantasy_173951588_sam_darnold_game_active
+content: |
+  {% set e = 'sensor.espn_fantasy_173951588_sam_darnold' %}
+  {% set game = 'binary_sensor.espn_fantasy_173951588_sam_darnold_game_active' %}
+  {% set pts = states(e) | float(0) %}
+  {% set proj = state_attr(e, 'projected_points') | float(0) %}
+  {% set diff = state_attr(e, 'points_vs_projection') | float(0) %}
+
+  <div style="display:flex; align-items:center; gap:12px;">
+    <img src="{{ state_attr(e, 'headshot') }}" width="58" height="58" style="border-radius:50%; object-fit:cover;">
+    <div style="flex:1;">
+      <strong style="font-size:1.2em;">{{ state_attr(e, 'friendly_name') }}</strong><br>
+      <span style="opacity:0.7;">
+        {{ state_attr(e, 'position') }} · {{ state_attr(e, 'nfl_team') }}
+        {% if state_attr(e, 'opponent') %} · vs {{ state_attr(e, 'opponent') }}{% endif %}
+      </span>
+    </div>
+    <div style="text-align:right;">
+      <strong style="font-size:1.7em;">{{ '%.2f' | format(pts) }}</strong><br>
+      <span style="font-size:0.75em;">🔴 LIVE</span>
+    </div>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; margin-top:10px; opacity:0.8;">
+    <span>Projected <strong>{{ '%.2f' | format(proj) }}</strong></span>
+    <span>vs proj <strong>{{ '%+.2f' | format(diff) }}</strong></span>
+  </div>
+
+  {% set pos = state_attr(e, 'position') %}
+  {% if pos == 'QB' %}
+  <div style="margin-top:10px; font-size:0.9em;">
+    <strong>Passing</strong><br>
+    {{ state_attr(e, 'passing_completions') | default(0) }}/{{ state_attr(e, 'passing_attempts') | default(0) }} CMP/ATT ·
+    {{ state_attr(e, 'passing_yards') | default(0) }} YDS ·
+    {{ state_attr(e, 'passing_touchdowns') | default(0) }} TD ·
+    {{ state_attr(e, 'passing_interceptions') | default(0) }} INT
+  </div>
+  {% elif pos == 'RB' %}
+  <div style="margin-top:10px; font-size:0.9em;">
+    <strong>Rushing</strong><br>
+    {{ state_attr(e, 'rushing_attempts') | default(0) }} CAR ·
+    {{ state_attr(e, 'rushing_yards') | default(0) }} YDS ·
+    {{ state_attr(e, 'rushing_touchdowns') | default(0) }} TD
+  </div>
+  {% elif pos in ['WR', 'TE'] %}
+  <div style="margin-top:10px; font-size:0.9em;">
+    <strong>Receiving</strong><br>
+    {{ state_attr(e, 'receiving_receptions') | default(0) }} REC ·
+    {{ state_attr(e, 'receiving_targets') | default(0) }} TGT ·
+    {{ state_attr(e, 'receiving_yards') | default(0) }} YDS ·
+    {{ state_attr(e, 'receiving_touchdowns') | default(0) }} TD
+  </div>
+  {% endif %}
+
+  <div style="margin-top:10px; font-size:0.78em; opacity:0.65;">
+    Season {{ '%.2f' | format(state_attr(e, 'season_points') | float(0)) }} pts ·
+    {{ '%.2f' | format(state_attr(e, 'season_average') | float(0)) }} avg ·
+    #{{ state_attr(e, 'position_rank') | default('—') }} rank
+  </div>
+
+tap_action:
+  action: more-info
+  entity: sensor.espn_fantasy_173951588_sam_darnold
+visibility:
+  - condition: state
+    entity: binary_sensor.espn_fantasy_173951588_sam_darnold_game_active
+    state: "on"
