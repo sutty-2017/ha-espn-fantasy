@@ -1,73 +1,107 @@
-# ESPN-style roster board.
+# ESPN-style roster board using Mushroom + auto-entities.
 #
-# This uses only a native Home Assistant Markdown card. Replace the entity_id
-# list with every ESPN Fantasy player sensor on your roster so the card updates
-# whenever a player's score or attributes change.
+# Requirements:
+# - Mushroom cards installed through HACS
+# - auto-entities installed through HACS
 #
-# The template discovers the players from those entities and groups them by
-# lineup slot: starters first, then bench and IR.
+# The card discovers every ESPN player sensor automatically. Starters are
+# grouped in roster-slot order, followed by bench and IR. No player entity IDs
+# need to be maintained manually.
 
-type: markdown
-title: My Fantasy Team
-card_size: 8
-entity_id:
-  # Replace these with your player sensor entity IDs.
-  - sensor.espn_fantasy_173951588_sam_darnold
-  # - sensor.espn_fantasy_<player>_<name>
-  # - sensor.espn_fantasy_<player>_<name>
-content: |
-  {% set ns = namespace(players=[]) %}
-  {% for e in states.sensor %}
-    {% if e.attributes.player_id is defined and e.entity_id in config.entity_id %}
-      {% set ns.players = ns.players + [e] %}
-    {% endif %}
-  {% endfor %}
+ type: vertical-stack
+cards:
+  - type: custom:mushroom-title-card
+    title: My Fantasy Team
+    subtitle: ESPN Fantasy Football
 
-  {% set slots = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'D/ST'] %}
+  - type: custom:mushroom-title-card
+    title: Starting Lineup
 
-  {% for slot in slots %}
-    {% set players = ns.players | selectattr('attributes.roster_slot', 'equalto', slot) | list %}
-    {% if players | length > 0 %}
-      <div style="font-size:0.78em; font-weight:700; text-transform:uppercase; opacity:0.65; margin-top:10px;">
-        {{ slot }}
-      </div>
-      {% for p in players %}
-        <div style="display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--divider-color);">
-          <img src="{{ p.attributes.headshot }}" width="42" height="42" style="border-radius:50%; object-fit:cover;">
-          <div style="flex:1; min-width:0;">
-            <strong>{{ p.attributes.friendly_name | default(p.name) }}</strong><br>
-            <span style="font-size:0.82em; opacity:0.7;">
-              {{ p.attributes.nfl_team }}{% if p.attributes.opponent %} · vs {{ p.attributes.opponent }}{% endif %}
-              {% if p.attributes.injury_status and p.attributes.injury_status != 'NORMAL' %} · {{ p.attributes.injury_status }}{% endif %}
-            </span>
-          </div>
-          <div style="text-align:right; min-width:70px;">
-            <strong style="font-size:1.15em;">{{ '%.2f' | format(p.state | float(0)) }}</strong><br>
-            <span style="font-size:0.72em; opacity:0.65;">{% if p.attributes.live_points is not none %}🔴 LIVE{% else %}pts{% endif %}</span>
-          </div>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endfor %}
+  - type: custom:auto-entities
+    card:
+      type: grid
+      columns: 2
+      square: false
+    card_param: cards
+    filter:
+      include:
+        - domain: sensor
+          attributes:
+            player_id: "*"
+            roster_slot: QB
+          options: &player_card
+            type: custom:mushroom-template-card
+            entity: this.entity_id
+            picture: "{{ state_attr(entity, 'headshot') }}"
+            primary: "{{ state_attr(entity, 'friendly_name') }}"
+            secondary: >-
+              {{ state_attr(entity, 'position') }} · {{ state_attr(entity, 'nfl_team') }}
+              {% if state_attr(entity, 'opponent') %} · vs {{ state_attr(entity, 'opponent') }}{% endif %}
+              {% if state_attr(entity, 'injury_status') and state_attr(entity, 'injury_status') != 'NORMAL' %}
+              · {{ state_attr(entity, 'injury_status') }}{% endif %}
+            badge_icon: >-
+              {% if state_attr(entity, 'live_points') is not none %}mdi:circle{% endif %}
+            badge_text: >-
+              {% if state_attr(entity, 'live_points') is not none %}LIVE{% endif %}
+            badge_color: red
+            tap_action:
+              action: more-info
+        - domain: sensor
+          attributes:
+            player_id: "*"
+            roster_slot: RB
+          options: *player_card
+        - domain: sensor
+          attributes:
+            player_id: "*"
+            roster_slot: WR
+          options: *player_card
+        - domain: sensor
+          attributes:
+            player_id: "*"
+            roster_slot: TE
+          options: *player_card
+        - domain: sensor
+          attributes:
+            player_id: "*"
+            roster_slot: FLEX
+          options: *player_card
+        - domain: sensor
+          attributes:
+            player_id: "*"
+            roster_slot: K
+          options: *player_card
+        - domain: sensor
+          attributes:
+            player_id: "*"
+            roster_slot: D/ST
+          options: *player_card
+    sort:
+      method: name
+      ignore_case: true
 
-  {% for slot in ['Bench', 'IR'] %}
-    {% set players = ns.players | selectattr('attributes.roster_slot', 'equalto', slot) | list %}
-    {% if players | length > 0 %}
-      <div style="font-size:0.78em; font-weight:700; text-transform:uppercase; opacity:0.65; margin-top:14px;">
-        {{ slot }}
-      </div>
-      {% for p in players %}
-        <div style="display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--divider-color);">
-          <img src="{{ p.attributes.headshot }}" width="42" height="42" style="border-radius:50%; object-fit:cover;">
-          <div style="flex:1; min-width:0;">
-            <strong>{{ p.attributes.friendly_name | default(p.name) }}</strong><br>
-            <span style="font-size:0.82em; opacity:0.7;">{{ p.attributes.position }} · {{ p.attributes.nfl_team }}</span>
-          </div>
-          <div style="text-align:right; min-width:70px;">
-            <strong style="font-size:1.15em;">{{ '%.2f' | format(p.state | float(0)) }}</strong><br>
-            <span style="font-size:0.72em; opacity:0.65;">{{ p.attributes.roster_slot }}</span>
-          </div>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endfor %}
+  - type: custom:mushroom-title-card
+    title: Bench & IR
+
+  - type: custom:auto-entities
+    card:
+      type: grid
+      columns: 2
+      square: false
+    card_param: cards
+    filter:
+      include:
+        - domain: sensor
+          attributes:
+            player_id: "*"
+            roster_slot: Bench
+          options: *player_card
+        - domain: sensor
+          attributes:
+            player_id: "*"
+            roster_slot: IR
+          options: *player_card
+    sort:
+      method: name
+      ignore_case: true
+    show_empty: false
