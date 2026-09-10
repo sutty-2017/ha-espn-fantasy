@@ -28,6 +28,10 @@ class ESPNClient:
     def url(self) -> str:
         return BASE_URL.format(season=self.season, league_id=self.league_id)
 
+    @property
+    def season_url(self) -> str:
+        return f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{self.season}"
+
     async def get_league(self) -> dict[str, Any]:
         views = [
             "mTeam",
@@ -55,6 +59,22 @@ class ESPNClient:
             if response.status != 200:
                 raise ESPNError(f"ESPN returned HTTP {response.status}.")
             try:
-                return await response.json()
+                data = await response.json()
             except ValueError as err:
                 raise ESPNError("ESPN returned invalid JSON.") from err
+
+        # The season endpoint supplies the NFL schedule used to resolve each
+        # rostered player's current-week opponent.
+        async with self.session.get(
+            self.season_url,
+            params={"view": "proTeamSchedules_wl"},
+            timeout=30,
+        ) as response:
+            if response.status != 200:
+                return data
+            try:
+                data["pro_team_schedules"] = (await response.json()).get("settings", {}).get("proTeams", [])
+            except ValueError:
+                pass
+
+        return data
