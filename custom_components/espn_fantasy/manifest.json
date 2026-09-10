@@ -5,9 +5,9 @@
   "config_flow": true,
   "documentation": "https://github.com/sutty-2017/ha-espn-fantasy",
   "integration_type": "hub",
-  "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/sutty-2017/ha-espn-fantasy/issues",
+  "iot_class": "cloud_polling",
+  "quality_scale": "bronze",
   "requirements": [],
-  "version": "0.1.0",
-  "quality_scale": "bronze"
+  "version": "0.1.0"
 }
