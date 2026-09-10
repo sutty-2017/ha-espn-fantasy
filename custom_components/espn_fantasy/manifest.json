@@ -1,6 +1,7 @@
 {
   "domain": "espn_fantasy",
   "name": "ESPN Fantasy Football",
+  "after_dependencies": ["http", "lovelace"],
   "codeowners": ["@sutty-2017"],
   "config_flow": true,
   "documentation": "https://github.com/sutty-2017/ha-espn-fantasy",
@@ -9,6 +10,5 @@
   "issue_tracker": "https://github.com/sutty-2017/ha-espn-fantasy/issues",
   "quality_scale": "bronze",
   "requirements": [],
-  "after_dependencies": ["http", "lovelace"],
   "version": "0.1.6"
 }
