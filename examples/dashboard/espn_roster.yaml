@@ -8,7 +8,7 @@
 # grouped in roster-slot order, followed by bench and IR. No player entity IDs
 # need to be maintained manually.
 
- type: vertical-stack
+type: vertical-stack
 cards:
   - type: custom:mushroom-title-card
     title: My Fantasy Team
@@ -76,9 +76,7 @@ cards:
             player_id: "*"
             roster_slot: D/ST
           options: *player_card
-    sort:
-      method: name
-      ignore_case: true
+    show_empty: false
 
   - type: custom:mushroom-title-card
     title: Bench & IR
@@ -101,7 +99,4 @@ cards:
             player_id: "*"
             roster_slot: IR
           options: *player_card
-    sort:
-      method: name
-      ignore_case: true
     show_empty: false
