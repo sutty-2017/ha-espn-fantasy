@@ -10,6 +10,27 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import CONF_LEAGUE_ID, CONF_SEASON, CONF_TEAM_ID, DOMAIN
 from .coordinator import ESPNDataUpdateCoordinator
 
+POSITION_NAMES = {
+    1: "QB",
+    2: "RB",
+    3: "WR",
+    4: "TE",
+    5: "K",
+    16: "D/ST",
+}
+
+LINEUP_SLOT_NAMES = {
+    0: "QB",
+    2: "RB",
+    4: "WR",
+    6: "TE",
+    16: "D/ST",
+    17: "K",
+    20: "Bench",
+    21: "IR",
+    23: "FLEX",
+}
+
 
 def _team(coordinator: ESPNDataUpdateCoordinator) -> dict[str, Any] | None:
     team_id = int(coordinator.entry.data[CONF_TEAM_ID])
@@ -24,6 +45,60 @@ def _record(team: dict[str, Any]) -> dict[str, int]:
         "losses": int(overall.get("losses", 0)),
         "ties": int(overall.get("ties", 0)),
     }
+
+
+def _current_week(coordinator: ESPNDataUpdateCoordinator) -> int | None:
+    data = coordinator.data
+    return data.get("scoringPeriodId") or data.get("status", {}).get("currentScoringPeriod") or data.get("status", {}).get("currentMatchupPeriod")
+
+
+def _stats_for_week(player: dict[str, Any], week: int | None) -> list[dict[str, Any]]:
+    stats = player.get("stats") or []
+    if week is None:
+        return stats
+    matching = [stat for stat in stats if stat.get("scoringPeriodId") == week]
+    return matching or stats
+
+
+def _opponent(coordinator: ESPNDataUpdateCoordinator, player: dict[str, Any]) -> str | None:
+    """Resolve the NFL opponent for the player's current fantasy week."""
+    pro_team_id = player.get("proTeamId")
+    if not pro_team_id:
+        return None
+
+    week = _current_week(coordinator)
+    if week is None:
+        return None
+
+    for team in coordinator.data.get("pro_team_schedules", []):
+        if int(team.get("id", -1)) != int(pro_team_id):
+            continue
+        game = (team.get("proGamesByScoringPeriod") or {}).get(str(week), [])
+        if isinstance(game, dict):
+            game = [game]
+        if not game:
+            return None
+        game = game[0]
+        opponent_id = (
+            game.get("opponentProTeamId")
+            or game.get("opponentId")
+            or game.get("awayProTeamId")
+            or game.get("homeProTeamId")
+        )
+        # If the schedule identifies both sides, choose the side that isn't
+        # the player's team. This accommodates ESPN's different game shapes.
+        for key in ("awayProTeamId", "homeProTeamId"):
+            value = game.get(key)
+            if value is not None and int(value) != int(pro_team_id):
+                opponent_id = value
+                break
+        if opponent_id is None:
+            return None
+        for other in coordinator.data.get("pro_team_schedules", []):
+            if int(other.get("id", -1)) == int(opponent_id):
+                return other.get("abbrev") or other.get("name")
+        return str(opponent_id)
+    return None
 
 
 class ESPNBaseSensor(CoordinatorEntity[ESPNDataUpdateCoordinator], SensorEntity):
@@ -167,26 +242,31 @@ class PlayerSensor(ESPNBaseSensor):
         super().__init__(coordinator, f"player_{pid}", name)
         self.player_id = pid
         self.entry = entry
+        self._attr_entity_picture = f"https://a.espncdn.com/i/headshots/nfl/players/full/{pid}.png"
 
     @property
     def native_value(self):
         player = self.entry.get("playerPoolEntry", {}).get("player", {})
-        stats = player.get("stats") or []
-        return stats[-1].get("appliedTotal", 0) if stats else 0
+        # ESPN's player status is the primary game-state value when supplied.
+        return player.get("status") or self.entry.get("status") or "UNKNOWN"
 
     @property
     def extra_state_attributes(self):
         player = self.entry.get("playerPoolEntry", {}).get("player", {})
-        stats = player.get("stats") or []
-        latest = stats[-1] if stats else {}
+        stats = _stats_for_week(player, _current_week(self.coordinator))
+        actual = next((s for s in stats if s.get("statSourceId") == 0), stats[-1] if stats else {})
+        projected = next((s for s in stats if s.get("statSourceId") == 1), {})
+        lineup_slot = self.entry.get("lineupSlotId")
         return {
             "player_id": self.player_id,
-            "position": player.get("defaultPositionId"),
+            "position": POSITION_NAMES.get(player.get("defaultPositionId"), player.get("defaultPositionId")),
+            "roster_slot": LINEUP_SLOT_NAMES.get(lineup_slot, lineup_slot),
             "pro_team_id": player.get("proTeamId"),
-            "injury_status": player.get("injuryStatus"),
+            "player_status": player.get("status") or self.entry.get("status"),
+            "opponent": _opponent(self.coordinator, player),
             "percent_owned": player.get("ownership", {}).get("percentOwned"),
-            "projected_points": latest.get("projectedTotal"),
-            "actual_points": latest.get("appliedTotal"),
+            "projected_points": projected.get("projectedTotal", projected.get("appliedTotal")),
+            "actual_points": actual.get("appliedTotal"),
         }
 
 
