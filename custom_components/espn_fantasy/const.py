@@ -9,6 +9,8 @@ CONF_ESPN_S2 = "espn_s2"
 CONF_SWID = "swid"
 DEFAULT_SCAN_INTERVAL = 300
 
-BASE_URL = "https://fantasy.espn.com/apis/v3/games/ffl/seasons/{season}/segments/0/leagues/{league_id}"
+# ESPN moved fantasy read requests to this host. The legacy fantasy.espn.com
+# endpoint redirects to the ESPN website, which returns HTML instead of JSON.
+BASE_URL = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{season}/segments/0/leagues/{league_id}"
 
 PLATFORMS = ["sensor"]
