@@ -9,6 +9,6 @@
   "issue_tracker": "https://github.com/sutty-2017/ha-espn-fantasy/issues",
   "quality_scale": "bronze",
   "requirements": [],
-  "after_dependencies": ["lovelace"],
+  "after_dependencies": ["http", "lovelace"],
   "version": "0.1.6"
 }
