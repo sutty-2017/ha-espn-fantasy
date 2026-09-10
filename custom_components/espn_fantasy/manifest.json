@@ -1,0 +1,13 @@
+{
+  "domain": "espn_fantasy",
+  "name": "ESPN Fantasy Football",
+  "codeowners": ["@sutty-2017"],
+  "config_flow": true,
+  "documentation": "https://github.com/sutty-2017/ha-espn-fantasy",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/sutty-2017/ha-espn-fantasy/issues",
+  "requirements": [],
+  "version": "0.1.0",
+  "quality_scale": "bronze"
+}

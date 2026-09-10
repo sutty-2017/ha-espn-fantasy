@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ESPN Fantasy Football",
+        "description": "Enter your ESPN fantasy league details. Public leagues do not need cookies. Private leagues require espn_s2 and SWID cookies.",
+        "data": {
+          "league_id": "League ID",
+          "team_id": "Team ID",
+          "season": "Season",
+          "espn_s2": "ESPN S2 cookie",
+          "swid": "SWID cookie"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to retrieve the ESPN league.",
+      "auth": "ESPN authentication failed. Check the espn_s2 and SWID cookies.",
+      "team_not_found": "The team ID was not found in this league.",
+      "invalid_input": "Enter valid numeric league, team, and season values."
+    }
+  }
+}
