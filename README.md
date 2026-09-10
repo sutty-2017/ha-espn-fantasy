@@ -16,6 +16,8 @@ It connects directly to ESPN's fantasy API and exposes your league, team, record
 - Roster count and roster details
 - One sensor for each player on your roster
 - Player attributes including position, NFL team ID, injury status, ownership, projected points, and actual points
+- Player `Game Active` binary sensors for live NFL games
+- Built-in Lovelace cards for roster and live-game views
 - Coordinated polling so all entities share one ESPN API request
 - HACS-compatible repository structure
 
@@ -71,6 +73,7 @@ The integration creates a device for the configured ESPN league/team and adds th
 | Current Week | Current ESPN matchup period |
 | Roster | Number of rostered players plus roster details |
 | Player sensors | One sensor for each rostered player |
+| Game Active sensors | One binary sensor for each rostered player |
 
 Player sensors expose attributes such as:
 
@@ -81,6 +84,19 @@ Player sensors expose attributes such as:
 - Ownership percentage
 - Projected points
 - Actual points
+
+## Dashboard cards
+
+Version 0.1.6 adds two bundled Lovelace cards. The integration serves and registers the card JavaScript automatically, so no separate frontend repository or manual resource entry is required.
+
+After updating the integration and restarting Home Assistant, open **Add Card** in a dashboard. The cards are available under the community custom cards list:
+
+- **ESPN Fantasy Roster** — displays the roster grouped by lineup slot with player headshots, points, projections, matchup information, and live-game badges.
+- **ESPN Fantasy Live** — displays only rostered players whose games are currently live.
+
+When selecting an ESPN Fantasy player entity in the 2026.6+ card picker, the appropriate ESPN card can also be suggested automatically.
+
+The cards accept an optional ESPN player or Game Active entity to scope them to a particular league/team and an optional column count.
 
 ## API notes
 
@@ -111,6 +127,10 @@ Restart Home Assistant after installation. If the integration was installed manu
 
 `/config/custom_components/espn_fantasy/manifest.json`
 
+### Cards do not appear in the card picker
+
+Restart Home Assistant after updating the integration, then refresh the browser and reopen the dashboard card picker. The integration automatically registers its JavaScript as a Lovelace module resource. If automatic resource registration fails, Home Assistant logs the resource URL so it can be added manually under **Settings → Dashboards → Resources**.
+
 ## Development
 
 The repository is structured as a standard Home Assistant custom integration:
@@ -119,14 +139,17 @@ The repository is structured as a standard Home Assistant custom integration:
 custom_components/espn_fantasy/
 ├── __init__.py
 ├── api.py
+├── binary_sensor.py
 ├── config_flow.py
 ├── const.py
 ├── coordinator.py
 ├── manifest.json
 ├── sensor.py
 ├── strings.json
-└── translations/
-    └── en.json
+├── translations/
+│   └── en.json
+└── www/
+    └── espn-fantasy-cards.js
 ```
 
 GitHub Actions run HACS validation and Home Assistant's Hassfest checks on pushes and pull requests.
