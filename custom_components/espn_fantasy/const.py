@@ -13,4 +13,4 @@ DEFAULT_SCAN_INTERVAL = 300
 # endpoint redirects to the ESPN website, which returns HTML instead of JSON.
 BASE_URL = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{season}/segments/0/leagues/{league_id}"
 
-PLATFORMS = ["sensor", "binary_sensor"]
+PLATFORMS = ["sensor", "binary_sensor", "matchup"]
