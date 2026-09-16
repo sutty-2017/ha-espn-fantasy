@@ -72,10 +72,17 @@ class ESPNClient:
         data = await self._get_json(params)
 
         status = data.get("status", {})
-        scoring_period = (
-            status.get("currentScoringPeriod")
-            or status.get("currentMatchupPeriod")
-        )
+        scoring_period = status.get("currentScoringPeriod")
+
+        # Keep the full season schedule separate from the current-period
+        # schedule. Multiple ESPN views use the same top-level `schedule` key,
+        # so a dedicated request avoids one view overwriting another and lets
+        # us reliably discover the next matchup.
+        try:
+            schedule_data = await self._get_json([("view", "mSchedule")])
+            data["season_schedule"] = schedule_data.get("schedule", [])
+        except ESPNError:
+            data["season_schedule"] = []
 
         # ESPN's live-scoring view exposes the current fantasy point totals while
         # NFL games are in progress. Keep this separate so sensors can fall back
