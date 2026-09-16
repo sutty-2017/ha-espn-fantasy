@@ -1,4 +1,4 @@
-const CARD_VERSION = "0.1.7";
+const CARD_VERSION = "0.1.8";
 const PLAYER_PREFIX = "sensor.espn_fantasy_";
 const GAME_PREFIX = "binary_sensor.espn_fantasy_";
 const MATCHUP_PREFIX = "sensor.espn_fantasy_";
@@ -49,6 +49,21 @@ const findMatchup = (hass, config = {}) => {
   return matches[0];
 };
 
+const playerName = (state) => {
+  const a = state?.attributes || {};
+  if (a.player_name) return a.player_name;
+  const friendly = a.friendly_name || state?.name || "";
+  return friendly.replace(/^ESPN Fantasy\s+\S+\s+/, "") || friendly || state?.entity_id || "Player";
+};
+
+const playerImage = (state) => {
+  const a = state?.attributes || {};
+  if (String(a.position) === "D/ST" && a.nfl_team) {
+    return `https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/${encodeURIComponent(a.nfl_team)}.png`;
+  }
+  return a.headshot || null;
+};
+
 const showMoreInfo = (element, entityId) => element.dispatchEvent(new CustomEvent("hass-more-info", {
   bubbles: true, composed: true, detail: { entityId },
 }));
@@ -83,18 +98,18 @@ class ESPNFantasyRosterCard extends ESPNBaseCard {
     playerStates(this.hass,this._config).forEach((s)=>{const slot=s.attributes?.roster_slot||"Bench";(grouped[slot] ||= []).push(s);});
     const sections=ROSTER_ORDER.filter((s)=>grouped[s]?.length).map((slot)=>`<section class="section"><div class="section-title">${esc(slot)}</div><div class="grid" style="--columns:${cols}">${grouped[slot].map((s)=>this.player(s)).join("")}</div></section>`).join("");
     const matchup=findMatchup(this.hass,this._config); const ma=matchup?.attributes;
-    const header=ma?`<div class="matchup-head"><div><div class="team-name">${esc(ma.team_name)}</div><div class="score">${number(ma.team_score,2)}</div></div><div class="versus">VS<br>WEEK ${esc(ma.current_week)}</div><div><div class="team-name">${esc(ma.opponent_team_name)}</div><div class="score">${number(ma.opponent_score,2)}</div></div></div>`:"";
+    const header=ma?`<div class="matchup-head"><div><div class="team-name">${esc(ma.team_name)}</div><div class="score">${number(ma.team_score,2)}</div></div><div class="versus">VS<br>WEEK ${esc(ma.current_week)}</div><div><div class="team-name">${esc(ma.opponent_team_name)}</div><div class="score">${number(ma.opponent_score,2)}</div></div></div>${ma.next_opponent_team_name?`<div class="projected">Next matchup: ${esc(ma.next_opponent_team_name)}</div>`:""}`:"";
     this.shadowRoot.innerHTML=`<style>${this.baseStyles()}</style><ha-card><div class="wrap"><div class="title"><span class="title-icon">🏈</span><span>ESPN Fantasy Roster</span></div>${header}${sections||'<div class="empty">No ESPN Fantasy player sensors found.</div>'}</div></ha-card>`;
     this.shadowRoot.querySelectorAll(".player").forEach((n)=>n.addEventListener("click",()=>showMoreInfo(this,n.dataset.entity)));
   }
-  player(state){const a=state.attributes||{},live=findLive(this.hass,a.player_id)?.state==="on",meta=[a.position,a.nfl_team,a.opponent?`vs ${a.opponent}`:""] .filter(Boolean).join(" · "),pts=live&&a.live_points!=null?`${number(a.live_points)} live`:`${number(state.state)} pts`,proj=a.projected_points!=null?` · ${number(a.projected_points)} proj`:"";return `<div class="player" data-entity="${esc(state.entity_id)}">${a.headshot?`<img class="photo" src="${esc(a.headshot)}" alt="" loading="lazy">`:'<div class="photo"></div>'}<div><div class="name">${esc(a.friendly_name||state.name||state.entity_id)}</div><div class="meta">${esc(meta||"ESPN Fantasy")}</div><div class="points">${esc(pts)}${esc(proj)}</div></div>${live?'<span class="badge">LIVE</span>':""}</div>`;}
+  player(state){const a=state.attributes||{},live=findLive(this.hass,a.player_id)?.state==="on",meta=[a.position,a.nfl_team,a.opponent?`vs ${a.opponent}`:""] .filter(Boolean).join(" · "),pts=live&&a.live_points!=null?`${number(a.live_points)} live`:`${number(state.state)} pts`,proj=a.projected_points!=null?` · ${number(a.projected_points)} proj`:"",image=playerImage(state);return `<div class="player" data-entity="${esc(state.entity_id)}">${image?`<img class="photo" src="${esc(image)}" alt="" loading="lazy">`:'<div class="photo"></div>'}<div><div class="name">${esc(playerName(state))}</div><div class="meta">${esc(meta||"ESPN Fantasy")}</div><div class="points">${esc(pts)}${esc(proj)}</div></div>${live?'<span class="badge">LIVE</span>':""}</div>`;}
 }
 
 class ESPNFantasyLiveCard extends ESPNBaseCard {
   static getStubConfig(){return {type:"custom:espn-fantasy-live-card"};}
   static getConfigForm(){return {schema:[{name:"entity",selector:{entity:{domain:"binary_sensor"}}},{name:"columns",selector:{number:{min:1,max:6,mode:"box"}}}]};}
   render(){if(!this.shadowRoot||!this.hass)return;const live=states(this.hass).filter((s)=>s.entity_id.startsWith(GAME_PREFIX)&&s.entity_id.endsWith("_game_active")&&s.state==="on"),cols=Math.max(1,Math.min(6,Number(this._config.columns||3))),players=live.map((s)=>findPlayer(this.hass,s.attributes?.player_id)).filter(Boolean);this.shadowRoot.innerHTML=`<style>${this.baseStyles()}</style><ha-card><div class="wrap"><div class="title"><span class="title-icon">🔴</span><span>ESPN Fantasy Live</span></div>${players.length?`<div class="grid" style="--columns:${cols}">${players.map((s)=>this.player(s)).join("")}</div>`:'<div class="empty">No rostered players are live right now.</div>'}</div></ha-card>`;this.shadowRoot.querySelectorAll(".player").forEach((n)=>n.addEventListener("click",()=>showMoreInfo(this,n.dataset.entity)));}
-  player(state){const a=state.attributes||{},game=findLive(this.hass,a.player_id),ga=game?.attributes||{},points=ga.live_points??a.live_points??state.state,meta=[a.position,a.nfl_team,a.opponent?`vs ${a.opponent}`:""] .filter(Boolean).join(" · ");return `<div class="player" data-entity="${esc(state.entity_id)}">${a.headshot?`<img class="photo" src="${esc(a.headshot)}" alt="" loading="lazy">`:'<div class="photo"></div>'}<div><div class="name">${esc(a.friendly_name||state.name||state.entity_id)}</div><div class="meta">${esc(meta||"ESPN Fantasy")}</div><div class="points">${number(points)} pts</div></div><span class="badge">LIVE</span></div>`;}
+  player(state){const a=state.attributes||{},game=findLive(this.hass,a.player_id),ga=game?.attributes||{},points=ga.live_points??a.live_points??state.state,meta=[a.position,a.nfl_team,a.opponent?`vs ${a.opponent}`:""] .filter(Boolean).join(" · "),image=playerImage(state);return `<div class="player" data-entity="${esc(state.entity_id)}">${image?`<img class="photo" src="${esc(image)}" alt="" loading="lazy">`:'<div class="photo"></div>'}<div><div class="name">${esc(playerName(state))}</div><div class="meta">${esc(meta||"ESPN Fantasy")}</div><div class="points">${number(points)} pts</div></div><span class="badge">LIVE</span></div>`;}
 }
 
 class ESPNFantasyMatchupCard extends ESPNBaseCard {
@@ -106,7 +121,8 @@ class ESPNFantasyMatchupCard extends ESPNBaseCard {
     if(!a){this.shadowRoot.innerHTML=`<style>${this.baseStyles()}</style><ha-card><div class="wrap"><div class="title">🏆 <span>ESPN Fantasy Matchup</span></div><div class="empty">No matchup data is available yet.</div></div></ha-card>`;return;}
     const mine=a.my_roster||[],opp=a.opponent_roster||[], bySlot=(list)=>Object.fromEntries(list.map((p)=>[p.lineup_slot,p])); const left=bySlot(mine),right=bySlot(opp);
     const rows=STARTER_ORDER.map((slot)=>{const l=left[slot],r=right[slot],lp=l?.live_points??l?.actual_points,rp=r?.live_points??r?.actual_points,diff=typeof lp==="number"&&typeof rp==="number"?lp-rp:null;return `<div class="battle"><div class="battle-side">${this.mini(l,false)}</div><div><div class="slot">${esc(slot)}</div><div class="advantage ${diff>0?'positive':diff<0?'negative':''}">${diff==null?'—':`${diff>=0?'+':''}${number(diff)}`}</div></div><div class="battle-side right">${this.mini(r,true)}</div></div>`;}).join("");
-    this.shadowRoot.innerHTML=`<style>${this.baseStyles()}</style><ha-card><div class="wrap"><div class="title">🏆 <span>ESPN Fantasy Matchup</span></div><div class="matchup-head"><div><div class="team-name">${esc(a.team_name)}</div><div class="score">${number(a.team_score,2)}</div><div class="projected">Proj ${number(a.team_projected_score,1)}</div></div><div class="versus">VS<br>WEEK ${esc(a.current_week)}</div><div><div class="team-name">${esc(a.opponent_team_name)}</div><div class="score">${number(a.opponent_score,2)}</div><div class="projected">Proj ${number(a.opponent_projected_score,1)}</div></div></div><div class="status">${esc(a.result)}${a.point_differential!=null?` · ${a.point_differential>=0?'+':''}${number(a.point_differential,2)}`:""}</div>${rows}</div></ha-card>`;
+    const next=a.next_opponent_team_name?`<div class="projected">Next matchup: ${esc(a.next_opponent_team_name)}</div>`:"";
+    this.shadowRoot.innerHTML=`<style>${this.baseStyles()}</style><ha-card><div class="wrap"><div class="title">🏆 <span>ESPN Fantasy Matchup</span></div><div class="matchup-head"><div><div class="team-name">${esc(a.team_name)}</div><div class="score">${number(a.team_score,2)}</div><div class="projected">Proj ${number(a.team_projected_score,1)}</div></div><div class="versus">VS<br>WEEK ${esc(a.current_week)}</div><div><div class="team-name">${esc(a.opponent_team_name)}</div><div class="score">${number(a.opponent_score,2)}</div><div class="projected">Proj ${number(a.opponent_projected_score,1)}</div></div></div>${next}<div class="status">${esc(a.result)}${a.point_differential!=null?` · ${a.point_differential>=0?'+':''}${number(a.point_differential,2)}`:""}</div>${rows}</div></ha-card>`;
     this.shadowRoot.querySelectorAll("[data-entity]").forEach((n)=>n.addEventListener("click",()=>showMoreInfo(this,n.dataset.entity)));
   }
   mini(p,right){if(!p)return '<div class="empty">—</div>';const id=findPlayer(this.hass,p.id)?.entity_id,pts=p.live_points??p.actual_points;return `<div ${id?`data-entity="${esc(id)}"`:""}><div class="battle-name">${esc(p.name)}</div><div class="battle-meta">${esc(p.position||"")} · ${esc(p.nfl_team||"")}</div><div class="battle-points">${number(pts)}${p.live_points!=null?' LIVE':''}</div></div>`;}
