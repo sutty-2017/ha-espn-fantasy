@@ -146,9 +146,37 @@ def _record(team: dict[str, Any]) -> dict[str, int]:
     }
 
 
+def _current_scoring_period(coordinator: ESPNDataUpdateCoordinator) -> int | None:
+    value = coordinator.data.get("status", {}).get("currentScoringPeriod")
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _current_matchup_period(coordinator: ESPNDataUpdateCoordinator) -> int | None:
+    value = coordinator.data.get("status", {}).get("currentMatchupPeriod")
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 def _current_week(coordinator: ESPNDataUpdateCoordinator) -> int | None:
-    status = coordinator.data.get("status", {})
-    return status.get("currentScoringPeriod") or status.get("currentMatchupPeriod")
+    """Backward-compatible alias for the football scoring period."""
+    return _current_scoring_period(coordinator)
+
+
+def _player_image(player: dict[str, Any]) -> str | None:
+    pid = player.get("id")
+    if player.get("defaultPositionId") == 16:
+        team = PRO_TEAM_NAMES.get(player.get("proTeamId"))
+        return (
+            f"https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/{team}.png"
+            if team
+            else None
+        )
+    return f"https://a.espncdn.com/i/headshots/nfl/players/full/{pid}.png" if pid else None
 
 
 def _stats_for_week(player: dict[str, Any], week: int | None) -> list[dict[str, Any]]:
@@ -376,7 +404,7 @@ class PlayerSensor(ESPNBaseSensor):
         name = player.get("fullName") or f"Player {pid}"
         super().__init__(coordinator, f"player_{pid}", name)
         self.player_id = int(pid)
-        self._attr_entity_picture = f"https://a.espncdn.com/i/headshots/nfl/players/full/{pid}.png"
+        self._attr_entity_picture = _player_image(player)
 
     @property
     def _entry(self) -> dict[str, Any]:
@@ -423,6 +451,7 @@ class PlayerSensor(ESPNBaseSensor):
         rating = next(iter(ratings.values()), {}) if isinstance(ratings, dict) else {}
         attrs = {
             "player_id": self.player_id,
+            "player_name": player.get("fullName") or f"Player {self.player_id}",
             "position": POSITION_NAMES.get(player.get("defaultPositionId"), player.get("defaultPositionId")),
             "roster_slot": LINEUP_SLOT_NAMES.get(entry.get("lineupSlotId"), entry.get("lineupSlotId")),
             "eligible_slots": [LINEUP_SLOT_NAMES.get(slot, slot) for slot in player.get("eligibleSlots", [])],
@@ -449,7 +478,9 @@ class PlayerSensor(ESPNBaseSensor):
             "lineup_locked": entry.get("lineupLocked"),
             "acquisition_type": entry.get("acquisitionType"),
             "acquisition_date": entry.get("acquisitionDate"),
-            "current_week": _current_week(self.coordinator),
+            "current_week": _current_scoring_period(self.coordinator),
+            "current_scoring_period": _current_scoring_period(self.coordinator),
+            "current_matchup_period": _current_matchup_period(self.coordinator),
             "headshot": self._attr_entity_picture,
         }
         attrs.update(_decode_stats(actual))
