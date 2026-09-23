@@ -9,7 +9,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_LEAGUE_ID, CONF_TEAM_ID, DOMAIN
 from .coordinator import ESPNDataUpdateCoordinator
-from .sensor import LINEUP_SLOT_NAMES, POSITION_NAMES, PRO_TEAM_NAMES, _current_week, _find_live_player, _stat_entry
+from .sensor import LINEUP_SLOT_NAMES, POSITION_NAMES, PRO_TEAM_NAMES, _current_scoring_period, _current_matchup_period, _find_live_player, _stat_entry
 
 
 def _teams(coordinator: ESPNDataUpdateCoordinator) -> list[dict[str, Any]]:
@@ -140,7 +140,7 @@ def _team_logo(pro_team_id: Any) -> str | None:
 def _player_summary(coordinator: ESPNDataUpdateCoordinator, team: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any]:
     player = entry.get("playerPoolEntry", {}).get("player", {})
     pid = player.get("id") or entry.get("playerId")
-    week = _current_scoring_period(coordinator) or _current_week(coordinator)
+    week = _current_scoring_period(coordinator)
     actual = _stat_entry(player, week, 0)
     projected = _stat_entry(player, week, 1)
     live = _find_live_player(coordinator.data.get("live_scoring", {}), int(pid)) if pid else None
@@ -202,9 +202,8 @@ class MatchupSensor(CoordinatorEntity[ESPNDataUpdateCoordinator], SensorEntity):
         team_id = int(self.coordinator.entry.data[CONF_TEAM_ID])
         period = _current_matchup_period(self.coordinator)
         return (
-            _find_matchup_object(self.coordinator.data.get("schedule", []), team_id, period)
+            _find_matchup_object(self.coordinator.data.get("current_matchup", []), team_id, period)
             or _find_matchup_object(self.coordinator.data.get("live_scoring", {}), team_id, period)
-            or _find_matchup_object(self.coordinator.data.get("season_schedule", []), team_id, period)
         )
 
     @property
@@ -252,6 +251,7 @@ class MatchupSensor(CoordinatorEntity[ESPNDataUpdateCoordinator], SensorEntity):
         opp_score = _score(opp_side)
         return {
             "current_week": _current_scoring_period(self.coordinator),
+            "current_scoring_period": _current_scoring_period(self.coordinator),
             "current_matchup_period": _current_matchup_period(self.coordinator),
             "team_id": my_team.get("id"),
             "team_name": _team_name(my_team),
