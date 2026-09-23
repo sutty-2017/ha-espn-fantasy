@@ -57,9 +57,38 @@ class ESPNClient:
             except ValueError as err:
                 raise ESPNError("ESPN returned invalid JSON.") from err
 
+    @staticmethod
+    def _merge_rosters(
+        teams: list[dict[str, Any]], roster_teams: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Merge period-specific rosters into the richer team metadata."""
+        roster_by_id = {
+            str(team.get("id")): team
+            for team in roster_teams
+            if team.get("id") is not None
+        }
+        merged: list[dict[str, Any]] = []
+        seen: set[str] = set()
+
+        for team in teams:
+            team_id = team.get("id")
+            if team_id is None:
+                continue
+            key = str(team_id)
+            combined = dict(team)
+            roster_team = roster_by_id.get(key)
+            if roster_team:
+                combined["roster"] = roster_team.get("roster", {})
+            merged.append(combined)
+            seen.add(key)
+
+        for key, roster_team in roster_by_id.items():
+            if key not in seen:
+                merged.append(roster_team)
+
+        return merged
+
     async def get_league(self) -> dict[str, Any]:
-        # First get league metadata. We need status before requesting any
-        # period-specific roster/matchup data.
         meta = await self._get_json(
             [
                 ("view", "mTeam"),
@@ -75,18 +104,16 @@ class ESPNClient:
         if scoring_period is None:
             raise ESPNError("ESPN did not return a current scoring period.")
 
-        # Roster data is explicitly tied to the current scoring period.
         roster = await self._get_json(
             [
                 ("view", "mRoster"),
                 ("scoringPeriodId", scoring_period),
             ]
         )
-        meta["teams"] = roster.get("teams", meta.get("teams", []))
+        meta["teams"] = self._merge_rosters(
+            meta.get("teams", []), roster.get("teams", [])
+        )
 
-        # Matchup/boxscore data is explicitly tied to BOTH periods. This is
-        # important because ESPN distinguishes a scoring period from a matchup
-        # period, and several views otherwise return a misleading schedule.
         matchup_params: list[tuple[str, Any]] = [
             ("view", "mMatchupScore"),
             ("view", "mBoxscore"),
@@ -98,8 +125,6 @@ class ESPNClient:
         matchup = await self._get_json(matchup_params)
         meta["current_matchup"] = matchup.get("schedule", [])
 
-        # Live scoring is supplemental. It uses the scoring period and can be
-        # stale/empty outside active NFL games, so failure here is non-fatal.
         try:
             live = await self._get_json(
                 [
@@ -112,11 +137,9 @@ class ESPNClient:
         except ESPNError:
             meta["live_scoring"] = {}
 
-        # Full season schedule is the source of truth for future opponents.
         schedule = await self._get_json([("view", "mSchedule")])
         meta["season_schedule"] = schedule.get("schedule", [])
 
-        # NFL schedule is used for player opponent labels.
         try:
             async with self.session.get(
                 self.season_url,
