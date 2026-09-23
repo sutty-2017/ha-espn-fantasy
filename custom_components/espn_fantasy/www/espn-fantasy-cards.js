@@ -1,4 +1,4 @@
-const CARD_VERSION = "0.1.8";
+const CARD_VERSION = "0.1.9";
 const PLAYER_PREFIX = "sensor.espn_fantasy_";
 const GAME_PREFIX = "binary_sensor.espn_fantasy_";
 const MATCHUP_PREFIX = "sensor.espn_fantasy_";
@@ -38,15 +38,14 @@ const findLive = (hass, id) => states(hass).find((state) =>
   state.entity_id.startsWith(GAME_PREFIX) && String(state.attributes?.player_id) === String(id)
 );
 const findMatchup = (hass, config = {}) => {
-  const matches = states(hass).filter((state) =>
-    state.entity_id.startsWith(MATCHUP_PREFIX) &&
-    state.attributes?.my_roster && state.attributes?.opponent_roster
-  );
-  if (config.entity && hass.states[config.entity]?.attributes?.opponent_team_id) {
-    const id = String(hass.states[config.entity].attributes.opponent_team_id);
-    return matches.find((state) => String(state.attributes.opponent_team_id) === id) || matches[0];
+  if (config.entity && hass.states[config.entity]?.attributes?.my_roster) {
+    return hass.states[config.entity];
   }
-  return matches[0];
+  return states(hass).find((state) =>
+    state.entity_id.startsWith(MATCHUP_PREFIX) &&
+    state.attributes?.my_roster &&
+    state.attributes?.opponent_roster
+  );
 };
 
 const playerName = (state) => {
