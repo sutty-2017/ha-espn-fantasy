@@ -18,7 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 _CARD_FILENAME = "espn-fantasy-cards.js"
 _CARD_PATH = Path(__file__).parent / "www" / _CARD_FILENAME
 _CARD_STATIC_URL = f"/espn_fantasy/{_CARD_FILENAME}"
-_CARD_URL = f"{_CARD_STATIC_URL}?v=0.1.9"
+_CARD_URL = f"{_CARD_STATIC_URL}?v=0.1.10"
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
