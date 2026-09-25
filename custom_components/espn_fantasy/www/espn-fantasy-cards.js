@@ -1,4 +1,4 @@
-const CARD_VERSION = "0.1.9";
+const CARD_VERSION = "0.1.10";
 const PLAYER_PREFIX = "sensor.espn_fantasy_";
 const GAME_PREFIX = "binary_sensor.espn_fantasy_";
 const MATCHUP_PREFIX = "sensor.espn_fantasy_";
@@ -50,9 +50,7 @@ const findMatchup = (hass, config = {}) => {
 
 const playerName = (state) => {
   const a = state?.attributes || {};
-  if (a.player_name) return a.player_name;
-  const friendly = a.friendly_name || state?.name || "";
-  return friendly.replace(/^ESPN Fantasy\s+\S+\s+/, "") || friendly || state?.entity_id || "Player";
+  return a.player_name || state?.name || state?.entity_id || "Player";
 };
 
 const playerImage = (state) => {
