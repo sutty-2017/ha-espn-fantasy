@@ -27,23 +27,13 @@ def _team_by_id(coordinator: ESPNDataUpdateCoordinator, team_id: int | None) -> 
         target = int(team_id)
     except (TypeError, ValueError):
         return None
-    return next((team for team in _teams(coordinator) if int(team.get("id", -1)) == target), None)
-
-
-def _current_scoring_period(coordinator: ESPNDataUpdateCoordinator) -> int | None:
-    value = coordinator.data.get("status", {}).get("currentScoringPeriod")
-    try:
-        return int(value) if value is not None else None
-    except (TypeError, ValueError):
-        return None
-
-
-def _current_matchup_period(coordinator: ESPNDataUpdateCoordinator) -> int | None:
-    value = coordinator.data.get("status", {}).get("currentMatchupPeriod")
-    try:
-        return int(value) if value is not None else None
-    except (TypeError, ValueError):
-        return None
+    for team in _teams(coordinator):
+        try:
+            if int(team.get("id", -1)) == target:
+                return team
+        except (TypeError, ValueError):
+            continue
+    return None
 
 
 def _find_matchup_object(data: Any, team_id: int, matchup_period: int | None) -> dict[str, Any] | None:
@@ -143,10 +133,23 @@ def _player_summary(coordinator: ESPNDataUpdateCoordinator, team: dict[str, Any]
     week = _current_scoring_period(coordinator)
     actual = _stat_entry(player, week, 0)
     projected = _stat_entry(player, week, 1)
-    live = _find_live_player(coordinator.data.get("live_scoring", {}), int(pid)) if pid else None
+    try:
+        player_id = int(pid) if pid is not None else None
+    except (TypeError, ValueError):
+        player_id = None
+    live = _find_live_player(coordinator.data.get("live_scoring", {}), player_id) if player_id is not None else None
     live_points = next((live.get(k) for k in ("liveAppliedStatTotal", "appliedStatTotal", "livePoints", "points") if live and live.get(k) is not None), None)
-    position = POSITION_NAMES.get(player.get("defaultPositionId"), player.get("defaultPositionId"))
-    is_defense = position == "D/ST" or entry.get("lineupSlotId") == 16
+    position_id = player.get("defaultPositionId")
+    try:
+        position_key = int(position_id) if position_id is not None else None
+    except (TypeError, ValueError):
+        position_key = None
+    position = POSITION_NAMES.get(position_key, position_id)
+    try:
+        lineup_slot_id = int(entry.get("lineupSlotId")) if entry.get("lineupSlotId") is not None else None
+    except (TypeError, ValueError):
+        lineup_slot_id = None
+    is_defense = position == "D/ST" or lineup_slot_id == 16
     image = _team_logo(player.get("proTeamId")) if is_defense else (f"https://a.espncdn.com/i/headshots/nfl/players/full/{pid}.png" if pid else None)
     return {
         "id": pid,
