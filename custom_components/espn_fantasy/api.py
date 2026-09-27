@@ -99,13 +99,16 @@ class ESPNClient:
         )
 
         status = meta.get("status", {})
-        scoring_period = self._int(status.get("currentScoringPeriod"))
+        # ESPN can expose the current scoring period at the top level of the
+        # league response (for example alongside mTeam), even when mStatus does
+        # not include currentScoringPeriod.
+        scoring_period = self._int(meta.get("scoringPeriodId"))
+        if scoring_period is None:
+            scoring_period = self._int(status.get("currentScoringPeriod"))
         matchup_period = self._int(status.get("currentMatchupPeriod"))
 
-        # ESPN has occasionally omitted currentScoringPeriod from mStatus even
-        # while the league is active. mScoreboard is the authoritative fallback
-        # for the current scoring period and also carries matchupPeriodId on its
-        # schedule entries.
+        # mScoreboard is the fallback when the league response does not expose
+        # a usable scoring period and can provide the current schedule.
         scoreboard: dict[str, Any] | None = None
         if scoring_period is None or matchup_period is None:
             scoreboard = await self._get_json([("view", "mScoreboard")])
