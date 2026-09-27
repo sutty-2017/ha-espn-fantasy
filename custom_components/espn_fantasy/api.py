@@ -101,8 +101,25 @@ class ESPNClient:
         status = meta.get("status", {})
         scoring_period = self._int(status.get("currentScoringPeriod"))
         matchup_period = self._int(status.get("currentMatchupPeriod"))
+
+        # ESPN has occasionally omitted currentScoringPeriod from mStatus even
+        # while the league is active. mScoreboard is the authoritative fallback
+        # for the current scoring period and also carries matchupPeriodId on its
+        # schedule entries.
+        scoreboard: dict[str, Any] | None = None
+        if scoring_period is None or matchup_period is None:
+            scoreboard = await self._get_json([("view", "mScoreboard")])
+            if scoring_period is None:
+                scoring_period = self._int(scoreboard.get("scoringPeriodId"))
+            if matchup_period is None:
+                for game in scoreboard.get("schedule", []):
+                    period = self._int(game.get("matchupPeriodId"))
+                    if period is not None:
+                        matchup_period = period
+                        break
+
         if scoring_period is None:
-            raise ESPNError("ESPN did not return a current scoring period.")
+            raise ESPNError("ESPN did not return a current scoring period from mStatus or mScoreboard.")
 
         roster = await self._get_json(
             [
