@@ -196,6 +196,11 @@ def _player(
     pro_team_id = _int(player.get("proTeamId"))
     pro_team = pro_teams.get(pro_team_id) or {}
     game = _game_info(pro_team_id, period, pro_teams)
+    injury_status = player.get("injuryStatus") or entry.get("injuryStatus")
+    if injury_status in (None, "", "NORMAL") and entry.get("injuryStatus") not in (None, "", "NORMAL"):
+        injury_status = entry.get("injuryStatus")
+    if injury_status in (None, "", "NORMAL") and player.get("injured"):
+        injury_status = "INJURED"
     return {
         "id": player_id,
         "name": player.get("fullName") or f"Player {player_id}",
@@ -207,7 +212,7 @@ def _player(
         "pro_team_id": pro_team_id,
         "nfl_team": _team_abbrev(pro_team),
         "headshot": _player_image(player_id, position_id, pro_team_id, pro_teams),
-        "injury_status": player.get("injuryStatus"),
+        "injury_status": injury_status,
         "injured": player.get("injured"),
         "actual_points": _float(actual.get("appliedTotal")),
         "projected_points": _float(
