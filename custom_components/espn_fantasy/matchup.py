@@ -286,6 +286,8 @@ class MatchupSensor(CoordinatorEntity[ESPNDataUpdateCoordinator], SensorEntity):
             "next_opponent_team_name": _team_name(next_opp_team) if next_opp_team else None,
             "my_roster": normalized_my.get("starters") or [],
             "opponent_roster": normalized_opp.get("starters") or [],
+            "my_players": normalized_my.get("roster") or [],
+            "opponent_players": normalized_opp.get("roster") or [],
         }
 
 
