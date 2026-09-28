@@ -11,7 +11,8 @@ POSITION_NAMES = {
 }
 
 LINEUP_SLOT_NAMES = {
-    0: "QB", 2: "RB", 4: "WR", 6: "TE", 16: "D/ST", 17: "K",
+    0: "QB", 2: "RB", 4: "WR", 6: "TE", 8: "DT", 9: "DL", 10: "LB",
+    11: "DL", 12: "CB", 13: "S", 14: "DB", 15: "DP", 16: "D/ST", 17: "K",
     20: "Bench", 21: "IR", 23: "FLEX",
 }
 
