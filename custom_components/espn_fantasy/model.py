@@ -196,7 +196,12 @@ def _player(
     pro_team_id = _int(player.get("proTeamId"))
     pro_team = pro_teams.get(pro_team_id) or {}
     game = _game_info(pro_team_id, period, pro_teams)
-    outlooks = player.get("outlooks") or {}\n    weekly_outlooks = outlooks.get("outlooksByWeek") or {}\n    current_outlook = weekly_outlooks.get(str(period)) if period is not None else None\n    if current_outlook is None and period is not None:\n        current_outlook = weekly_outlooks.get(period)\n    injury_status = player.get("injuryStatus") or entry.get("injuryStatus")
+    outlooks = player.get("outlooks") or {}
+    weekly_outlooks = outlooks.get("outlooksByWeek") or {}
+    current_outlook = weekly_outlooks.get(str(period)) if period is not None else None
+    if current_outlook is None and period is not None:
+        current_outlook = weekly_outlooks.get(period)
+    injury_status = player.get("injuryStatus") or entry.get("injuryStatus")
     if injury_status in (None, "", "NORMAL") and entry.get("injuryStatus") not in (None, "", "NORMAL"):
         injury_status = entry.get("injuryStatus")
     if injury_status in (None, "", "NORMAL") and player.get("injured"):
@@ -213,7 +218,10 @@ def _player(
         "nfl_team": _team_abbrev(pro_team),
         "headshot": _player_image(player_id, position_id, pro_team_id, pro_teams),
         "injury_status": injury_status,
-        "injured": player.get("injured"),\n        "last_news_date": _int(player.get("lastNewsDate")),\n        "weekly_outlook": current_outlook,\n        "season_outlook": player.get("seasonOutlook"),
+        "injured": player.get("injured"),
+        "last_news_date": _int(player.get("lastNewsDate")),
+        "weekly_outlook": current_outlook,
+        "season_outlook": player.get("seasonOutlook"),
         "actual_points": _float(actual.get("appliedTotal")),
         "projected_points": _float(
             projected.get("appliedTotal", projected.get("projectedTotal"))
