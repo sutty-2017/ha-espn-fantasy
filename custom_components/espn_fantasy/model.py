@@ -15,6 +15,61 @@ LINEUP_SLOT_NAMES = {
     20: "Bench", 21: "IR", 23: "FLEX",
 }
 
+STAT_NAMES = {
+    0: "passing_attempts", 1: "passing_completions", 3: "passing_yards",
+    4: "passing_touchdowns", 20: "passing_interceptions", 23: "rushing_attempts",
+    24: "rushing_yards", 25: "rushing_touchdowns", 41: "receiving_receptions",
+    42: "receiving_yards", 43: "receiving_touchdowns", 58: "receiving_targets",
+    68: "fumbles", 72: "fumbles_lost", 83: "field_goals_made",
+    84: "field_goals_attempted", 86: "extra_points_made",
+    87: "extra_points_attempted", 94: "defensive_touchdowns",
+    95: "defensive_interceptions", 96: "defensive_fumbles_recovered",
+    97: "defensive_blocked_kicks", 98: "defensive_safeties",
+    99: "defensive_sacks", 106: "defensive_forced_fumbles",
+    107: "defensive_assisted_tackles", 108: "defensive_solo_tackles",
+    109: "defensive_total_tackles", 113: "defensive_passes_defensed",
+    120: "defensive_points_allowed", 127: "defensive_yards_allowed",
+}
+
+STAT_LABELS = {
+    "passing_attempts": "Pass Att", "passing_completions": "Comp",
+    "passing_yards": "Pass Yds", "passing_touchdowns": "Pass TD",
+    "passing_interceptions": "INT", "rushing_attempts": "Carries",
+    "rushing_yards": "Rush Yds", "rushing_touchdowns": "Rush TD",
+    "receiving_receptions": "Rec", "receiving_yards": "Rec Yds",
+    "receiving_touchdowns": "Rec TD", "receiving_targets": "Targets",
+    "fumbles": "Fumbles", "fumbles_lost": "Fum Lost",
+    "field_goals_made": "FG Made", "field_goals_attempted": "FG Att",
+    "extra_points_made": "XP Made", "extra_points_attempted": "XP Att",
+    "defensive_touchdowns": "Def TD", "defensive_interceptions": "INT",
+    "defensive_fumbles_recovered": "Fum Rec", "defensive_blocked_kicks": "Blk Kick",
+    "defensive_safeties": "Safety", "defensive_sacks": "Sacks",
+    "defensive_forced_fumbles": "FF", "defensive_assisted_tackles": "Ast Tack",
+    "defensive_solo_tackles": "Solo Tack", "defensive_total_tackles": "Tackles",
+    "defensive_passes_defensed": "PD", "defensive_points_allowed": "Pts Allowed",
+    "defensive_yards_allowed": "Yds Allowed",
+}
+
+POSITION_DEFAULT_STATS = {
+    "QB": ["passing_completions", "passing_attempts", "passing_yards", "passing_touchdowns", "passing_interceptions", "rushing_yards", "rushing_touchdowns"],
+    "RB": ["rushing_attempts", "rushing_yards", "rushing_touchdowns", "receiving_targets", "receiving_receptions", "receiving_yards", "receiving_touchdowns"],
+    "WR": ["receiving_targets", "receiving_receptions", "receiving_yards", "receiving_touchdowns", "rushing_yards"],
+    "TE": ["receiving_targets", "receiving_receptions", "receiving_yards", "receiving_touchdowns"],
+    "K": ["field_goals_made", "field_goals_attempted", "extra_points_made", "extra_points_attempted"],
+    "D/ST": ["defensive_sacks", "defensive_interceptions", "defensive_fumbles_recovered", "defensive_touchdowns", "defensive_safeties", "defensive_points_allowed", "defensive_yards_allowed"],
+}
+
+
+def _named_stats(raw: dict[str, Any]) -> dict[str, float]:
+    result: dict[str, float] = {}
+    for raw_id, value in raw.items():
+        try:
+            name = STAT_NAMES.get(int(raw_id), f"stat_{raw_id}")
+            result[name] = float(value)
+        except (TypeError, ValueError):
+            continue
+    return result
+
 
 def _int(value: Any) -> int | None:
     try:
@@ -149,8 +204,9 @@ def _player(
             projected.get("appliedTotal", projected.get("projectedTotal"))
         ),
         "projection_ceiling": _float(projected.get("appliedTotalCeiling")),
-        "actual_stats": dict(actual.get("stats") or {}),
-        "projected_stats": dict(projected.get("stats") or {}),
+        "stats": _named_stats(dict(actual.get("stats") or {})),
+        "stat_labels": STAT_LABELS,
+        "default_stats": POSITION_DEFAULT_STATS.get(POSITION_NAMES.get(position_id, position_id), []),
         **game,
     }
 
