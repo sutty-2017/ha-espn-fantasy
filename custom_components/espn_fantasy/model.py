@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -39,20 +40,70 @@ def _stat_entry(player: dict[str, Any], period: int | None, source: int) -> dict
     return {}
 
 
-def _player(entry: dict[str, Any], period: int | None) -> dict[str, Any]:
+def _game_info(
+    pro_team_id: int | None,
+    period: int | None,
+    pro_teams: dict[int, dict[str, Any]],
+) -> dict[str, Any]:
+    if pro_team_id is None or period is None:
+        return {}
+    team = pro_teams.get(pro_team_id) or {}
+    games = (team.get("proGamesByScoringPeriod") or {}).get(str(period)) or []
+    if not games:
+        if _int(team.get("byeWeek")) == period:
+            return {"game_status": "bye", "opponent_pro_team_id": None}
+        return {"game_status": "unknown"}
+
+    game = games[0]
+    home_id = _int(game.get("homeProTeamId"))
+    away_id = _int(game.get("awayProTeamId"))
+    opponent_id = away_id if home_id == pro_team_id else home_id
+    date_ms = _int(game.get("date"))
+    kickoff = None
+    if date_ms is not None:
+        kickoff = datetime.fromtimestamp(date_ms / 1000, tz=timezone.utc)
+    if game.get("statsOfficial"):
+        status = "final"
+    elif kickoff is not None and datetime.now(timezone.utc) >= kickoff:
+        status = "in_progress"
+    else:
+        status = "scheduled"
+    opponent = pro_teams.get(opponent_id) or {}
+    return {
+        "game_id": _int(game.get("id")),
+        "game_status": status,
+        "game_start": kickoff.isoformat() if kickoff else None,
+        "start_time_tbd": bool(game.get("startTimeTBD")),
+        "home_away": "home" if home_id == pro_team_id else "away",
+        "opponent_pro_team_id": opponent_id,
+        "opponent_abbrev": opponent.get("abbrev"),
+        "opponent_name": (
+            f"{opponent.get('location', '')} {opponent.get('name', '')}".strip()
+            or None
+        ),
+    }
+
+
+def _player(
+    entry: dict[str, Any],
+    period: int | None,
+    pro_teams: dict[int, dict[str, Any]],
+) -> dict[str, Any]:
     pool = entry.get("playerPoolEntry") or {}
     player = pool.get("player") or {}
     actual = _stat_entry(player, period, 0)
     projected = _stat_entry(player, period, 1)
     slot_id = _int(entry.get("lineupSlotId"))
     player_id = _int(player.get("id") or entry.get("playerId") or pool.get("id"))
+    pro_team_id = _int(player.get("proTeamId"))
+    game = _game_info(pro_team_id, period, pro_teams)
     return {
         "id": player_id,
         "name": player.get("fullName") or f"Player {player_id}",
         "position_id": _int(player.get("defaultPositionId")),
         "lineup_slot_id": slot_id,
         "starter": slot_id not in BENCH_SLOTS if slot_id is not None else None,
-        "pro_team_id": _int(player.get("proTeamId")),
+        "pro_team_id": pro_team_id,
         "injury_status": player.get("injuryStatus"),
         "injured": player.get("injured"),
         "actual_points": _float(actual.get("appliedTotal")),
@@ -62,6 +113,7 @@ def _player(entry: dict[str, Any], period: int | None) -> dict[str, Any]:
         "projection_ceiling": _float(projected.get("appliedTotalCeiling")),
         "actual_stats": dict(actual.get("stats") or {}),
         "projected_stats": dict(projected.get("stats") or {}),
+        **game,
     }
 
 
@@ -88,12 +140,15 @@ def _matchup(
 
 
 def _side(
-    side: dict[str, Any], team: dict[str, Any], scoring_period: int | None
+    side: dict[str, Any],
+    team: dict[str, Any],
+    scoring_period: int | None,
+    pro_teams: dict[int, dict[str, Any]],
 ) -> dict[str, Any]:
     roster = (
         (side.get("rosterForCurrentScoringPeriod") or {}).get("entries") or []
     )
-    players = [_player(entry, scoring_period) for entry in roster]
+    players = [_player(entry, scoring_period, pro_teams) for entry in roster]
     starters = [player for player in players if player.get("starter")]
     return {
         "team_id": _int(side.get("teamId") or team.get("id")),
@@ -125,6 +180,11 @@ def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]
         for team in data.get("teams") or []
         if _int(team.get("id")) is not None
     }
+    pro_teams = {
+        _int(team.get("id")): team
+        for team in data.get("pro_team_schedules") or []
+        if _int(team.get("id")) is not None
+    }
     matchup = _matchup(data, team_id, matchup_period)
     if not matchup:
         return {
@@ -147,9 +207,11 @@ def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]
         "team_id": team_id,
         "matchup": {
             "id": matchup.get("id"),
-            "my_team": _side(my_raw, teams.get(team_id, {}), scoring_period),
+            "my_team": _side(
+                my_raw, teams.get(team_id, {}), scoring_period, pro_teams
+            ),
             "opponent": _side(
-                opponent_raw, teams.get(opponent_id, {}), scoring_period
+                opponent_raw, teams.get(opponent_id, {}), scoring_period, pro_teams
             ),
         },
     }
