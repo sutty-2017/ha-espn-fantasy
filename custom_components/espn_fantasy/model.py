@@ -293,6 +293,87 @@ def _side(
     }
 
 
+
+def _league_record(team: dict[str, Any]) -> dict[str, int]:
+    """Return a compact overall fantasy record."""
+    record = team.get("record") or {}
+    overall = record.get("overall") or record
+    return {
+        "wins": _int(overall.get("wins")) or 0,
+        "losses": _int(overall.get("losses")) or 0,
+        "ties": _int(overall.get("ties")) or 0,
+    }
+
+
+def _league_team(team: dict[str, Any]) -> dict[str, Any]:
+    """Normalize league-level team metadata without roster payloads."""
+    record = _league_record(team)
+    return {
+        "id": _int(team.get("id")),
+        "name": team.get("name")
+        or " ".join(filter(None, (team.get("location"), team.get("nickname"))))
+        or team.get("abbrev"),
+        "abbrev": team.get("abbrev"),
+        "logo": team.get("logo"),
+        "wins": record["wins"],
+        "losses": record["losses"],
+        "ties": record["ties"],
+        "points_for": _float(team.get("pointsFor")),
+        "points_against": _float(team.get("pointsAgainst")),
+        "playoff_seed": _int(team.get("playoffSeed")),
+        "rank": _int(team.get("rankCalculatedFinal") or team.get("rankFinal")),
+        "streak_length": _int((team.get("record") or {}).get("overall", {}).get("streakLength")),
+        "streak_type": (team.get("record") or {}).get("overall", {}).get("streakType"),
+    }
+
+
+def _league_model(
+    data: dict[str, Any],
+    teams: dict[int, dict[str, Any]],
+    matchup_period: int | None,
+) -> dict[str, Any]:
+    """Build compact standings and current league scoreboard data."""
+    normalized_teams = [_league_team(team) for team in teams.values()]
+    normalized_teams.sort(
+        key=lambda team: (
+            team.get("playoff_seed") is None,
+            team.get("playoff_seed") or 999,
+            -(team.get("points_for") or 0),
+        )
+    )
+    standings = [
+        {**team, "standing": index + 1}
+        for index, team in enumerate(normalized_teams)
+    ]
+
+    scoreboard: list[dict[str, Any]] = []
+    for matchup in data.get("schedule") or []:
+        if matchup_period is not None and _int(matchup.get("matchupPeriodId")) != matchup_period:
+            continue
+        home = matchup.get("home") or {}
+        away = matchup.get("away") or {}
+        home_id, away_id = _int(home.get("teamId")), _int(away.get("teamId"))
+        if home_id is None and away_id is None:
+            continue
+        home_team, away_team = teams.get(home_id, {}), teams.get(away_id, {})
+        scoreboard.append(
+            {
+                "id": matchup.get("id"),
+                "matchup_period": _int(matchup.get("matchupPeriodId")),
+                "playoff_tier": matchup.get("playoffTierType"),
+                "winner": matchup.get("winner"),
+                "home_team_id": home_id,
+                "home_team_name": _league_team(home_team).get("name") if home_team else None,
+                "home_logo": home_team.get("logo"),
+                "home_score": _float(home.get("totalPoints")),
+                "away_team_id": away_id,
+                "away_team_name": _league_team(away_team).get("name") if away_team else None,
+                "away_logo": away_team.get("logo"),
+                "away_score": _float(away.get("totalPoints")),
+            }
+        )
+    return {"standings": standings, "scoreboard": scoreboard}
+
 def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]:
     """Build a stable integration-owned model from ESPN response shapes."""
     scoring_period = _int(data.get("scoringPeriodId"))
@@ -311,12 +392,14 @@ def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]
         for team in data.get("pro_team_schedules") or []
         if _int(team.get("id")) is not None
     }
+    league = _league_model(data, teams, matchup_period)
     matchup = _matchup(data, team_id, matchup_period)
     if not matchup:
         return {
             "scoring_period": scoring_period,
             "matchup_period": matchup_period,
             "team_id": team_id,
+            "league": league,
             "matchup": None,
         }
 
@@ -331,6 +414,7 @@ def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]
         "scoring_period": scoring_period,
         "matchup_period": matchup_period,
         "team_id": team_id,
+        "league": league,
         "matchup": {
             "id": matchup.get("id"),
             "my_team": _side(
