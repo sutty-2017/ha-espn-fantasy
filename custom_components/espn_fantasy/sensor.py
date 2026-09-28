@@ -320,13 +320,21 @@ class TeamSensor(ESPNBaseSensor):
     def extra_state_attributes(self):
         team = _team(self.coordinator) or {}
         rec = _record(team)
+        normalized = (self.coordinator.data.get("normalized") or {}).get("matchup") or {}
+        current = normalized.get("my_team") or {}
         return {
             "team_id": team.get("id"), "abbrev": team.get("abbrev"),
             "location": team.get("location"), "nickname": team.get("nickname"),
+            "logo": team.get("logo"),
             "wins": rec["wins"], "losses": rec["losses"], "ties": rec["ties"],
             "points_for": team.get("pointsFor"), "points_against": team.get("pointsAgainst"),
             "standing": team.get("playoffSeed") or team.get("rankFinal"),
             "division_id": team.get("divisionId"),
+            "current_score": current.get("score"),
+            "projected_score": current.get("projected_score"),
+            "live_projected_score": current.get("live_projected_score"),
+            "win_probability": current.get("win_probability"),
+            "starter_count": current.get("starter_count"),
         }
 
 
@@ -395,7 +403,17 @@ class RosterSensor(ESPNBaseSensor):
                 "position": POSITION_NAMES.get(p.get("defaultPositionId"), p.get("defaultPositionId")),
                 "lineup_slot": LINEUP_SLOT_NAMES.get(entry.get("lineupSlotId"), entry.get("lineupSlotId")),
             })
-        return {"players": players}
+        normalized = (self.coordinator.data.get("normalized") or {}).get("matchup") or {}
+        current = normalized.get("my_team") or {}
+        return {
+            "players": players,
+            "score": current.get("score"),
+            "projected_score": current.get("projected_score"),
+            "live_projected_score": current.get("live_projected_score"),
+            "win_probability": current.get("win_probability"),
+            "team_name": current.get("team_name"),
+            "team_logo": current.get("team_logo"),
+        }
 
 
 class PlayerSensor(ESPNBaseSensor):
