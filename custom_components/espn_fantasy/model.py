@@ -6,6 +6,15 @@ from typing import Any
 
 BENCH_SLOTS = {20, 21}
 
+POSITION_NAMES = {
+    1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "D/ST",
+}
+
+LINEUP_SLOT_NAMES = {
+    0: "QB", 2: "RB", 4: "WR", 6: "TE", 16: "D/ST", 17: "K",
+    20: "Bench", 21: "IR", 23: "FLEX",
+}
+
 
 def _int(value: Any) -> int | None:
     try:
@@ -38,6 +47,29 @@ def _stat_entry(player: dict[str, Any], period: int | None, source: int) -> dict
         ):
             return stat
     return {}
+
+
+def _team_abbrev(team: dict[str, Any]) -> str | None:
+    return team.get("abbrev") or team.get("abbreviation")
+
+
+def _player_image(
+    player_id: int | None,
+    position_id: int | None,
+    pro_team_id: int | None,
+    pro_teams: dict[int, dict[str, Any]],
+) -> str | None:
+    if position_id == 16:
+        abbrev = _team_abbrev(pro_teams.get(pro_team_id) or {})
+        if abbrev:
+            return (
+                "https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/"
+                f"{abbrev}.png"
+            )
+        return None
+    if player_id is None:
+        return None
+    return f"https://a.espncdn.com/i/headshots/nfl/players/full/{player_id}.png"
 
 
 def _game_info(
@@ -76,7 +108,7 @@ def _game_info(
         "start_time_tbd": bool(game.get("startTimeTBD")),
         "home_away": "home" if home_id == pro_team_id else "away",
         "opponent_pro_team_id": opponent_id,
-        "opponent_abbrev": opponent.get("abbrev"),
+        "opponent_abbrev": _team_abbrev(opponent),
         "opponent_name": (
             f"{opponent.get('location', '')} {opponent.get('name', '')}".strip()
             or None
@@ -95,15 +127,21 @@ def _player(
     projected = _stat_entry(player, period, 1)
     slot_id = _int(entry.get("lineupSlotId"))
     player_id = _int(player.get("id") or entry.get("playerId") or pool.get("id"))
+    position_id = _int(player.get("defaultPositionId"))
     pro_team_id = _int(player.get("proTeamId"))
+    pro_team = pro_teams.get(pro_team_id) or {}
     game = _game_info(pro_team_id, period, pro_teams)
     return {
         "id": player_id,
         "name": player.get("fullName") or f"Player {player_id}",
-        "position_id": _int(player.get("defaultPositionId")),
+        "position_id": position_id,
+        "position": POSITION_NAMES.get(position_id, position_id),
         "lineup_slot_id": slot_id,
+        "lineup_slot": LINEUP_SLOT_NAMES.get(slot_id, slot_id),
         "starter": slot_id not in BENCH_SLOTS if slot_id is not None else None,
         "pro_team_id": pro_team_id,
+        "nfl_team": _team_abbrev(pro_team),
+        "headshot": _player_image(player_id, position_id, pro_team_id, pro_teams),
         "injury_status": player.get("injuryStatus"),
         "injured": player.get("injured"),
         "actual_points": _float(actual.get("appliedTotal")),
