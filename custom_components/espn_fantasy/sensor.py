@@ -298,12 +298,15 @@ class LeagueSensor(ESPNBaseSensor):
     def extra_state_attributes(self):
         data = self.coordinator.data
         settings = data.get("settings", {})
+        league = (data.get("normalized") or {}).get("league") or {}
         return {
             "league_id": self.coordinator.entry.data[CONF_LEAGUE_ID],
             "season": self.coordinator.entry.data[CONF_SEASON],
             "team_count": len(data.get("teams", [])),
             "current_week": data.get("status", {}).get("currentMatchupPeriod"),
             "scoring_type": settings.get("scoringSettings", {}).get("scoringType"),
+            "standings": league.get("standings") or [],
+            "scoreboard": league.get("scoreboard") or [],
         }
 
 
