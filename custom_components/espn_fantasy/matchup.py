@@ -94,7 +94,7 @@ def _next_matchup(coordinator: ESPNDataUpdateCoordinator, team_id: int) -> dict[
 
 
 def _score(side: dict[str, Any]) -> float | None:
-    for key in ("liveScore", "totalPoints", "points", "score"):
+    for key in ("totalPointsLive", "liveScore", "totalPoints", "points", "score"):
         value = side.get(key)
         if value is None:
             continue
@@ -106,7 +106,7 @@ def _score(side: dict[str, Any]) -> float | None:
 
 
 def _projection(side: dict[str, Any]) -> float | None:
-    for key in ("totalProjectedPoints", "totalProjectedPointsLive", "projectedPoints", "projectedScore"):
+    for key in ("totalProjectedPointsLive", "totalProjectedPoints", "projectedPoints", "projectedScore"):
         value = side.get(key)
         if value is None:
             continue
@@ -252,6 +252,9 @@ class MatchupSensor(CoordinatorEntity[ESPNDataUpdateCoordinator], SensorEntity):
         next_opp_team = _team_by_id(self.coordinator, int(next_opp_id)) if next_opp_id is not None else {}
         my_score = _score(my_side)
         opp_score = _score(opp_side)
+        normalized = (self.coordinator.data.get("normalized") or {}).get("matchup") or {}
+        normalized_my = normalized.get("my_team") or {}
+        normalized_opp = normalized.get("opponent") or {}
         return {
             "current_week": _current_scoring_period(self.coordinator),
             "current_scoring_period": _current_scoring_period(self.coordinator),
@@ -259,11 +262,17 @@ class MatchupSensor(CoordinatorEntity[ESPNDataUpdateCoordinator], SensorEntity):
             "team_id": my_team.get("id"),
             "team_name": _team_name(my_team),
             "team_score": my_score,
-            "team_projected_score": _projection(my_side),
+            "team_projected_score": my_side.get("totalProjectedPoints"),
+            "team_live_projected_score": _projection(my_side),
+            "team_win_probability": my_side.get("winProbability"),
+            "team_logo": normalized_my.get("team_logo"),
             "opponent_team_id": opp_team.get("id"),
             "opponent_team_name": _team_name(opp_team) if opp_team else "Unknown",
             "opponent_score": opp_score,
-            "opponent_projected_score": _projection(opp_side),
+            "opponent_projected_score": opp_side.get("totalProjectedPoints"),
+            "opponent_live_projected_score": _projection(opp_side),
+            "opponent_win_probability": opp_side.get("winProbability"),
+            "opponent_logo": normalized_opp.get("team_logo"),
             "point_differential": my_score - opp_score if isinstance(my_score, (int, float)) and isinstance(opp_score, (int, float)) else None,
             "result": "WIN" if isinstance(my_score, (int, float)) and isinstance(opp_score, (int, float)) and my_score > opp_score else "LOSS" if isinstance(my_score, (int, float)) and isinstance(opp_score, (int, float)) and my_score < opp_score else "TIE" if isinstance(my_score, (int, float)) and isinstance(opp_score, (int, float)) else "UNKNOWN",
             "next_matchup_period": next_matchup.get("matchupPeriodId") if next_matchup else None,
