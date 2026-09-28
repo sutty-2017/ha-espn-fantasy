@@ -150,6 +150,10 @@ def _side(
     )
     players = [_player(entry, scoring_period, pro_teams) for entry in roster]
     starters = [player for player in players if player.get("starter")]
+    status_counts = {
+        status: sum(1 for player in starters if player.get("game_status") == status)
+        for status in ("scheduled", "in_progress", "final", "bye", "unknown")
+    }
     return {
         "team_id": _int(side.get("teamId") or team.get("id")),
         "team_name": _team_name(team),
@@ -162,6 +166,11 @@ def _side(
         ),
         "win_probability": _float(side.get("winProbability")),
         "starter_count": len(starters),
+        "starters_remaining": status_counts["scheduled"],
+        "starters_playing": status_counts["in_progress"],
+        "starters_completed": status_counts["final"],
+        "starters_on_bye": status_counts["bye"],
+        "starters_unknown": status_counts["unknown"],
         "roster": players,
         "starters": starters,
     }
