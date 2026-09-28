@@ -21,6 +21,11 @@ async def async_get_config_entry_diagnostics(
     removing the authentication cookies from the config entry.
     """
     coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator_data = dict(coordinator.data)
+    # League-member profiles and notification settings are not needed to
+    # troubleshoot this integration. Keep team/player fantasy data, but omit
+    # the member directory from downloadable diagnostics.
+    coordinator_data.pop("members", None)
 
     return {
         "entry": {
@@ -30,6 +35,6 @@ async def async_get_config_entry_diagnostics(
         },
         "coordinator": {
             "last_update_success": coordinator.last_update_success,
-            "data": coordinator.data,
+            "data": coordinator_data,
         },
     }
