@@ -132,6 +132,7 @@ class ESPNFantasyTickerCard extends ESPNBaseCard {
     if(this.shadowRoot.querySelector(".ticker"))this.updateTicker();
     else this.render();
   }
+  get hass(){return this._hass;}
   setConfig(v){if(this._timer){clearInterval(this._timer);this._timer=null;}this._config=v||{};this.render();}
   static getStubConfig(){ return {type:"custom:espn-fantasy-player-ticker-card",show_bench:false,auto_scroll:false,scroll_speed:"normal"}; }
   static getConfigForm(){ return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"show_bench",selector:{boolean:{}}},{name:"auto_scroll",selector:{boolean:{}}},{name:"scroll_speed",selector:{select:{options:["slow","normal","fast"]}}}]}; }
