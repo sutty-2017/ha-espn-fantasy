@@ -534,6 +534,9 @@ class PlayerSensor(ESPNBaseSensor):
             "opponent_name": normalized_player.get("opponent_name"),
             "start_time_tbd": normalized_player.get("start_time_tbd"),
             "starter": normalized_player.get("starter"),
+            "stats": normalized_player.get("stats") or _decode_stats(actual),
+            "stat_labels": normalized_player.get("stat_labels") or {},
+            "default_stats": normalized_player.get("default_stats") or [],
         }
         attrs.update(_decode_stats(actual))
         return attrs
