@@ -21,7 +21,7 @@ const findMatchup = (hass, entity) => entity ? hass.states[entity] : findByAttrs
 const playerEntity = (hass, id) => findByAttrs(hass, (a) => String(a.player_id) === String(id))?.entity_id;
 
 const statusRank = { final:0, in_progress:1, scheduled:2, bye:3, unknown:4 };
-const lineupRank = {0:0,2:1,4:2,6:3,23:4,16:5,17:6,20:7,21:8};
+const lineupRank = {0:0,2:1,4:2,6:3,9:4,10:5,14:6,23:7,16:8,17:9,20:90,21:99};
 const rosterOrder = (players=[]) => players.map((p,i)=>({p,i})).sort((a,b)=>(lineupRank[a.p.lineup_slot_id]??99)-(lineupRank[b.p.lineup_slot_id]??99)||a.i-b.i).map(x=>x.p);
 const teamLogo = (url, name="Team") => {
   const initials=String(name||"Team").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"T";
@@ -38,7 +38,7 @@ const opponentText = (p) => {
   if (!p.opponent_abbrev) return "";
   return `${p.home_away === "away" ? "@" : "vs"} ${p.opponent_abbrev}`;
 };
-const injuryVisible = (p) => p.injury_status && !["ACTIVE","NORMAL"].includes(String(p.injury_status).toUpperCase());
+const injuryVisible = (p) => p.injury_status && !["ACTIVE","NORMAL"].includes(String(p.injury_status).toUpperCase());\nconst injuryBadge = (p) => {\n  const status=String(p.injury_status||"").toUpperCase();\n  const labels={QUESTIONABLE:"Q",DOUBTFUL:"D",OUT:"OUT",INJURY_RESERVE:"IR",INJURED_RESERVE:"IR",IR:"IR"};\n  const label=labels[status];\n  return label ? `<span class="injury-badge injury-${esc(label.toLowerCase())}" title="${esc(status.replaceAll("_"," "))}">${esc(label)}</span>` : "";\n};
 
 function playerTile(p, opts = {}) {
   const entity = opts.entity || "";
@@ -52,7 +52,7 @@ function playerTile(p, opts = {}) {
     status === "bye" ? '<span class="status">BYE</span>' : "";
   const injury = injuryVisible(p) ? `<span class="injury">${esc(p.injury_status)}</span>` : "";
   return `<div class="player-tile ${esc(status)}" data-player-id="${esc(p.id)}" data-entity="${esc(entity)}">
-    <div class="portrait">${p.headshot ? `<img src="${esc(p.headshot)}" alt="" loading="lazy">` : ""}</div>
+    <div class="portrait">${p.headshot ? `<img src="${esc(p.headshot)}" alt="" loading="lazy">` : ""}${injuryBadge(p)}</div>
     <div class="player-main"><div class="player-name">${esc(p.name)}</div><div class="player-meta">${esc(meta)}</div><div class="badges">${badge}${injury}</div></div>
     <div class="player-score"><strong>${esc(primary)}</strong><span>${esc(projection)}</span></div>
   </div>`;
@@ -105,10 +105,10 @@ class ESPNBaseCard extends HTMLElement {
   bindDialog(){ const d=this.shadowRoot.querySelector("dialog.player-dialog"); if(!d)return; const close=()=>{this._openPlayerId=null;d.close();}; d.querySelector(".dialog-close")?.addEventListener("click",close); d.addEventListener("click",(e)=>{if(e.target!==d)return;const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)close();}); d.addEventListener("close",()=>{this._openPlayerId=null;}); }
   restoreDialog(players, order){ if(!this._openPlayerId)return; const p=(players||[]).find(x=>String(x.id)===String(this._openPlayerId)); if(p)this.openPlayer(p,order); else this._openPlayerId=null; }
   styles(){ return `
-    :host{display:block;color:var(--primary-text-color)}ha-card{overflow:hidden;background:var(--ha-card-background,var(--card-background-color));border:var(--ha-card-border-width,0) solid var(--ha-card-border-color,var(--divider-color));border-radius:var(--ha-card-border-radius,var(--ha-card-border-radius,12px));box-shadow:var(--ha-card-box-shadow,var(--ha-card-box-shadow,none));backdrop-filter:var(--ha-card-backdrop-filter,none)}.wrap{padding:16px;box-sizing:border-box}
+    :host{display:block;color:var(--primary-text-color)}ha-card{overflow:hidden}.wrap{padding:16px;box-sizing:border-box}
     .header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.title{font-size:20px;font-weight:700}.subtle{font-size:12px;color:var(--secondary-text-color)}
     .player-list{display:grid;gap:7px}.player-tile{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:64px;padding:7px 10px;border-radius:14px;background:var(--secondary-background-color,transparent);cursor:pointer;box-sizing:border-box}
-    .portrait{width:48px;height:48px;border-radius:50%;overflow:hidden;background:var(--secondary-background-color)}.portrait img{width:100%;height:100%;object-fit:cover}.player-main{min-width:0}.player-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.player-meta{font-size:12px;color:var(--secondary-text-color);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .portrait{position:relative;width:48px;height:48px;border-radius:50%;background:var(--secondary-background-color)}.portrait img{width:100%;height:100%;object-fit:cover;border-radius:50%}.injury-badge{position:absolute;right:-4px;bottom:-3px;min-width:20px;height:20px;padding:0 4px;box-sizing:border-box;border-radius:999px;display:grid;place-items:center;font-size:9px;font-weight:900;line-height:1;color:#fff;background:var(--warning-color,#f6a623);border:2px solid var(--card-background-color,var(--primary-background-color))}.injury-out,.injury-ir{background:var(--error-color,#db4437)}.player-main{min-width:0}.player-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.player-meta{font-size:12px;color:var(--secondary-text-color);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .player-score{text-align:right;display:flex;flex-direction:column;gap:2px}.player-score strong{font-size:16px}.player-score span{font-size:11px;color:var(--secondary-text-color)}.badges{display:flex;gap:4px;margin-top:4px}.status,.injury{font-size:9px;font-weight:800;padding:2px 5px;border-radius:999px;background:var(--secondary-background-color)}.status.live{background:var(--error-color);color:white}.status.final{opacity:.75}.injury{background:color-mix(in srgb,var(--warning-color,#f6a623) 25%,transparent);color:var(--primary-text-color)}
     .team-head{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:start;text-align:center;margin-bottom:14px}.team-side{display:flex;flex-direction:column;align-items:center}.team-logo-wrap{position:relative;width:58px;height:58px;margin:0 auto 6px}.team-logo,.team-logo-fallback{position:absolute;inset:0;width:58px;height:58px}.team-logo{display:block;object-fit:contain}.team-logo-fallback{display:grid;place-items:center;border-radius:50%;background:var(--secondary-background-color);font-weight:800;font-size:18px;color:var(--secondary-text-color)}.team-name{font-weight:700}.big-score{font-size:28px;font-weight:800}.projection{font-size:11px;color:var(--secondary-text-color)}.vs{font-size:11px;font-weight:800;color:var(--secondary-text-color)}
     .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:12px}.stat-cell{padding:10px;min-height:54px;border-radius:var(--ha-card-border-radius,12px);background:var(--secondary-background-color,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:3px}.stat-cell span{font-size:10px;color:var(--secondary-text-color);text-transform:uppercase}.stat-cell strong{font-size:18px}.player-dialog{width:min(520px,calc(100% - 32px));border:var(--ha-card-border-width,0) solid var(--ha-card-border-color,var(--divider-color));border-radius:var(--ha-card-border-radius,16px);background:var(--ha-card-background,var(--card-background-color));color:var(--primary-text-color);box-shadow:var(--ha-card-box-shadow);padding:16px}.player-dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}.dialog-close{float:right;border:0;background:transparent;color:var(--primary-text-color);font-size:28px;cursor:pointer}.dialog-content{clear:both}.ticker{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:3px}.ticker .player-tile{min-width:270px;scroll-snap-align:start}.empty{padding:12px;color:var(--secondary-text-color)}
@@ -134,8 +134,8 @@ class ESPNFantasyTickerCard extends ESPNBaseCard {
   }
   get hass(){return this._hass;}
   setConfig(v){if(this._timer){clearInterval(this._timer);this._timer=null;}this._config=v||{};this.render();}
-  static getStubConfig(){ return {type:"custom:espn-fantasy-player-ticker-card",show_bench:false,auto_scroll:false,scroll_speed:"normal"}; }
-  static getConfigForm(){ return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"show_bench",selector:{boolean:{}}},{name:"auto_scroll",selector:{boolean:{}}},{name:"scroll_speed",selector:{select:{options:["slow","normal","fast"]}}}]}; }
+  static getStubConfig(){ return {type:"custom:espn-fantasy-player-ticker-card",show_bench:false,auto_scroll:false,scroll_speed:"normal",frame:true,size:"standard"}; }
+  static getConfigForm(){ return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"show_bench",selector:{boolean:{}}},{name:"auto_scroll",selector:{boolean:{}}},{name:"scroll_speed",selector:{select:{options:["slow","normal","fast"]}}},{name:"frame",selector:{boolean:{}}},{name:"size",selector:{select:{options:[{value:"compact",label:"Compact"},{value:"standard",label:"Standard"},{value:"large",label:"Large"},{value:"xl",label:"XL / wall panel"}]}}}]}; }
   getGridOptions(){ return {rows:"auto",columns:12,min_rows:2,min_columns:4}; }
   disconnectedCallback(){if(this._timer)clearInterval(this._timer);}
   players(){
@@ -173,7 +173,7 @@ class ESPNFantasyTickerCard extends ESPNBaseCard {
   render(){
     if(!this.hass)return;
     const players=this.players();this._players=players;
-    this.shadowRoot.innerHTML=`<style>${this.styles()}</style><ha-card><div class="wrap">${players.length?`<div class="ticker">${players.map((p)=>playerTile(p)).join("")}</div>`:'<div class="empty">No normalized roster data yet.</div>'}</div></ha-card>${this.dialog()}`;
+    const size=this._config.size||"standard",frameless=this._config.frame===false;\n    this.shadowRoot.innerHTML=`<style>${this.styles()}.ticker-card.frameless{background:transparent!important;border:none!important;box-shadow:none!important;backdrop-filter:none!important}.ticker-card.frameless .wrap{padding:0}.ticker-card.size-compact .player-tile{min-width:220px;grid-template-columns:40px minmax(0,1fr) auto;min-height:54px}.ticker-card.size-compact .portrait{width:40px;height:40px}.ticker-card.size-large .player-tile{min-width:340px;grid-template-columns:62px minmax(0,1fr) auto;min-height:82px;padding:10px 14px}.ticker-card.size-large .portrait{width:62px;height:62px}.ticker-card.size-large .player-name{font-size:18px}.ticker-card.size-large .player-score strong{font-size:20px}.ticker-card.size-xl .player-tile{min-width:430px;grid-template-columns:82px minmax(0,1fr) auto;min-height:108px;padding:13px 18px}.ticker-card.size-xl .portrait{width:82px;height:82px}.ticker-card.size-xl .player-name{font-size:22px}.ticker-card.size-xl .player-meta{font-size:14px}.ticker-card.size-xl .player-score strong{font-size:26px}.ticker-card.size-xl .player-score span{font-size:13px}</style><ha-card class="ticker-card size-${esc(size)} ${frameless?"frameless":""}"><div class="wrap">${players.length?`<div class="ticker">${players.map((p)=>playerTile(p)).join("")}</div>`:'<div class="empty">No normalized roster data yet.</div>'}</div></ha-card>${this.dialog()}`;
     this.bindTickerPlayers();this.bindDialog();this.restoreDialog(players,this._config.stats);this.syncTimer();
   }
 }
