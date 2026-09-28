@@ -1,4 +1,4 @@
-const CARD_VERSION = "0.1.20";
+const CARD_VERSION = "0.1.21";
 
 const esc = (value) => String(value ?? "").replace(/[&<>\"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
