@@ -57,9 +57,20 @@ function statGrid(p, order) {
   const keys=(order?.length?order:p.default_stats||[]).filter((key)=>stats[key]!==undefined);
   return keys.length ? `<div class="stat-grid">${keys.map((key)=>`<div class="stat-cell"><span>${esc(labels[key]||key.replaceAll("_"," "))}</span><strong>${num(stats[key])}</strong></div>`).join("")}</div>` : '<div class="empty">No game stats available yet.</div>';
 }
+const orderedStats = (p, configured) => { const available=Object.keys(p?.stats||{}); const base=(configured?.length?configured:p?.default_stats||[]).filter(k=>available.includes(k)); return [...base,...available.filter(k=>!base.includes(k))]; };
+
 function playerDetails(p, order) {
   return `<div class="player-details">${playerTile(p)}${statGrid(p,order)}</div>`;
 }
+
+class ESPNStatEditor extends HTMLElement {
+  constructor(){super();this.attachShadow({mode:"open"});this._config={};this._hass=null;}
+  set hass(v){this._hass=v;this.render();} get hass(){return this._hass;}
+  setConfig(v){this._config=v||{};this.render();}
+  fire(config){this.dispatchEvent(new CustomEvent("config-changed",{detail:{config},bubbles:true,composed:true}));}
+  render(){if(!this.hass)return;const entity=this._config.entity,state=this.hass.states[entity],a=state?.attributes||{};const p={stats:a.stats||{},default_stats:a.default_stats||[],stat_labels:a.stat_labels||{}};const keys=orderedStats(p,this._config.stats);this.shadowRoot.innerHTML=`<style>:host{display:block}.row{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid var(--divider-color)}button{border:0;background:var(--secondary-background-color);color:var(--primary-text-color);border-radius:8px;padding:6px 9px;cursor:pointer}.hint{font-size:12px;color:var(--secondary-text-color);margin:8px 0}</style><div class="hint">Stat order for the expanded player view. Use arrows to reorder.</div>${keys.map((k,i)=>`<div class="row"><span>${esc(p.stat_labels[k]||k.replaceAll("_"," "))}</span><button data-dir="-1" data-i="${i}" ${i===0?"disabled":""}>↑</button><button data-dir="1" data-i="${i}" ${i===keys.length-1?"disabled":""}>↓</button></div>`).join("")}`;this.shadowRoot.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{const i=Number(b.dataset.i),j=i+Number(b.dataset.dir),next=[...keys];[next[i],next[j]]=[next[j],next[i]];this.fire({...this._config,stats:next});}));}
+}
+if(!customElements.get("espn-fantasy-stat-editor"))customElements.define("espn-fantasy-stat-editor",ESPNStatEditor);
 
 class ESPNBaseCard extends HTMLElement {
   constructor(){ super(); this.attachShadow({mode:"open"}); this._config={}; }
@@ -86,7 +97,8 @@ class ESPNBaseCard extends HTMLElement {
 class ESPNFantasyPlayerCard extends ESPNBaseCard {
   constructor(){ super(); this._expanded=false; }
   static getStubConfig(){ return {type:"custom:espn-fantasy-player-card",layout:"horizontal",display:"expandable"}; }
-  static getConfigForm(){ return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"layout",selector:{select:{options:["horizontal","vertical"]}}},{name:"display",selector:{select:{options:["compact","expandable","expanded"]}}},{name:"stats",selector:{text:{multiple:true}}}]}; }
+  static getConfigForm(){ return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"layout",selector:{select:{options:["horizontal","vertical"]}}},{name:"display",selector:{select:{options:["compact","expandable","expanded"]}}}]}; }
+  static getConfigElement(){ return document.createElement("espn-fantasy-stat-editor"); }
   player(){ const s=this.hass?.states[this._config.entity],a=s?.attributes||{}; return s?{id:a.player_id,name:a.player_name||a.friendly_name,position:a.position,lineup_slot:a.roster_slot,nfl_team:a.nfl_team,headshot:a.headshot,injury_status:a.injury_status,actual_points:a.live_points??a.actual_points??Number(s.state),projected_points:a.projected_points,game_status:a.game_status,game_start:a.game_start,home_away:a.home_away,opponent_abbrev:a.opponent_abbrev,stats:a.stats||{},stat_labels:a.stat_labels||{},default_stats:a.default_stats||[]}:null; }
   render(){ if(!this.hass)return; const p=this.player(),vertical=this._config.layout==="vertical",mode=this._config.display||"expandable",expanded=mode==="expanded"||(mode==="expandable"&&this._expanded); this.shadowRoot.innerHTML=`<style>${this.styles()}${vertical?`.player-tile{grid-template-columns:1fr;text-align:center;justify-items:center}.portrait{width:82px;height:82px}.player-main{width:100%}.player-score{text-align:center}.badges{justify-content:center}`:""}</style><ha-card><div class="wrap">${p?`${playerTile(p)}${expanded?statGrid(p,this._config.stats):""}`:'<div class="empty">Choose an ESPN Fantasy player entity.</div>'}</div></ha-card>`; if(p&&mode==="expandable")this.bindPlayers(()=>{this._expanded=!this._expanded;this.render();}); }
 }
