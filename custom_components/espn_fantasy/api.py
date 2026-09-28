@@ -169,9 +169,12 @@ class ESPNClient:
             ) as response:
                 if response.status == 200:
                     try:
+                        season_data = await response.json()
                         meta["pro_team_schedules"] = (
-                            await response.json()
-                        ).get("proTeamSchedules", [])
+                            season_data.get("proTeamSchedules")
+                            or (season_data.get("settings") or {}).get("proTeams")
+                            or []
+                        )
                     except ValueError:
                         meta["pro_team_schedules"] = []
                 else:
