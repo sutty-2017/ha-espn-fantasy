@@ -147,7 +147,9 @@ def _record(team: dict[str, Any]) -> dict[str, int]:
 
 
 def _current_scoring_period(coordinator: ESPNDataUpdateCoordinator) -> int | None:
-    value = coordinator.data.get("status", {}).get("currentScoringPeriod")
+    value = coordinator.data.get("scoringPeriodId")
+    if value is None:
+        value = coordinator.data.get("status", {}).get("currentScoringPeriod")
     try:
         return int(value) if value is not None else None
     except (TypeError, ValueError):
@@ -488,11 +490,14 @@ class PlayerSensor(ESPNBaseSensor):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
+    from .matchup import MatchupSensor
+
     coordinator: ESPNDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     entities: list[SensorEntity] = [
         LeagueSensor(coordinator), TeamSensor(coordinator), RecordSensor(coordinator),
         PointsForSensor(coordinator), PointsAgainstSensor(coordinator),
         CurrentWeekSensor(coordinator), RosterSensor(coordinator),
+        MatchupSensor(coordinator),
     ]
 
     team = _team(coordinator) or {}
