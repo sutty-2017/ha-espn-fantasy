@@ -536,7 +536,10 @@ class PlayerSensor(ESPNBaseSensor):
             "starter": normalized_player.get("starter"),
             "stats": normalized_player.get("stats") or _decode_stats(actual),
             "stat_labels": normalized_player.get("stat_labels") or {},
-            "default_stats": normalized_player.get("default_stats") or [],\n            "last_news_date": normalized_player.get("last_news_date"),\n            "weekly_outlook": normalized_player.get("weekly_outlook"),\n            "season_outlook": normalized_player.get("season_outlook"),
+            "default_stats": normalized_player.get("default_stats") or [],
+            "last_news_date": normalized_player.get("last_news_date"),
+            "weekly_outlook": normalized_player.get("weekly_outlook"),
+            "season_outlook": normalized_player.get("season_outlook"),
         }
         attrs.update(_decode_stats(actual))
         return attrs
