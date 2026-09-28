@@ -3,7 +3,8 @@ const CARD_VERSION = "0.1.23";
 const esc = (value) => String(value ?? "").replace(/[&<>\"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
 }[char]));
-const cssColor = (value, fallback="#35d07f") => Array.isArray(value) && value.length>=3 ? `rgb(${value.slice(0,3).map(Number).join(",")})` : (value || fallback);\nconst num = (value, digits = 1) => {
+const cssColor = (value, fallback="#35d07f") => Array.isArray(value) && value.length>=3 ? `rgb(${value.slice(0,3).map(Number).join(",")})` : (value || fallback);
+const num = (value, digits = 1) => {
   const n = Number(value);
   return value === null || value === undefined || !Number.isFinite(n) ? "—" : n.toFixed(digits);
 };
@@ -89,7 +90,9 @@ class ESPNPlayerEditor extends HTMLElement {
     const schema=[
       {name:"entity",required:true,selector:{entity:{domain:"sensor"}}},
       {name:"layout",selector:{select:{mode:"dropdown",options:[{value:"horizontal",label:"Horizontal"},{value:"vertical",label:"Vertical"}]}}},
-      {name:"display",selector:{select:{mode:"dropdown",options:[{value:"compact",label:"Compact"},{value:"expandable",label:"Tap to expand"},{value:"expanded",label:"Always expanded"}]}}},\n      {name:"show_live_halo",selector:{boolean:{}}},\n      {name:"live_halo_color",selector:{color_rgb:{}}}
+      {name:"display",selector:{select:{mode:"dropdown",options:[{value:"compact",label:"Compact"},{value:"expandable",label:"Tap to expand"},{value:"expanded",label:"Always expanded"}]}}},
+      {name:"show_live_halo",selector:{boolean:{}}},
+      {name:"live_halo_color",selector:{color_rgb:{}}}
     ];
     this.shadowRoot.innerHTML=`<style>:host{display:block}.stats-title{font-weight:600;margin:18px 0 4px}.hint{font-size:12px;color:var(--secondary-text-color);margin-bottom:8px}.row{display:grid;grid-template-columns:minmax(0,1fr) 40px 40px;gap:6px;align-items:center;min-height:42px;border-bottom:1px solid var(--divider-color)}button{border:0;background:var(--secondary-background-color);color:var(--primary-text-color);border-radius:8px;min-height:34px;cursor:pointer}button:disabled{opacity:.35}label{overflow:hidden;text-overflow:ellipsis}</style><ha-form></ha-form><div class="stats-title">Expanded stats</div><div class="hint">Choose the stats to show and use the arrows to set their order.</div>${state?keys.map((k,i)=>`<div class="row"><label><input type="checkbox" data-key="${esc(k)}" ${selected.includes(k)?"checked":""}> ${esc(p.stat_labels[k]||k.replaceAll("_"," "))}</label><button data-dir="-1" data-i="${i}" ${i===0?"disabled":""}>↑</button><button data-dir="1" data-i="${i}" ${i===keys.length-1?"disabled":""}>↓</button></div>`).join(""):'<div class="hint">Select a player entity to configure stats.</div>'}`;
     const form=this.shadowRoot.querySelector("ha-form");form.hass=this.hass;form.data=this._config;form.schema=schema;form.computeLabel=(s)=>({entity:"Player",layout:"Layout",display:"Display mode",show_live_halo:"Show live-player halo",live_halo_color:"Live halo color"}[s.name]||s.name);form.addEventListener("value-changed",(e)=>this.fire({...this._config,...e.detail.value}));
@@ -208,7 +211,8 @@ window.customCards=window.customCards||[];
 for(const card of [
  {type:"espn-fantasy-player-card",name:"ESPN Fantasy Player",description:"Responsive player card using normalized ESPN Fantasy data.",preview:true},
  {type:"espn-fantasy-player-ticker-card",name:"ESPN Fantasy Player Ticker",description:"Final, live, and upcoming starters in a swipeable ticker.",preview:true},
- {type:"espn-fantasy-team-card",name:"ESPN Fantasy Team",description:"Single-team or head-to-head matchup card with player details.",preview:true},\n {type:"espn-fantasy-matchup-card",name:"ESPN Fantasy Matchup",description:"Compact fantasy matchup scoreboard with scores and projections.",preview:true},
+ {type:"espn-fantasy-team-card",name:"ESPN Fantasy Team",description:"Single-team or head-to-head matchup card with player details.",preview:true},
+ {type:"espn-fantasy-matchup-card",name:"ESPN Fantasy Matchup",description:"Compact fantasy matchup scoreboard with scores and projections.",preview:true},
 ]) if(!window.customCards.some((x)=>x.type===card.type)) window.customCards.push({...card,documentationURL:"https://github.com/sutty-2017/ha-espn-fantasy"});
 console.info(`%c ESPN Fantasy cards ${CARD_VERSION} loaded`,"color:#e31837;font-weight:bold;");
 
