@@ -18,7 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 _CARD_FILENAME = "espn-fantasy-cards.js"
 _CARD_PATH = Path(__file__).parent / "www" / _CARD_FILENAME
 _CARD_STATIC_URL = f"/espn_fantasy/{_CARD_FILENAME}"
-_CARD_URL = f"{_CARD_STATIC_URL}?v=0.1.17"
+_CARD_URL = f"{_CARD_STATIC_URL}?v=0.1.18"
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -81,16 +81,37 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
                 if hasattr(resources, "loaded") and not resources.loaded:
                     await resources.async_load()
 
-                existing_urls = {
-                    item["url"] for item in resources.async_items() if item.get("url")
-                }
-                if _CARD_URL not in existing_urls:
-                    await resources.async_create_item(
-                        {"res_type": "module", "url": _CARD_URL}
+                items = list(resources.async_items())
+                espn_items = [
+                    item for item in items
+                    if str(item.get("url", "")).startswith(_CARD_STATIC_URL)
+                ]
+                if hasattr(resources, "async_update_item"):
+                    if espn_items:
+                        primary = espn_items[0]
+                        if primary.get("url") != _CARD_URL:
+                            await resources.async_update_item(
+                                primary["id"],
+                                {"res_type": "module", "url": _CARD_URL},
+                            )
+                        for duplicate in espn_items[1:]:
+                            await resources.async_delete_item(duplicate["id"])
+                        _LOGGER.info(
+                            "Updated ESPN Fantasy Lovelace resource: %s", _CARD_URL
+                        )
+                    else:
+                        await resources.async_create_item(
+                            {"res_type": "module", "url": _CARD_URL}
+                        )
+                        _LOGGER.info(
+                            "Registered ESPN Fantasy Lovelace cards: %s", _CARD_URL
+                        )
+                elif not any(item.get("url") == _CARD_URL for item in items):
+                    _LOGGER.warning(
+                        "ESPN Fantasy cannot update Lovelace resources in YAML mode. "
+                        "Set the resource URL to %s",
+                        _CARD_URL,
                     )
-                    _LOGGER.info("Registered ESPN Fantasy Lovelace cards: %s", _CARD_URL)
-                else:
-                    _LOGGER.debug("ESPN Fantasy Lovelace cards already registered")
 
                 hass.data[done_key] = True
                 return
