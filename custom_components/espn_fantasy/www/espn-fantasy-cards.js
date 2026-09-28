@@ -1,4 +1,4 @@
-const CARD_VERSION = "0.1.13";
+const CARD_VERSION = "0.1.14";
 const PLAYER_PREFIX = "sensor.espn_fantasy_";
 const GAME_PREFIX = "binary_sensor.espn_fantasy_";
 const MATCHUP_PREFIX = "sensor.espn_fantasy_";
