@@ -393,34 +393,34 @@ class RosterSensor(ESPNBaseSensor):
 
     @property
     def native_value(self):
+        normalized = (self.coordinator.data.get("normalized") or {}).get("matchup") or {}
+        current = normalized.get("my_team") or {}
+        players = current.get("roster")
+        if isinstance(players, list):
+            return len(players)
         roster = (_team(self.coordinator) or {}).get("roster", {}).get("entries", [])
         return len(roster)
 
     @property
     def extra_state_attributes(self):
-        entries = (_team(self.coordinator) or {}).get("roster", {}).get("entries", [])
-        players = []
-        for entry in entries:
-            p = entry.get("playerPoolEntry", {}).get("player", {})
-            players.append({
-                "id": p.get("id"), "name": p.get("fullName"),
-                "position": POSITION_NAMES.get(p.get("defaultPositionId"), p.get("defaultPositionId")),
-                "lineup_slot": LINEUP_SLOT_NAMES.get(entry.get("lineupSlotId"), entry.get("lineupSlotId")),
-            })
         normalized = (self.coordinator.data.get("normalized") or {}).get("matchup") or {}
         current = normalized.get("my_team") or {}
         return {
-            "players": players,
+            "players": current.get("roster") or [],
+            "starters": current.get("starters") or [],
             "score": current.get("score"),
             "projected_score": current.get("projected_score"),
             "live_projected_score": current.get("live_projected_score"),
             "win_probability": current.get("win_probability"),
             "team_name": current.get("team_name"),
+            "team_abbrev": current.get("team_abbrev"),
             "team_logo": current.get("team_logo"),
+            "starter_count": current.get("starter_count"),
             "starters_playing": current.get("starters_playing"),
             "starters_remaining": current.get("starters_remaining"),
             "starters_completed": current.get("starters_completed"),
             "starters_on_bye": current.get("starters_on_bye"),
+            "starters_unknown": current.get("starters_unknown"),
         }
 
 
