@@ -77,7 +77,7 @@ function playerDetails(p, order) {
 
 class ESPNPlayerEditor extends HTMLElement {
   constructor(){super();this.attachShadow({mode:"open"});this._config={};}
-  set hass(v){this._hass=v;this.render();} get hass(){return this._hass;}
+  set hass(v){this._hass=v;const form=this.shadowRoot.querySelector("ha-form");if(form)form.hass=v;else this.render();} get hass(){return this._hass;}
   setConfig(v){this._config=v||{};this.render();}
   fire(config){this._config=config;this.dispatchEvent(new CustomEvent("config-changed",{detail:{config},bubbles:true,composed:true}));this.render();}
   render(){
