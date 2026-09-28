@@ -335,6 +335,10 @@ class TeamSensor(ESPNBaseSensor):
             "live_projected_score": current.get("live_projected_score"),
             "win_probability": current.get("win_probability"),
             "starter_count": current.get("starter_count"),
+            "starters_playing": current.get("starters_playing"),
+            "starters_remaining": current.get("starters_remaining"),
+            "starters_completed": current.get("starters_completed"),
+            "starters_on_bye": current.get("starters_on_bye"),
         }
 
 
@@ -413,6 +417,10 @@ class RosterSensor(ESPNBaseSensor):
             "win_probability": current.get("win_probability"),
             "team_name": current.get("team_name"),
             "team_logo": current.get("team_logo"),
+            "starters_playing": current.get("starters_playing"),
+            "starters_remaining": current.get("starters_remaining"),
+            "starters_completed": current.get("starters_completed"),
+            "starters_on_bye": current.get("starters_on_bye"),
         }
 
 
@@ -469,6 +477,21 @@ class PlayerSensor(ESPNBaseSensor):
         ownership = player.get("ownership", {}) or {}
         ratings = entry.get("playerPoolEntry", {}).get("ratings", {}) or {}
         rating = next(iter(ratings.values()), {}) if isinstance(ratings, dict) else {}
+        normalized_matchup = (
+            (self.coordinator.data.get("normalized") or {}).get("matchup") or {}
+        )
+        normalized_player = {}
+        for side_name in ("my_team", "opponent"):
+            side = normalized_matchup.get(side_name) or {}
+            normalized_player = next(
+                (
+                    item for item in side.get("roster") or []
+                    if item.get("id") == self.player_id
+                ),
+                {},
+            )
+            if normalized_player:
+                break
         attrs = {
             "player_id": self.player_id,
             "player_name": player.get("fullName") or f"Player {self.player_id}",
@@ -502,6 +525,15 @@ class PlayerSensor(ESPNBaseSensor):
             "current_scoring_period": _current_scoring_period(self.coordinator),
             "current_matchup_period": _current_matchup_period(self.coordinator),
             "headshot": self._attr_entity_picture,
+            "game_status": normalized_player.get("game_status"),
+            "game_start": normalized_player.get("game_start"),
+            "game_id": normalized_player.get("game_id"),
+            "home_away": normalized_player.get("home_away"),
+            "opponent_pro_team_id": normalized_player.get("opponent_pro_team_id"),
+            "opponent_abbrev": normalized_player.get("opponent_abbrev"),
+            "opponent_name": normalized_player.get("opponent_name"),
+            "start_time_tbd": normalized_player.get("start_time_tbd"),
+            "starter": normalized_player.get("starter"),
         }
         attrs.update(_decode_stats(actual))
         return attrs
