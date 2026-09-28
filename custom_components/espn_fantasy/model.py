@@ -7,7 +7,7 @@ from typing import Any
 BENCH_SLOTS = {20, 21}
 
 POSITION_NAMES = {
-    1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "D/ST",
+    1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K",\n    8: "DT", 9: "DE", 10: "DE", 11: "LB", 12: "CB", 13: "S", 14: "DB", 15: "DP",\n    16: "D/ST",
 }
 
 LINEUP_SLOT_NAMES = {
@@ -56,7 +56,7 @@ POSITION_DEFAULT_STATS = {
     "WR": ["receiving_targets", "receiving_receptions", "receiving_yards", "receiving_touchdowns", "rushing_yards"],
     "TE": ["receiving_targets", "receiving_receptions", "receiving_yards", "receiving_touchdowns"],
     "K": ["field_goals_made", "field_goals_attempted", "extra_points_made", "extra_points_attempted"],
-    "D/ST": ["defensive_sacks", "defensive_interceptions", "defensive_fumbles_recovered", "defensive_touchdowns", "defensive_safeties", "defensive_points_allowed", "defensive_yards_allowed"],
+    "D/ST": ["defensive_sacks", "defensive_interceptions", "defensive_fumbles_recovered", "defensive_touchdowns", "defensive_safeties", "defensive_points_allowed", "defensive_yards_allowed"],\n    "DT": ["defensive_total_tackles", "defensive_solo_tackles", "defensive_assisted_tackles", "defensive_sacks", "defensive_forced_fumbles", "defensive_fumbles_recovered", "defensive_passes_defensed"],\n    "DE": ["defensive_total_tackles", "defensive_solo_tackles", "defensive_assisted_tackles", "defensive_sacks", "defensive_forced_fumbles", "defensive_fumbles_recovered", "defensive_passes_defensed"],\n    "LB": ["defensive_total_tackles", "defensive_solo_tackles", "defensive_assisted_tackles", "defensive_sacks", "defensive_forced_fumbles", "defensive_interceptions", "defensive_passes_defensed"],\n    "CB": ["defensive_total_tackles", "defensive_solo_tackles", "defensive_assisted_tackles", "defensive_interceptions", "defensive_passes_defensed", "defensive_forced_fumbles"],\n    "S": ["defensive_total_tackles", "defensive_solo_tackles", "defensive_assisted_tackles", "defensive_interceptions", "defensive_passes_defensed", "defensive_forced_fumbles"],\n    "DB": ["defensive_total_tackles", "defensive_solo_tackles", "defensive_assisted_tackles", "defensive_interceptions", "defensive_passes_defensed", "defensive_forced_fumbles"],\n    "DP": ["defensive_total_tackles", "defensive_solo_tackles", "defensive_assisted_tackles", "defensive_sacks", "defensive_interceptions", "defensive_forced_fumbles", "defensive_passes_defensed"],
 }
 
 
