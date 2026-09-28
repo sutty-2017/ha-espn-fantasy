@@ -14,9 +14,11 @@ from .const import (
     CONF_LEAGUE_ID,
     CONF_SEASON,
     CONF_SWID,
+    CONF_TEAM_ID,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
+from .model import build_normalized_model
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,6 +44,10 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
 
     async def _async_update_data(self) -> dict:
         try:
-            return await self.client.get_league()
+            data = await self.client.get_league()
+            data["normalized"] = build_normalized_model(
+                data, int(self.entry.data[CONF_TEAM_ID])
+            )
+            return data
         except ESPNError as err:
             raise UpdateFailed(str(err)) from err
