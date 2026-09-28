@@ -25,7 +25,7 @@ const lineupRank = {0:0,2:1,4:2,6:3,23:4,16:5,17:6,20:7,21:8};
 const rosterOrder = (players=[]) => players.map((p,i)=>({p,i})).sort((a,b)=>(lineupRank[a.p.lineup_slot_id]??99)-(lineupRank[b.p.lineup_slot_id]??99)||a.i-b.i).map(x=>x.p);
 const teamLogo = (url, name="Team") => {
   const initials=String(name||"Team").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"T";
-  return `<div class="team-logo-wrap"><div class="team-logo-fallback">${esc(initials)}</div>${url?`<img class="team-logo" src="${esc(url)}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'">`:""}</div>`;
+  return `<div class="team-logo-wrap"><div class="team-logo-fallback">${esc(initials)}</div>${url?`<img class="team-logo" src="${esc(url)}" alt="" referrerpolicy="no-referrer" style="visibility:hidden" onload="this.style.visibility='visible'" onerror="this.style.display='none'">`:""}</div>`;
 };
 const statusText = (p) => {
   if (p.game_status === "final") return "FINAL";
@@ -152,9 +152,10 @@ class ESPNFantasyTickerCard extends ESPNBaseCard {
       this._timer=setInterval(()=>{
         const el=this.shadowRoot.querySelector(".ticker");if(!el)return;
         const tiles=[...el.querySelectorAll(".player-tile")];if(!tiles.length)return;
-        const current=tiles.reduce((best,tile,i)=>Math.abs(tile.offsetLeft-el.scrollLeft)<Math.abs(tiles[best].offsetLeft-el.scrollLeft)?i:best,0);
+        const leftFor=(tile)=>tile.getBoundingClientRect().left-el.getBoundingClientRect().left+el.scrollLeft;
+        const current=tiles.reduce((best,tile,i)=>Math.abs(leftFor(tile)-el.scrollLeft)<Math.abs(leftFor(tiles[best])-el.scrollLeft)?i:best,0);
         const next=(current+1)%tiles.length;
-        el.scrollTo({left:tiles[next].offsetLeft,behavior:"smooth"});
+        el.scrollTo({left:leftFor(tiles[next]),behavior:"smooth"});
       },ms);
     }
   }
