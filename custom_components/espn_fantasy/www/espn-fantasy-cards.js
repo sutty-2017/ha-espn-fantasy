@@ -127,26 +127,51 @@ class ESPNFantasyPlayerCard extends ESPNBaseCard {
 
 class ESPNFantasyTickerCard extends ESPNBaseCard {
   constructor(){super();this._timer=null;}
-  setConfig(v){if(this._timer){clearInterval(this._timer);this._timer=null;}super.setConfig(v);}
+  set hass(v){
+    this._hass=v;
+    if(this.shadowRoot.querySelector(".ticker"))this.updateTicker();
+    else this.render();
+  }
+  setConfig(v){if(this._timer){clearInterval(this._timer);this._timer=null;}this._config=v||{};this.render();}
   static getStubConfig(){ return {type:"custom:espn-fantasy-player-ticker-card",show_bench:false,auto_scroll:false,scroll_speed:"normal"}; }
   static getConfigForm(){ return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"show_bench",selector:{boolean:{}}},{name:"auto_scroll",selector:{boolean:{}}},{name:"scroll_speed",selector:{select:{options:["slow","normal","fast"]}}}]}; }
   getGridOptions(){ return {rows:"auto",columns:12,min_rows:2,min_columns:4}; }
   disconnectedCallback(){if(this._timer)clearInterval(this._timer);}
-  render(){ if(!this.hass)return; const previousScroll=this.shadowRoot.querySelector(".ticker")?.scrollLeft??0; const s=findRoster(this.hass,this._config.entity),a=s?.attributes||{}; let players=(this._config.show_bench?a.players:a.starters)||[]; players=[...players].sort((x,y)=>(statusRank[x.game_status]??9)-(statusRank[y.game_status]??9)); this._players=players; this.shadowRoot.innerHTML=`<style>${this.styles()}</style><ha-card><div class="wrap">${players.length?`<div class="ticker">${players.map((p)=>playerTile(p)).join("")}</div>`:'<div class="empty">No normalized roster data yet.</div>'}</div></ha-card>${this.dialog()}`; this.bindPlayers((id)=>this.openPlayer(players.find(p=>String(p.id)===String(id)),this._config.stats));this.bindDialog(); const ticker=this.shadowRoot.querySelector(".ticker");if(ticker)ticker.scrollLeft=previousScroll;this.restoreDialog(players,this._config.stats); if(!this._config.auto_scroll&&this._timer){clearInterval(this._timer);this._timer=null;} if(this._config.auto_scroll&&players.length>1&&!this._timer){const ms={slow:5000,normal:3000,fast:1800}[this._config.scroll_speed]||3000;this._timer=setInterval(()=>{const el=this.shadowRoot.querySelector(".ticker");if(!el)return; const atEnd=el.scrollLeft+el.clientWidth>=el.scrollWidth-8;el.scrollTo({left:atEnd?0:el.scrollLeft+Math.max(220,el.clientWidth*.65),behavior:"smooth"});},ms);}}
+  players(){
+    const s=findRoster(this.hass,this._config.entity),a=s?.attributes||{};
+    const list=(this._config.show_bench?a.players:a.starters)||[];
+    return [...list].sort((x,y)=>(statusRank[x.game_status]??9)-(statusRank[y.game_status]??9));
+  }
+  bindTickerPlayers(){
+    this.bindPlayers((id)=>this.openPlayer(this._players.find(p=>String(p.id)===String(id)),this._config.stats));
+  }
+  syncTimer(){
+    if(!this._config.auto_scroll&&this._timer){clearInterval(this._timer);this._timer=null;}
+    if(this._config.auto_scroll&&this._players.length>1&&!this._timer){
+      const ms={slow:5000,normal:3000,fast:1800}[this._config.scroll_speed]||3000;
+      this._timer=setInterval(()=>{
+        const el=this.shadowRoot.querySelector(".ticker");if(!el)return;
+        const tiles=[...el.querySelectorAll(".player-tile")];if(!tiles.length)return;
+        const current=tiles.reduce((best,tile,i)=>Math.abs(tile.offsetLeft-el.scrollLeft)<Math.abs(tiles[best].offsetLeft-el.scrollLeft)?i:best,0);
+        const next=(current+1)%tiles.length;
+        el.scrollTo({left:tiles[next].offsetLeft,behavior:"smooth"});
+      },ms);
+    }
+  }
+  updateTicker(){
+    const el=this.shadowRoot.querySelector(".ticker");if(!el){this.render();return;}
+    const players=this.players();this._players=players;
+    const scroll=el.scrollLeft;
+    el.innerHTML=players.map((p)=>playerTile(p)).join("");
+    el.scrollLeft=scroll;
+    this.bindTickerPlayers();
+    this.restoreDialog(players,this._config.stats);
+    this.syncTimer();
+  }
+  render(){
+    if(!this.hass)return;
+    const players=this.players();this._players=players;
+    this.shadowRoot.innerHTML=`<style>${this.styles()}</style><ha-card><div class="wrap">${players.length?`<div class="ticker">${players.map((p)=>playerTile(p)).join("")}</div>`:'<div class="empty">No normalized roster data yet.</div>'}</div></ha-card>${this.dialog()}`;
+    this.bindTickerPlayers();this.bindDialog();this.restoreDialog(players,this._config.stats);this.syncTimer();
+  }
 }
-
-class ESPNFantasyTeamCard extends ESPNBaseCard {
-  static getStubConfig(){ return {type:"custom:espn-fantasy-team-card",mode:"single",show_bench:false}; }
-  static getConfigForm(){ return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"mode",selector:{select:{options:["single","matchup"]}}},{name:"show_bench",selector:{boolean:{}}}]}; }
-  getGridOptions(){ return {rows:"auto",columns:12,min_rows:4,min_columns:4}; }
-  render(){if(!this.hass)return; const mode=this._config.mode||"single"; let players=[],html=""; if(mode==="matchup"){const s=findMatchup(this.hass,this._config.entity),a=s?.attributes||{}; const mine=rosterOrder((this._config.show_bench?a.my_players:a.my_roster)||[]),opp=rosterOrder((this._config.show_bench?a.opponent_players:a.opponent_roster)||[]);players=[...mine,...opp];let rows="";for(let i=0;i<Math.max(mine.length,opp.length);i++)rows+=`<div class="match-row">${mine[i]?playerTile(mine[i],{showSlot:this._config.show_bench}):"<div></div>"}${opp[i]?playerTile(opp[i],{showSlot:this._config.show_bench}):"<div></div>"}</div>`;html=`<div class="team-head"><div class="team-side">${teamLogo(a.team_logo,a.team_name)}<div class="team-name">${esc(a.team_name)}</div><div class="big-score">${num(a.team_score,2)}</div><div class="projection">Proj ${num(a.team_live_projected_score??a.team_projected_score)}</div></div><div class="vs">VS<br>WEEK ${esc(a.current_week)}</div><div class="team-side">${teamLogo(a.opponent_logo,a.opponent_team_name)}<div class="team-name">${esc(a.opponent_team_name)}</div><div class="big-score">${num(a.opponent_score,2)}</div><div class="projection">Proj ${num(a.opponent_live_projected_score??a.opponent_projected_score)}</div></div></div>${rows}`;}else{const s=findRoster(this.hass,this._config.entity),a=s?.attributes||{};players=rosterOrder((this._config.show_bench?a.players:a.starters)||[]);html=`<div class="team-head single"><div class="team-side">${teamLogo(a.team_logo,a.team_name)}<div class="team-name">${esc(a.team_name)}</div><div class="big-score">${num(a.score,2)}</div><div class="projection">Proj ${num(a.live_projected_score??a.projected_score)}</div></div></div><div class="player-list">${players.map(p=>playerTile(p,{showSlot:this._config.show_bench})).join("")}</div>`;}this._players=players;this.shadowRoot.innerHTML=`<style>${this.styles()}.team-head.single{grid-template-columns:1fr}.match-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}@media(max-width:600px){.match-row{grid-template-columns:1fr 1fr;gap:5px}.match-row .player-tile{grid-template-columns:36px minmax(0,1fr);padding:6px}.match-row .portrait{width:36px;height:36px}.match-row .player-score{grid-column:2;text-align:left}}</style><ha-card><div class="wrap">${html}</div></ha-card>${this.dialog()}`;this.bindPlayers((id)=>this.openPlayer(players.find(p=>String(p.id)===String(id)),this._config.stats));this.bindDialog();this.restoreDialog(players,this._config.stats);}
-}
-
-for(const [tag,cls] of [["espn-fantasy-player-card",ESPNFantasyPlayerCard],["espn-fantasy-player-ticker-card",ESPNFantasyTickerCard],["espn-fantasy-team-card",ESPNFantasyTeamCard]]) if(!customElements.get(tag)) customElements.define(tag,cls);
-window.customCards=window.customCards||[];
-for(const card of [
- {type:"espn-fantasy-player-card",name:"ESPN Fantasy Player",description:"Responsive player card using normalized ESPN Fantasy data.",preview:true},
- {type:"espn-fantasy-player-ticker-card",name:"ESPN Fantasy Player Ticker",description:"Final, live, and upcoming starters in a swipeable ticker.",preview:true},
- {type:"espn-fantasy-team-card",name:"ESPN Fantasy Team",description:"Single-team or head-to-head matchup card with player details.",preview:true},
-]) if(!window.customCards.some((x)=>x.type===card.type)) window.customCards.push({...card,documentationURL:"https://github.com/sutty-2017/ha-espn-fantasy"});
-console.info(`%c ESPN Fantasy cards ${CARD_VERSION} loaded`,"color:#e31837;font-weight:bold;");
