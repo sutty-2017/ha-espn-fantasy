@@ -351,7 +351,7 @@ def _league_model(
     ]
 
     scoreboard: list[dict[str, Any]] = []
-    for matchup in data.get("schedule") or []:
+    for matchup in (data.get("current_matchup") or data.get("schedule") or []):
         if matchup_period is not None and _int(matchup.get("matchupPeriodId")) != matchup_period:
             continue
         home = matchup.get("home") or {}

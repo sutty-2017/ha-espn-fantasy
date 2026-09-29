@@ -119,4 +119,4 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current development line is **v0.1.25**, adding player news, the ESPN Fantasy News card, expanded appearance controls, league display modes, improved fantasy-team logo handling, and frontend update/rendering fixes.
+The current development line is **v0.1.26**, hardening the v0.1.25 feature set with reliable frontend cache versioning, league-scoreboard data fixes, reduced card rerendering, scroll-position protection, and consistency fixes for IDP and live-game entities.
