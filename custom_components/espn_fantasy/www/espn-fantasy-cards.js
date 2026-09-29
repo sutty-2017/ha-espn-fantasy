@@ -296,10 +296,10 @@ class ESPNFantasyLeagueEditor extends HTMLElement {
 if(!customElements.get("espn-fantasy-league-editor"))customElements.define("espn-fantasy-league-editor",ESPNFantasyLeagueEditor);
 
 class ESPNFantasyLeagueCard extends ESPNBaseCard {
-  constructor(){super();this._leagueView=null;this._matchupView=null;this._rosterView=null;}
+  constructor(){super();this._leagueView=null;this._matchupView=null;this._rosterView=null;this._newsScrollTop=0;}
   set hass(v){const old=this._hass;this._hass=v;if(!old||!this.shadowRoot.hasChildNodes()){this.renderStable();return;}const ids=[findRoster(v,this._config.entity)?.entity_id,findLeague(v,this._config.entity)?.entity_id,findMatchup(v,this._config.entity)?.entity_id].filter(Boolean);if(!ids.length||ids.some(id=>old.states?.[id]!==v.states?.[id]))this.renderStable();}
   get hass(){return this._hass;}
-  static getStubConfig(){return {type:"custom:espn-fantasy-league-card",display_mode:"all",include_news:true,story_count:5};}
+  static getStubConfig(){return {type:"custom:espn-fantasy-league-card",display_mode:"all",include_news:true,story_count:5,news_height:500,show_header_logo:true};}\n  static async getConfigElement(){return document.createElement("espn-fantasy-league-editor");}
   static getConfigForm(){const sectionOptions=[{value:"roster",label:"Roster"},{value:"standings",label:"Standings"},{value:"scoreboard",label:"Scoreboard"},{value:"matchup",label:"My Matchup"},{value:"news",label:"News"}];return {schema:[
     {name:"entity",selector:{entity:{domain:"sensor"}}},
     {name:"display_mode",selector:{select:{options:[{value:"roster",label:"Roster"},{value:"standings",label:"Standings"},{value:"scoreboard",label:"Scoreboard"},{value:"matchup",label:"Matchup"},{value:"all",label:"All-in-one"}]}}},
@@ -344,7 +344,7 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
     const players=this.rosterState()?.attributes?.players||[],count=Math.min(20,Math.max(1,Number(this._config.story_count)||5));
     const stories=players.flatMap(p=>(Array.isArray(p.news)?p.news:[]).map(item=>({p,item}))).sort((x,y)=>(Date.parse(y.item.published)||0)-(Date.parse(x.item.published)||0)).slice(0,count);
     if(!stories.length)return '<div class="empty">No player news available yet.</div>';
-    return '<div class="news-feed">'+stories.map(({p,item})=>'<article class="feed-story"><div class="feed-player"><div class="portrait">'+(p.headshot?'<img src="'+esc(p.headshot)+'" alt="" loading="lazy">':"")+'</div><div><div class="player-name">'+esc(p.name)+'</div><div class="player-meta">'+esc([p.position,p.nfl_team].filter(Boolean).join(" · "))+'</div></div></div><div class="news-meta">'+esc(item.published?fmtKickoff(item.published):"")+'</div><div class="news-headline">'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">'+esc(item.headline||"Player update")+"</a>":esc(item.headline||"Player update"))+'</div>'+(item.description?'<div class="news-description">'+esc(item.description)+"</div>":"")+(item.spin?'<div class="news-spin"><strong>Fantasy:</strong> '+esc(item.spin)+"</div>":"")+"</article>").join("")+"</div>";
+    return '<div class="news-feed">'+stories.map(({p,item})=>'<article class="feed-story" data-news-player="'+esc(p.id)+'"><div class="feed-player"><div class="portrait">'+(p.headshot?'<img src="'+esc(p.headshot)+'" alt="" loading="lazy">':"")+'</div><div><div class="player-name">'+esc(p.name)+'</div><div class="player-meta">'+esc([p.position,p.nfl_team].filter(Boolean).join(" · "))+'</div></div></div><div class="news-meta">'+esc(item.published?fmtKickoff(item.published):"")+'</div><div class="news-headline">'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">'+esc(item.headline||"Player update")+"</a>":esc(item.headline||"Player update"))+'</div>'+(item.description?'<div class="news-description">'+esc(item.description)+"</div>":"")+(item.spin?'<div class="news-spin"><strong>Fantasy:</strong> '+esc(item.spin)+"</div>":"")+"</article>").join("")+"</div>";
   }
   setView(v){this._leagueView=v;this.remember("view",v);this.renderStable();}
   setMatchupView(v){this._matchupView=v;this.remember("matchup",v);this.renderStable();}
