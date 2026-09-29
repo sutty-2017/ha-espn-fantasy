@@ -334,7 +334,7 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
 
 class ESPNFantasyLeagueTickerCard extends ESPNBaseCard {
   constructor(){super();this._timer=null;this._index=0;}
-  set hass(v){const old=this._hass;this._hass=v;if(!old||!this.shadowRoot.querySelector(".fantasy-ticker"))this.render();else{const ids=[this._config.entity,this._config.roster_entity,this._config.league_entity].filter(Boolean);if(!ids.length||ids.some(id=>old.states?.[id]!==v.states?.[id]))this.updateTicker();}}
+  set hass(v){const old=this._hass;this._hass=v;if(!old||!this.shadowRoot.querySelector(".fantasy-ticker"))this.render();else{const ids=[this._config.entity,this._config.roster_entity,this._config.league_entity].filter(Boolean);if(!ids.length||ids.some(id=>old.states?.[id]!==v.states?.[id]))this.renderStable();}}
   get hass(){return this._hass;}
   setConfig(v){if(this._timer){clearInterval(this._timer);this._timer=null;}this._config=v||{};this.render();}
   static getStubConfig(){return {type:"custom:espn-fantasy-ticker-card",content:"both",auto_scroll:true,scroll_speed:"normal",frame:false,team_header:"logo_name",league_header:"logo_name"};}
