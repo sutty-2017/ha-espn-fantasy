@@ -1,124 +1,122 @@
 # ESPN Fantasy Football for Home Assistant
 
-A Home Assistant custom integration for ESPN Fantasy Football leagues.
+Bring your ESPN Fantasy Football league into Home Assistant with native entities, automation-friendly data, and a coordinated dashboard card suite.
 
-It connects directly to ESPN's fantasy API and exposes your league, team, record, scoring totals, roster, individual roster players, matchup data, and bundled dashboard cards as Home Assistant entities.
+The integration connects directly to ESPN Fantasy data and exposes league standings, your team and roster, live matchup scoring, player projections and statistics, injuries, game status, fantasy outlooks, and player news.
 
 > **Unofficial integration:** This project is not affiliated with or endorsed by ESPN.
 
-## Features
+## Highlights
 
 - UI-based Home Assistant configuration
-- Public and private ESPN leagues
-- League and season information
-- Your team's record and scoring totals
-- Current fantasy matchup week
-- Roster count and roster details
-- One sensor for each player on your roster
-- Player attributes including position, NFL team, injury status, ownership, projected points, and actual points
-- Player `Game Active` binary sensors for live NFL games
-- Current matchup sensor with opponent team, scores, projections, and both starting rosters
-- Built-in Lovelace cards for roster, live-game, matchup, and position-battle views
-- Coordinated polling so all entities share one ESPN API request
+- Public and private ESPN Fantasy Football leagues
+- League standings and current-week scoreboard
+- Team record, scoring totals, roster and lineup data
+- Current matchup with scores, projections, win probability, and both starting rosters
+- Individual roster-player sensors with fantasy points, projections, game statistics, injury status, NFL matchup and game state
+- Offensive, kicker, D/ST, and IDP player support
+- Player fantasy outlooks and ESPN fantasy news
+- Player **Game Active** binary sensors for live NFL games
+- Coordinated polling with separately throttled player-news updates
+- Data exposed as Home Assistant entity attributes for dashboards and automations
+- Seven bundled Lovelace cards with shared player popups and appearance controls
+- Home Assistant theme inheritance plus **Glass**, **Solid**, and **Transparent** appearance presets
 - HACS-compatible repository structure
 
-## HACS installation
+## Installation with HACS
 
-### Custom repository
-
-1. Install [HACS](https://www.hacs.xyz/) if you have not already.
+1. Install [HACS](https://www.hacs.xyz/) if needed.
 2. Open **HACS → Integrations**.
 3. Open the three-dot menu and select **Custom repositories**.
-4. Add this repository URL:
+4. Add `https://github.com/sutty-2017/ha-espn-fantasy` as an **Integration** repository.
+5. Install **ESPN Fantasy Football** and restart Home Assistant.
+6. Go to **Settings → Devices & services → Add Integration** and search for **ESPN Fantasy Football**.
 
-   `https://github.com/sutty-2017/ha-espn-fantasy`
-
-5. Select **Integration** as the repository type.
-6. Add the repository and install **ESPN Fantasy Football**.
-7. Restart Home Assistant.
-8. Go to **Settings → Devices & services → Add Integration** and search for **ESPN Fantasy Football**.
+The integration serves and registers its dashboard cards automatically; no separate frontend repository or manual Lovelace resource is required.
 
 ## Configuration
 
-The integration asks for:
+The setup flow asks for:
 
-- **League ID** — the numeric league ID from ESPN.
-- **Team ID** — your numeric team ID within that league.
+- **League ID** — the numeric ID of your ESPN league.
+- **Team ID** — your numeric fantasy team ID within that league.
 - **Season** — for example `2026`.
-- **ESPN S2 cookie** — required for many private leagues.
-- **SWID cookie** — required for many private leagues.
+- **ESPN S2 cookie** and **SWID cookie** — needed for many private leagues.
 
 For a public league, leave the cookie fields blank.
-
-### Finding League ID and Team ID
-
-Your ESPN Fantasy URL normally contains the league ID. The team ID is the numeric ID assigned to your team in that league. If you are unsure of the team ID, inspect the league data or use the ESPN API response.
 
 ### Private leagues
 
 ESPN does not provide a stable public authentication flow for this API. Private leagues may require the `espn_s2` and `SWID` browser cookies from an authenticated ESPN session.
 
-Treat these cookies like credentials. Do not commit them to GitHub, put them in issue reports, or paste them into public logs.
+Treat these cookies like credentials. Do not commit them to GitHub, include them in issue reports, or paste them into public logs.
 
-## Entities
+## Home Assistant data
 
-The integration creates a device for the configured ESPN league/team and adds these sensors:
+The integration creates a device for the configured fantasy league/team and exposes sensors for league information, your team, record, points for/against, current week, roster, matchup, and each rostered player. Each player also receives a **Game Active** binary sensor.
 
-| Entity | Description |
-| --- | --- |
-| League | League name and league metadata |
-| My Team | Team name and team metadata |
-| Record | Wins-losses-ties |
-| Points For | Total points scored |
-| Points Against | Total points allowed |
-| Current Week | Current ESPN matchup period |
-| Roster | Number of rostered players plus roster details |
-| Matchup | Current opponent, matchup scores, projections, and starting rosters |
-| Player sensors | One sensor for each rostered player |
-| Game Active sensors | One binary sensor for each rostered player |
-
-Player sensors expose attributes such as:
-
-- Player ID
-- Position
-- NFL team
-- Injury status
-- Ownership percentage
-- Projected points
-- Actual points
+Player entities expose fantasy-relevant attributes including position, NFL team, lineup slot, injury status, ownership, actual/projected points, game status, opponent, detailed game statistics, weekly/season outlooks, and cached player news. This makes the same data used by the cards available for Home Assistant templates and automations.
 
 ## Dashboard cards
 
-Version 0.1.7 expands the bundled ESPN Fantasy Lovelace card suite. The integration serves and registers the card JavaScript automatically, so no separate frontend repository or manual resource entry is required.
+### ESPN Fantasy Player
+A focused player card with headshot, injury indicator, game status, fantasy score/projection, configurable detailed statistics, fantasy outlook, and latest player news. Supports compact, expandable, and expanded presentations.
 
-After updating the integration and restarting Home Assistant, open **Add Card** in a dashboard. The cards are available under the community custom cards list:
+### ESPN Fantasy Player Ticker
+A swipeable/rotating roster presentation for final, live, and upcoming players. Includes configurable sizing, live-player treatment, optional framing, and shared player-detail popups.
 
-- **ESPN Fantasy Roster** — displays your roster grouped by lineup slot, with headshots, points, projections, matchup information, and live-game badges.
-- **ESPN Fantasy Live** — displays rostered players whose NFL games are currently live.
-- **ESPN Fantasy Matchup** — displays your starting lineup directly against your opponent's starting lineup, including player scores, projections, live indicators, and position-by-position advantages.
-- **ESPN Fantasy Position Battle** — provides a compact position-by-position scoring comparison and advantage view.
+### ESPN Fantasy Team
+A complete fantasy-team view with team logo, score/projection and player lineup. It can also display a head-to-head roster matchup and optionally include bench players.
 
-The matchup card uses the integration's `Matchup` sensor, which includes the opponent's full starting roster. This lets you see your QB against their QB, RBs against RBs, WRs against WRs, and so on. Bench and IR players remain available through the normal roster view but are intentionally excluded from the starting-lineup matchup comparison.
+### ESPN Fantasy Matchup
+A compact current-week matchup overview with fantasy-team logos, scores, live projections, win probabilities, and starter progress.
 
-When selecting an ESPN Fantasy entity in the 2026.6+ card picker, the appropriate ESPN card can also be suggested automatically.
+### ESPN Fantasy League
+League-wide standings and current-week scoreboard. Display can be fixed to **Standings**, fixed to **Scoreboard**, or **Switchable**. Switchable mode remembers the last selected view.
+
+### ESPN Fantasy League Ticker
+A horizontally swipeable current-week league scoreboard with optional automatic scrolling.
+
+### ESPN Fantasy News
+A newest-first feed of fantasy news for players on your roster. Each story includes the player's name and portrait above the news item, with a configurable number of stories to display.
+
+### Appearance
+
+Every bundled card supports a shared appearance system:
+
+- **Home Assistant theme** — inherits the active dashboard theme.
+- **Glass** — translucent card surface with configurable blur.
+- **Solid** — standard solid Home Assistant card surface.
+- **Transparent** — frameless/transparent presentation.
+
+Cards also expose accent-color and border controls. The normal Home Assistant theme remains the default so the suite fits an existing dashboard without requiring custom styling.
+
+## Player details and news
+
+Player tiles across the suite share a common detailed view. Where player details are available, expanded content includes game statistics, ESPN fantasy outlook information, and the latest cached news.
+
+News is fetched by the integration rather than by individual cards. This keeps ESPN requests coordinated, allows the information to be exposed on player entities for automations, and lets multiple cards reuse the same data.
 
 ## API notes
 
-This integration uses ESPN's currently observed Fantasy Football API. ESPN's fantasy API is not a documented, stable public API, so API behavior can change without notice.
+This integration uses ESPN's currently observed Fantasy Football endpoints. ESPN does not document these as a stable public API, so fields and endpoint behavior can change without notice.
 
-The integration requests league views including team, roster, matchup, matchup score, settings, standings, and status data.
+The integration normalizes ESPN data before exposing it to Home Assistant and the bundled cards so frontend components can share a consistent data model.
 
 ## Troubleshooting
 
-### "Unable to retrieve the ESPN league"
+### Unable to retrieve the ESPN league
 
-Verify:
+Check the League ID, selected season, Home Assistant's internet connectivity, and that the league exists for that season.
 
-- League ID
-- Season
-- Internet connectivity from Home Assistant
-- That the ESPN league exists for the selected season
+### Private-league authentication failure
 
-### Authentication failure
+Verify that both `espn_s2` and `SWID` are current and were copied exactly from an authenticated ESPN browser session.
 
-For a private league, verify that both `espn_s2` and `SWID` are current and copied exactly from the authenticated ESPN browser session.
+### Dashboard card changes do not appear after updating
+
+Restart Home Assistant after updating the integration. If a browser or wall-panel session still has an older frontend resource cached, reload that client after Home Assistant is back online.
+
+## Development status
+
+The current development line is **v0.1.25**, adding player news, the ESPN Fantasy News card, expanded appearance controls, league display modes, improved fantasy-team logo handling, and frontend update/rendering fixes.

@@ -543,6 +543,11 @@ class PlayerSensor(ESPNBaseSensor):
             "stat_labels": normalized_player.get("stat_labels") or {},
             "default_stats": normalized_player.get("default_stats") or [],
             "last_news_date": normalized_player.get("last_news_date"),
+            "news": (self.coordinator.data.get("player_news") or {}).get(self.player_id, []),
+            "latest_news": next(
+                iter((self.coordinator.data.get("player_news") or {}).get(self.player_id, [])),
+                None,
+            ),
             "weekly_outlook": normalized_player.get("weekly_outlook"),
             "season_outlook": normalized_player.get("season_outlook"),
         }

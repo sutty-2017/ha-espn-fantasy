@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 
@@ -183,6 +184,68 @@ class ESPNClient:
             meta["pro_team_schedules"] = []
 
         return meta
+
+    async def get_player_news(self, player_id: int, limit: int = 5) -> list[dict[str, Any]]:
+        """Fetch and normalize ESPN fantasy news for one player."""
+        url = "https://site.api.espn.com/apis/fantasy/v2/games/ffl/news/players"
+        try:
+            async with self.session.get(
+                url,
+                params={"playerId": player_id, "limit": limit},
+                timeout=20,
+            ) as response:
+                if response.status != 200:
+                    return []
+                payload = await response.json()
+        except (TimeoutError, ValueError):
+            return []
+        except Exception:  # noqa: BLE001
+            return []
+
+        feed = payload.get("feed") or payload.get("articles") or []
+        normalized: list[dict[str, Any]] = []
+        for item in feed:
+            if not isinstance(item, dict):
+                continue
+            links = item.get("links") or item.get("link") or []
+            if isinstance(links, dict):
+                links = [links]
+            href = next(
+                (
+                    link.get("href")
+                    for link in links
+                    if isinstance(link, dict) and link.get("href")
+                ),
+                None,
+            )
+            normalized.append(
+                {
+                    "id": item.get("id") or item.get("nowId"),
+                    "published": item.get("published") or item.get("publishedDate"),
+                    "headline": item.get("headline") or item.get("title"),
+                    "description": item.get("description") or item.get("story"),
+                    "spin": item.get("spin") or item.get("analysis"),
+                    "type": item.get("type"),
+                    "source": item.get("source"),
+                    "url": href,
+                }
+            )
+        return normalized
+
+    async def get_player_news_many(
+        self, player_ids: list[int], limit: int = 5
+    ) -> dict[int, list[dict[str, Any]]]:
+        """Fetch player news with bounded concurrency so ESPN is not flooded."""
+        semaphore = asyncio.Semaphore(5)
+
+        async def _fetch(player_id: int) -> tuple[int, list[dict[str, Any]]]:
+            async with semaphore:
+                return player_id, await self.get_player_news(player_id, limit)
+
+        results = await asyncio.gather(
+            *(_fetch(player_id) for player_id in dict.fromkeys(player_ids))
+        )
+        return dict(results)
 
     @staticmethod
     def _int(value: Any) -> int | None:
