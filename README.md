@@ -19,7 +19,7 @@ The integration connects directly to ESPN Fantasy data and exposes league standi
 - Player **Game Active** binary sensors for live NFL games
 - Coordinated polling with separately throttled player-news updates
 - Data exposed as Home Assistant entity attributes for dashboards and automations
-- Seven bundled Lovelace cards with shared player popups and appearance controls
+- Four primary Lovelace cards with shared player popups and appearance controls; legacy card types remain registered for compatibility
 - Home Assistant theme inheritance plus **Glass**, **Solid**, and **Transparent** appearance presets
 - HACS-compatible repository structure
 
@@ -60,25 +60,18 @@ Player entities expose fantasy-relevant attributes including position, NFL team,
 ## Dashboard cards
 
 ### ESPN Fantasy Player
-A focused player card with headshot, injury indicator, game status, fantasy score/projection, configurable detailed statistics, fantasy outlook, and latest player news. Supports compact, expandable, and expanded presentations.
-
-### ESPN Fantasy Player Ticker
-A swipeable/rotating roster presentation for final, live, and upcoming players. Includes configurable sizing, live-player treatment, optional framing, and shared player-detail popups.
-
-### ESPN Fantasy Team
-A complete fantasy-team view with team logo, score/projection and player lineup. It can also display a head-to-head roster matchup and optionally include bench players.
-
-### ESPN Fantasy Matchup
-A compact current-week matchup overview with fantasy-team logos, scores, live projections, win probabilities, and starter progress.
+A focused player card with headshot, injury indicator, game status, fantasy score/projection, configurable detailed statistics, fantasy outlook, and latest player news.
 
 ### ESPN Fantasy League
-League-wide standings and current-week scoreboard. Display can be fixed to **Standings**, fixed to **Scoreboard**, or **Switchable**. Switchable mode remembers the last selected view.
+The main dashboard card. It can run as a standalone **Roster**, **Standings**, **Scoreboard**, or **Matchup** view, or as an **All-in-one** card that switches between those views and optional **News**. Matchup includes its own **Starters / Bench & IR** switch. Navigation labels and the card title are customizable and the selected views are remembered.
 
-### ESPN Fantasy League Ticker
-A horizontally swipeable current-week league scoreboard with optional automatic scrolling.
+### ESPN Fantasy Ticker
+One ticker for **Players**, **Scoreboard**, or **Players + Scoreboard**. Combined mode can insert customizable team and league section headers using logo + name, logo only, name only, or no header.
 
 ### ESPN Fantasy News
-A newest-first feed of fantasy news for players on your roster. Each story includes the player's name and portrait above the news item, with a configurable number of stories to display.
+A newest-first feed of fantasy news for players on your roster. Each story includes the player's name and portrait, with a configurable story count.
+
+Existing Player Ticker, Team, Matchup, and League Ticker custom-element types remain registered so existing dashboards are not deliberately broken while the consolidated cards become the preferred configuration.
 
 ### Appearance
 
@@ -119,4 +112,4 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current development line is **v0.1.26**, hardening the v0.1.25 feature set with reliable frontend cache versioning, league-scoreboard data fixes, reduced card rerendering, scroll-position protection, and consistency fixes for IDP and live-game entities.
+The current development line is **v0.1.27**, consolidating the dashboard into a League card and Fantasy Ticker while preserving standalone Player and News cards. It also hardens Home Assistant theme inheritance, scroll stability, and image preservation to reduce dashboard jumps and logo flicker.
