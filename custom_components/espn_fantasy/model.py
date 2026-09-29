@@ -114,6 +114,25 @@ def _stat_entry(player: dict[str, Any], period: int | None, source: int) -> dict
     return {}
 
 
+def _weekly_history(player: dict[str, Any], current_period: int | None) -> list[dict[str, Any]]:
+    """Normalize weekly fantasy results already embedded in ESPN player data."""
+    weeks: dict[int, dict[str, Any]] = {}
+    for stat in player.get("stats") or []:
+        period = _int(stat.get("scoringPeriodId"))
+        if period is None or period <= 0 or (current_period is not None and period > current_period):
+            continue
+        source = _int(stat.get("statSourceId"))
+        if source not in (0, 1) or stat.get("statSplitTypeId") not in (1, None):
+            continue
+        row = weeks.setdefault(period, {"week": period})
+        if source == 0:
+            row["actual_points"] = _float(stat.get("appliedTotal"))
+            row["stats"] = _named_stats(dict(stat.get("stats") or {}))
+        else:
+            row["projected_points"] = _float(stat.get("appliedTotal", stat.get("projectedTotal")))
+    return [weeks[period] for period in sorted(weeks, reverse=True)]
+
+
 def _team_abbrev(team: dict[str, Any]) -> str | None:
     return team.get("abbrev") or team.get("abbreviation")
 
@@ -228,6 +247,7 @@ def _player(
         ),
         "projection_ceiling": _float(projected.get("appliedTotalCeiling")),
         "stats": _named_stats(dict(actual.get("stats") or {})),
+        "weekly_history": _weekly_history(player, period),
         "stat_labels": STAT_LABELS,
         "default_stats": POSITION_DEFAULT_STATS.get(POSITION_NAMES.get(position_id, position_id), []),
         **game,
