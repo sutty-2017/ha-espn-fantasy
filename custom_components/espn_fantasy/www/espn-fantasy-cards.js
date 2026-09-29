@@ -246,26 +246,6 @@ function leagueScoreboard(games) {
 }
 
 class ESPNFantasyLeagueCard extends ESPNBaseCard {
-  static getStubConfig(){return {type:"custom:espn-fantasy-league-card",show_scoreboard:true,standings_limit:0};}
-  static getConfigForm(){return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"show_scoreboard",selector:{boolean:{}}},{name:"standings_limit",selector:{number:{min:0,max:32,mode:"box"}}}]};}
-  getGridOptions(){return {rows:"auto",columns:12,min_rows:4,min_columns:4};}
-  render(){if(!this.hass)return;const s=findLeague(this.hass,this._config.entity),a=s?.attributes||{},limit=Number(this._config.standings_limit)||undefined;const html=s?`<div class="league-title">${esc(s.state)}<span>Week ${esc(a.current_week??a.matchup_period??"—")}</span></div>${leagueStandings(a.standings,limit)}${this._config.show_scoreboard===false?"":`<div class="league-section-title">Scoreboard</div>${leagueScoreboard(a.scoreboard)}`}`:'<div class="empty">Choose an ESPN Fantasy league entity.</div>';this.shadowRoot.innerHTML=`<style>${this.styles()}</style><ha-card><div class="wrap">${html}</div></ha-card>`;}
-}
-
-class ESPNFantasyLeagueTickerCard extends ESPNBaseCard {
-  constructor(){super();this._timer=null;}
-  static getStubConfig(){return {type:"custom:espn-fantasy-league-ticker-card",auto_scroll:false,scroll_speed:"normal",frame:true};}
-  static getConfigForm(){return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"auto_scroll",selector:{boolean:{}}},{name:"scroll_speed",selector:{select:{options:["slow","normal","fast"]}}},{name:"frame",selector:{boolean:{}}}]};}
-  disconnectedCallback(){if(this._timer){clearInterval(this._timer);this._timer=null;}}
-  syncTimer(){const games=this._games||[];if((!this._config.auto_scroll||games.length<=1)&&this._timer){clearInterval(this._timer);this._timer=null;}if(this._config.auto_scroll&&games.length>1&&!this._timer){const ms={slow:5000,normal:3000,fast:1800}[this._config.scroll_speed]||3000;this._timer=setInterval(()=>{const el=this.shadowRoot.querySelector(".league-ticker");if(!el)return;const items=[...el.querySelectorAll(".league-game")];if(!items.length)return;const left=x=>x.offsetLeft;const current=items.reduce((best,x,i)=>Math.abs(left(x)-el.scrollLeft)<Math.abs(left(items[best])-el.scrollLeft)?i:best,0);el.scrollTo({left:left(items[(current+1)%items.length]),behavior:"smooth"});},ms);}}
-  render(){if(!this.hass)return;const s=findLeague(this.hass,this._config.entity),a=s?.attributes||{};this._games=a.scoreboard||[];const frameless=this._config.frame===false;this.shadowRoot.innerHTML=`<style>${this.styles()}.league-ticker-card.frameless{background:transparent!important;border:none!important;box-shadow:none!important;backdrop-filter:none!important}.league-ticker-card.frameless .wrap{padding:0}.league-ticker{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity}.league-ticker .league-game{min-width:260px;scroll-snap-align:start}</style><ha-card class="league-ticker-card ${frameless?"frameless":""}"><div class="wrap">${s&&this._games.length?`<div class="league-ticker">${this._games.map(leagueGame).join("")}</div>`:'<div class="empty">No league matchups available.</div>'}</div></ha-card>`;this.syncTimer();}
-}
-
-
-function leagueMatchupRow(m) {
-  return `<div class="league-matchup"><div class="league-match-team">${teamLogo(m.away_logo,m.away_team_name)}<span>${esc(m.away_team_name||"Away")}</span><strong>${num(m.away_score,2)}</strong></div><div class="league-match-team">${teamLogo(m.home_logo,m.home_team_name)}<span>${esc(m.home_team_name||"Home")}</span><strong>${num(m.home_score,2)}</strong></div></div>`;
-}
-class ESPNFantasyLeagueCard extends ESPNBaseCard {
   static getStubConfig(){return {type:"custom:espn-fantasy-league-card",show_scoreboard:true};}
   static getConfigForm(){return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"show_scoreboard",selector:{boolean:{}}}]};}
   getGridOptions(){return {rows:"auto",columns:12,min_rows:4,min_columns:4};}
@@ -305,7 +285,7 @@ for(const card of [
  {type:"espn-fantasy-player-card",name:"ESPN Fantasy Player",description:"Responsive player card using normalized ESPN Fantasy data.",preview:true},
  {type:"espn-fantasy-player-ticker-card",name:"ESPN Fantasy Player Ticker",description:"Final, live, and upcoming starters in a swipeable ticker.",preview:true},
  {type:"espn-fantasy-team-card",name:"ESPN Fantasy Team",description:"Single-team or head-to-head matchup card with player details.",preview:true},
- {type:"espn-fantasy-matchup-card",name:"ESPN Fantasy Matchup",description:"Compact fantasy matchup scoreboard with scores and projections.",preview:true}
+ {type:"espn-fantasy-matchup-card",name:"ESPN Fantasy Matchup",description:"Compact fantasy matchup scoreboard with scores and projections.",preview:true},
  {type:"espn-fantasy-league-card",name:"ESPN Fantasy League",description:"League standings with the current fantasy scoreboard.",preview:true},
  {type:"espn-fantasy-league-ticker-card",name:"ESPN Fantasy League Ticker",description:"Swipeable current-week league matchup ticker.",preview:true},
 ]) if(!window.customCards.some((x)=>x.type===card.type)) window.customCards.push({...card,documentationURL:"https://github.com/sutty-2017/ha-espn-fantasy"});
