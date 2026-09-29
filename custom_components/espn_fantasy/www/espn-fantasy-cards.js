@@ -275,23 +275,63 @@ function leagueScoreboard(games) {
 }
 
 class ESPNFantasyLeagueCard extends ESPNBaseCard {
-  constructor(){super();this._leagueView=null;}
-  static getStubConfig(){return {type:"custom:espn-fantasy-league-card",display_mode:"standings"};}
-  static getConfigForm(){return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"display_mode",selector:{select:{options:[{value:"standings",label:"Standings"},{value:"scoreboard",label:"Scoreboard"},{value:"switchable",label:"Standings / Scoreboard switch"}]}}},{name:"appearance",selector:{select:{options:[{value:"theme",label:"Home Assistant theme"},{value:"glass",label:"Glass"},{value:"solid",label:"Solid"},{value:"transparent",label:"Transparent"}]}}},{name:"accent_color",selector:{color_rgb:{}}},{name:"glass_strength",selector:{select:{options:[{value:"subtle",label:"Subtle"},{value:"strong",label:"Strong"}]}}},{name:"border_style",selector:{select:{options:[{value:"theme",label:"Theme"},{value:"subtle",label:"Subtle"},{value:"none",label:"None"}]}}}]};}
+  constructor(){super();this._leagueView=null;this._matchupView=null;}
+  static getStubConfig(){return {type:"custom:espn-fantasy-league-card",display_mode:"all",include_news:true};}
+  static getConfigForm(){return {schema:[
+    {name:"entity",selector:{entity:{domain:"sensor"}}},
+    {name:"display_mode",selector:{select:{options:[{value:"roster",label:"Roster"},{value:"standings",label:"Standings"},{value:"scoreboard",label:"Scoreboard"},{value:"matchup",label:"Matchup"},{value:"all",label:"All-in-one"}]}}},
+    {name:"include_news",selector:{boolean:{}}},
+    {name:"title",selector:{text:{}}},
+    {name:"label_roster",selector:{text:{}}},{name:"label_standings",selector:{text:{}}},{name:"label_scoreboard",selector:{text:{}}},{name:"label_matchup",selector:{text:{}}},{name:"label_news",selector:{text:{}}},
+    {name:"label_starters",selector:{text:{}}},{name:"label_bench_ir",selector:{text:{}}},
+    {name:"story_count",selector:{number:{min:1,max:20,mode:"box"}}},
+    {name:"appearance",selector:{select:{options:[{value:"theme",label:"Home Assistant theme"},{value:"glass",label:"Glass"},{value:"solid",label:"Solid"},{value:"transparent",label:"Transparent"}]}}},
+    {name:"accent_color",selector:{color_rgb:{}}},{name:"glass_strength",selector:{select:{options:[{value:"subtle",label:"Subtle"},{value:"strong",label:"Strong"}]}}},
+    {name:"border_style",selector:{select:{options:[{value:"theme",label:"Theme"},{value:"subtle",label:"Subtle"},{value:"none",label:"None"}]}}}
+  ]};}
   getGridOptions(){return {rows:"auto",columns:12,min_rows:4,min_columns:4};}
-  storageKey(){return `espn-fantasy-league-view:${this._config.entity||"default"}`;}
-  currentView(){if((this._config.display_mode||"standings")!=="switchable")return this._config.display_mode||"standings";if(this._leagueView)return this._leagueView;try{this._leagueView=localStorage.getItem(this.storageKey())||"standings";}catch(_){this._leagueView="standings";}return this._leagueView;}
-  setView(view){this._leagueView=view;try{localStorage.setItem(this.storageKey(),view);}catch(_){}this.render();}
+  labels(){return {roster:this._config.label_roster||"Roster",standings:this._config.label_standings||"Standings",scoreboard:this._config.label_scoreboard||"Scoreboard",matchup:this._config.label_matchup||"My Matchup",news:this._config.label_news||"News",starters:this._config.label_starters||"Starters",bench:this._config.label_bench_ir||"Bench / IR"};}
+  key(part){return "espn-fantasy-main:"+(this._config.entity||"auto")+":"+part;}
+  remembered(part,fallback){try{return localStorage.getItem(this.key(part))||fallback}catch(_){return fallback}}
+  remember(part,value){try{localStorage.setItem(this.key(part),value)}catch(_){}}
+  rosterState(){return findRoster(this.hass,this._config.entity)||findRoster(this.hass);}
+  leagueState(){return findLeague(this.hass,this._config.entity)||findLeague(this.hass);}
+  matchupState(){return findMatchup(this.hass,this._config.entity)||findMatchup(this.hass);}
+  rosterBody(){
+    const s=this.rosterState(),a=s?.attributes||{},players=rosterOrder(a.players||a.starters||[]);this._players=players;
+    if(!s)return '<div class="empty">No roster data yet.</div>';
+    return '<div class="team-head single"><div class="team-side">'+teamLogo(a.team_logo,a.team_name)+'<div class="team-name">'+esc(a.team_name)+'</div><div class="big-score">'+num(a.score,2)+'</div><div class="projection">Proj '+num(a.live_projected_score??a.projected_score)+'</div></div></div><div class="player-list">'+players.map(p=>playerTile(p,{showSlot:true,showLiveHalo:this._config.show_live_halo!==false,haloColor:this._config.live_halo_color})).join("")+'</div>';
+  }
+  matchupBody(){
+    const s=this.matchupState(),a=s?.attributes||{},labels=this.labels(),view=this._matchupView||this.remembered("matchup","starters");
+    if(!s)return '<div class="empty">No matchup data yet.</div>';
+    const startersMine=a.my_roster||[],startersOpp=a.opponent_roster||[],starterIds=new Set(startersMine.map(p=>String(p.id))),oppStarterIds=new Set(startersOpp.map(p=>String(p.id)));
+    const mine=rosterOrder(view==="bench"?(a.my_players||[]).filter(p=>!starterIds.has(String(p.id))):startersMine);
+    const opp=rosterOrder(view==="bench"?(a.opponent_players||[]).filter(p=>!oppStarterIds.has(String(p.id))):startersOpp);this._players=[...mine,...opp];
+    let rows="";for(let i=0;i<Math.max(mine.length,opp.length);i++)rows+='<div class="match-row">'+(mine[i]?playerTile(mine[i],{showSlot:true}):"<div></div>")+(opp[i]?playerTile(opp[i],{showSlot:true}):"<div></div>")+"</div>";
+    return matchupHeader(a)+'<div class="sub-switch"><button data-matchup="starters" class="'+(view==="starters"?"active":"")+'">'+esc(labels.starters)+'</button><button data-matchup="bench" class="'+(view==="bench"?"active":"")+'">'+esc(labels.bench)+'</button></div>'+rows;
+  }
+  newsBody(){
+    const players=this.rosterState()?.attributes?.players||[],count=Math.max(1,Number(this._config.story_count)||5);
+    const stories=players.flatMap(p=>(Array.isArray(p.news)?p.news:[]).map(item=>({p,item}))).sort((x,y)=>(Date.parse(y.item.published)||0)-(Date.parse(x.item.published)||0)).slice(0,count);
+    if(!stories.length)return '<div class="empty">No player news available yet.</div>';
+    return '<div class="news-feed">'+stories.map(({p,item})=>'<article class="feed-story"><div class="feed-player"><div class="portrait">'+(p.headshot?'<img src="'+esc(p.headshot)+'" alt="" loading="lazy">':"")+'</div><div><div class="player-name">'+esc(p.name)+'</div><div class="player-meta">'+esc([p.position,p.nfl_team].filter(Boolean).join(" · "))+'</div></div></div><div class="news-meta">'+esc(item.published?fmtKickoff(item.published):"")+'</div><div class="news-headline">'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">'+esc(item.headline||"Player update")+"</a>":esc(item.headline||"Player update"))+'</div>'+(item.description?'<div class="news-description">'+esc(item.description)+"</div>":"")+(item.spin?'<div class="news-spin"><strong>Fantasy:</strong> '+esc(item.spin)+"</div>":"")+"</article>").join("")+"</div>";
+  }
+  setView(v){this._leagueView=v;this.remember("view",v);this.renderStable();}
+  setMatchupView(v){this._matchupView=v;this.remember("matchup",v);this.renderStable();}
   render(){
-    if(!this.hass)return;
-    const s=findLeague(this.hass,this._config.entity),a=s?.attributes||{},standings=a.standings||[],games=a.scoreboard||[];
-    const week=a.current_week??a.matchup_period??"—",mode=this._config.display_mode||"standings",view=this.currentView();
-    const switcher=mode==="switchable"?`<div class="league-switch"><button data-view="standings" class="${view==="standings"?"active":""}">Standings</button><button data-view="scoreboard" class="${view==="scoreboard"?"active":""}">Scoreboard</button></div>`:"";
-    const body=view==="scoreboard"?`<div class="league-section-title">Week ${esc(week)} scoreboard</div>${games.length?leagueScoreboard(games):'<div class="empty">No scoreboard data yet.</div>'}`:`<div class="league-section-title">Standings · ${esc(a.team_count||standings.length)} teams</div>${standings.length?leagueStandings(standings):'<div class="empty">No standings data yet.</div>'}`;
-    this.shadowRoot.innerHTML=`<style>${this.styles()}.league-switch{display:flex;gap:4px;margin:0 0 10px}.league-switch button{border:1px solid var(--divider-color);border-radius:999px;padding:5px 10px;background:transparent;color:var(--secondary-text-color);cursor:pointer}.league-switch button.active{background:color-mix(in srgb,var(--espn-accent,var(--primary-color)) 18%,transparent);color:var(--primary-text-color);border-color:var(--espn-accent,var(--primary-color))}</style><ha-card><div class="wrap"><div class="league-title"><strong>${esc(s?.state||"Fantasy League")}</strong><span>Week ${esc(week)}</span></div>${switcher}${body}</div></ha-card>`;
-    this.shadowRoot.querySelectorAll(".league-switch button").forEach(b=>b.addEventListener("click",()=>this.setView(b.dataset.view)));
+    if(!this.hass)return;const labels=this.labels(),mode=this._config.display_mode||"all",league=this.leagueState(),la=league?.attributes||{},standings=la.standings||[],games=la.scoreboard||[];
+    const views=["roster","standings","scoreboard","matchup",...(this._config.include_news===false?[]:["news"])],requested=mode==="all"?(this._leagueView||this.remembered("view","standings")):mode,view=views.includes(requested)?requested:views[0];
+    const body=view==="roster"?this.rosterBody():view==="standings"?(standings.length?leagueStandings(standings):'<div class="empty">No standings data yet.</div>'):view==="scoreboard"?(games.length?leagueScoreboard(games):'<div class="empty">No scoreboard data yet.</div>'):view==="matchup"?this.matchupBody():this.newsBody();
+    const nav=mode==="all"?'<div class="main-switch">'+views.map(v=>'<button data-view="'+v+'" class="'+(view===v?"active":"")+'">'+esc(labels[v])+"</button>").join("")+"</div>":"";
+    const title=this._config.title??league?.state??this.rosterState()?.attributes?.team_name??"ESPN Fantasy";
+    this.shadowRoot.innerHTML='<style>'+this.styles()+'.main-switch,.sub-switch{display:flex;gap:5px;overflow-x:auto;margin:0 0 12px;scrollbar-width:none}.main-switch button,.sub-switch button{white-space:nowrap;border:1px solid var(--divider-color);border-radius:999px;padding:6px 11px;background:var(--secondary-background-color);color:var(--secondary-text-color);cursor:pointer}.main-switch button.active,.sub-switch button.active{background:color-mix(in srgb,var(--espn-accent,var(--primary-color)) 20%,var(--ha-card-background,var(--card-background-color)));color:var(--primary-text-color);border-color:var(--espn-accent,var(--primary-color))}.team-head.single{grid-template-columns:1fr}.match-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.news-feed{display:grid;gap:10px}.feed-story{padding:12px;border-radius:var(--ha-card-border-radius,12px);background:var(--secondary-background-color)}.feed-player{display:flex;align-items:center;gap:10px;margin-bottom:8px}.feed-player .portrait{width:48px;height:48px;flex:0 0 48px}@media(max-width:600px){.match-row{gap:5px}.match-row .player-tile{grid-template-columns:36px minmax(0,1fr);padding:6px}.match-row .portrait{width:36px;height:36px}.match-row .player-score{grid-column:2;text-align:left}}</style><ha-card><div class="wrap"><div class="header"><div class="title">'+esc(title)+'</div><div class="subtle">Week '+esc(la.current_week??la.matchup_period??"—")+'</div></div>'+nav+'<div class="main-content">'+body+'</div></div></ha-card>'+this.dialog();
+    this.shadowRoot.querySelectorAll(".main-switch button").forEach(x=>x.addEventListener("click",()=>this.setView(x.dataset.view)));
+    this.shadowRoot.querySelectorAll(".sub-switch button").forEach(x=>x.addEventListener("click",()=>this.setMatchupView(x.dataset.matchup)));
+    this.bindPlayers(id=>this.openPlayer((this._players||[]).find(p=>String(p.id)===String(id)),this._config.stats));this.bindDialog();
   }
 }
+
 class ESPNFantasyLeagueTickerCard extends ESPNBaseCard {
   constructor(){super();this._timer=null;}
   set hass(v){const old=this._hass;this._hass=v;const id=this._config.entity;if(!old||!this.shadowRoot.querySelector(".league-ticker"))this.render();else if(!id||old.states?.[id]!==v.states?.[id])this.updateTicker();}
