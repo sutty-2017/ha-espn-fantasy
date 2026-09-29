@@ -18,6 +18,8 @@ _LOGGER = logging.getLogger(__name__)
 
 _CARD_FILENAME = "espn-fantasy-cards.js"
 _CARD_PATH = Path(__file__).parent / "www" / _CARD_FILENAME
+_ICON_PATH = Path(__file__).parent / "brand" / "icon.png"
+_ICON_STATIC_URL = "/espn_fantasy/icon.png"
 _MANIFEST_PATH = Path(__file__).parent / "manifest.json"
 _CARD_VERSION = json.loads(_MANIFEST_PATH.read_text(encoding="utf-8"))["version"]
 _CARD_STATIC_URL = f"/espn_fantasy/{_CARD_FILENAME}"
@@ -65,6 +67,11 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
                             StaticPathConfig(
                                 _CARD_STATIC_URL,
                                 str(_CARD_PATH),
+                                cache_headers=True,
+                            ),
+                            StaticPathConfig(
+                                _ICON_STATIC_URL,
+                                str(_ICON_PATH),
                                 cache_headers=True,
                             )
                         ]
