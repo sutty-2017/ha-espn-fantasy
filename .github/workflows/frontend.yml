@@ -108,6 +108,72 @@ jobs:
           assert players[1]["lineup_alert"] == "higher_than_starter"
           assert players[2]["lineup_alert"] is None
           PY
+      - name: Smoke-test canonical roster enrichment
+        run: |
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+
+          path = Path("custom_components/espn_fantasy/model.py")
+          spec = importlib.util.spec_from_file_location("espn_fantasy_model", path)
+          model = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(model)
+
+          def stat(week, source, points):
+              return {
+                  "seasonId": 2026, "scoringPeriodId": week,
+                  "statSourceId": source, "statSplitTypeId": 1,
+                  "appliedTotal": points, "stats": {"24": week * 10},
+              }
+
+          canonical_player = {
+              "id": 101, "fullName": "History Player", "defaultPositionId": 2,
+              "proTeamId": 1, "eligibleSlots": [2, 20],
+              "injuryStatus": "QUESTIONABLE", "injured": True,
+              "stats": [
+                  stat(1, 0, 11.0), stat(1, 1, 10.0),
+                  stat(2, 0, 12.0), stat(2, 1, 11.0),
+                  stat(3, 0, 13.0), stat(3, 1, 12.0),
+                  stat(4, 1, 14.0),
+              ],
+          }
+          matchup_player = {
+              "id": 101, "fullName": "History Player", "defaultPositionId": 2,
+              "proTeamId": 1, "eligibleSlots": [2, 20],
+              "stats": [stat(4, 1, 15.0)],
+          }
+          canonical_entry = {
+              "playerId": 101, "lineupSlotId": 20,
+              "playerPoolEntry": {"id": 101, "player": canonical_player},
+          }
+          matchup_entry = {
+              "playerId": 101, "lineupSlotId": 2,
+              "playerPoolEntry": {"id": 101, "player": matchup_player},
+          }
+          data = {
+              "scoringPeriodId": 4,
+              "status": {"currentScoringPeriod": 4, "currentMatchupPeriod": 4},
+              "teams": [
+                  {"id": 1, "name": "Alpha", "roster": {"entries": [canonical_entry]}},
+                  {"id": 2, "name": "Beta", "roster": {"entries": []}},
+              ],
+              "current_matchup": [{
+                  "id": 99, "matchupPeriodId": 4,
+                  "home": {"teamId": 1, "rosterForCurrentScoringPeriod": {"entries": [matchup_entry]}},
+                  "away": {"teamId": 2, "rosterForCurrentScoringPeriod": {"entries": []}},
+              }],
+              "pro_team_schedules": [],
+          }
+          normalized = model.build_normalized_model(data, 1)
+          player = normalized["matchup"]["my_team"]["roster"][0]
+          assert player["lineup_slot_id"] == 2
+          assert player["injury_status"] == "QUESTIONABLE"
+          assert player["injured"] is True
+          assert [row["week"] for row in player["weekly_history"]] == [4, 3, 2, 1]
+          assert player["weekly_history"][0]["projected_points"] == 15.0
+          assert player["season_summary"]["weeks_with_stats"] == 3
+          assert player["season_summary"]["total_points"] == 36.0
+          PY
       - name: Check required card registrations
         run: |
           FILE=custom_components/espn_fantasy/www/espn-fantasy-cards.js
