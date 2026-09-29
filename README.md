@@ -63,13 +63,13 @@ Player entities expose fantasy-relevant attributes including position, NFL team,
 A focused player card with headshot, injury indicator, game status, fantasy score/projection, configurable detailed statistics, fantasy outlook, and latest player news.
 
 ### ESPN Fantasy League
-The main dashboard card. It can run as a standalone **Roster**, **Standings**, **Scoreboard**, or **Matchup** view, or as an **All-in-one** card that switches between those views and optional **News**. Roster and Matchup each include their own **Starters / Bench & IR** switch. All-in-one navigation sections can be reordered, News has a configurable story count, navigation labels and the card title are customizable, and selected views are remembered.
+The main dashboard card. It can run as a standalone **Roster**, **Standings**, **Scoreboard**, or **Matchup** view, or as an **All-in-one** card that switches between those views and optional **News**. Roster and Matchup each include their own **Starters / Bench & IR** switch. All-in-one navigation sections can be reordered with compact arrow controls. News has a configurable story count and scrollable height, news stories open the shared player-details popup, navigation labels and the card title are customizable, and selected views are remembered. The header can optionally show the bundled ESPN Fantasy mark.
 
 ### ESPN Fantasy Ticker
-One ticker for **Players**, **Scoreboard**, or **Players + Scoreboard**. The identity panel stays pinned on the left while content scrolls and switches between your team and league identity in combined mode. Choose **Step** or continuous **Smooth** scrolling, flip Players/Scoreboard order, and customize logo + name, logo only, name only, or hidden identity modes. When ESPN does not provide a league logo, the ticker uses ESPN Fantasy branding.
+One ticker for **Players**, **Scoreboard**, or **Players + Scoreboard**. The identity panel stays pinned on the left while content scrolls and switches between your team and league identity in combined mode. Choose **Step** or continuous **Smooth** scrolling, flip Players/Scoreboard order, and customize logo + name, logo only, name only, or hidden identity modes. When ESPN does not provide a league logo, the ticker uses bundled ESPN Fantasy branding. The pinned identity background is opaque with a soft fade edge and can be color-customized in the card editor. Player tiles in the ticker open the same shared player-details popup used elsewhere.
 
 ### ESPN Fantasy News
-A newest-first feed of fantasy news for players on your roster. Each story includes the player's name and portrait, with a configurable story count.
+A newest-first feed of fantasy news for players on your roster. Each story includes the player's name and portrait, with a configurable story count, and selecting a story opens that player's shared details popup.
 
 Existing Player Ticker, Team, Matchup, and League Ticker custom-element types remain registered so existing dashboards are not deliberately broken while the consolidated cards become the preferred configuration.
 
@@ -112,4 +112,4 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current development line is **v0.1.28**, refining the consolidated League and Fantasy Ticker cards with shorter roster views, reorderable League sections, configurable News count, pinned ticker identities, reversible ticker section order, and continuous smooth scrolling.
+The current development line is **v0.1.29**, polishing the consolidated League and Fantasy Ticker cards with stable tab styling, shared player interactions and injury badges, scrollable News, compact section ordering, bundled branding, and customizable opaque ticker identities.
