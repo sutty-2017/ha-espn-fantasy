@@ -283,7 +283,7 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
     {name:"entity",selector:{entity:{domain:"sensor"}}},
     {name:"display_mode",selector:{select:{options:[{value:"roster",label:"Roster"},{value:"standings",label:"Standings"},{value:"scoreboard",label:"Scoreboard"},{value:"matchup",label:"Matchup"},{value:"all",label:"All-in-one"}]}}},
     {name:"include_news",selector:{boolean:{}}},
-    {name:"title",selector:{text:{}}},
+    {name:"title",selector:{text:{}}},{name:"hide_title",selector:{boolean:{}}},
     {name:"label_roster",selector:{text:{}}},{name:"label_standings",selector:{text:{}}},{name:"label_scoreboard",selector:{text:{}}},{name:"label_matchup",selector:{text:{}}},{name:"label_news",selector:{text:{}}},
     {name:"label_starters",selector:{text:{}}},{name:"label_bench_ir",selector:{text:{}}},
     {name:"story_count",selector:{number:{min:1,max:20,mode:"box"}}},
@@ -326,7 +326,7 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
     const views=["roster","standings","scoreboard","matchup",...(this._config.include_news===false?[]:["news"])],requested=mode==="all"?(this._leagueView||this.remembered("view","standings")):mode,view=views.includes(requested)?requested:views[0];
     const body=view==="roster"?this.rosterBody():view==="standings"?(standings.length?leagueStandings(standings):'<div class="empty">No standings data yet.</div>'):view==="scoreboard"?(games.length?leagueScoreboard(games):'<div class="empty">No scoreboard data yet.</div>'):view==="matchup"?this.matchupBody():this.newsBody();
     const nav=mode==="all"?'<div class="main-switch">'+views.map(v=>'<button data-view="'+v+'" class="'+(view===v?"active":"")+'">'+esc(labels[v])+"</button>").join("")+"</div>":"";
-    const title=this._config.title??league?.state??this.rosterState()?.attributes?.team_name??"ESPN Fantasy";
+    const title=this._config.title??league?.state??this.rosterState()?.attributes?.team_name??"ESPN Fantasy",header=this._config.hide_title?"":'<div class="header"><div class="title">'+esc(title)+'</div><div class="subtle">Week '+esc(la.current_week??la.matchup_period??"—")+'</div></div>';
     this.shadowRoot.innerHTML='<style>'+this.styles()+'.main-switch,.sub-switch{display:flex;gap:5px;overflow-x:auto;margin:0 0 12px;scrollbar-width:none}.main-switch button,.sub-switch button{white-space:nowrap;border:1px solid var(--divider-color);border-radius:999px;padding:6px 11px;background:var(--secondary-background-color);color:var(--secondary-text-color);cursor:pointer}.main-switch button.active,.sub-switch button.active{background:color-mix(in srgb,var(--espn-accent,var(--primary-color)) 20%,var(--ha-card-background,var(--card-background-color)));color:var(--primary-text-color);border-color:var(--espn-accent,var(--primary-color))}.team-head.single{grid-template-columns:1fr}.match-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.news-feed{display:grid;gap:10px}.feed-story{padding:12px;border-radius:var(--ha-card-border-radius,12px);background:var(--secondary-background-color)}.feed-player{display:flex;align-items:center;gap:10px;margin-bottom:8px}.feed-player .portrait{width:48px;height:48px;flex:0 0 48px}@media(max-width:600px){.match-row{gap:5px}.match-row .player-tile{grid-template-columns:36px minmax(0,1fr);padding:6px}.match-row .portrait{width:36px;height:36px}.match-row .player-score{grid-column:2;text-align:left}}</style><ha-card><div class="wrap"><div class="header"><div class="title">'+esc(title)+'</div><div class="subtle">Week '+esc(la.current_week??la.matchup_period??"—")+'</div></div>'+nav+'<div class="main-content">'+body+'</div></div></ha-card>'+this.dialog();
     this.shadowRoot.querySelectorAll(".main-switch button").forEach(x=>x.addEventListener("click",()=>this.setView(x.dataset.view)));
     this.shadowRoot.querySelectorAll(".sub-switch button").forEach(x=>x.addEventListener("click",()=>this.setMatchupView(x.dataset.matchup)));
@@ -362,7 +362,7 @@ class ESPNFantasyLeagueTickerCard extends ESPNBaseCard {
     return '<div class="ticker-section" data-kind="'+kind+'">'+(setting!=="name"?teamLogo(logo,label):"")+(setting!=="logo"?'<strong>'+esc(label)+"</strong>":"")+"</div>";
   }
   markup(){
-    const mode=this._config.content||"both",r=this.roster(),ra=r?.attributes||{},l=this.league(),la=l?.attributes||{},items=[];
+    const mode=this._config.content||(this._config.type==="custom:espn-fantasy-league-ticker-card"?"scoreboard":"both"),r=this.roster(),ra=r?.attributes||{},l=this.league(),la=l?.attributes||{},items=[];
     if(mode!=="scoreboard"){const h=this.section("team",ra,ra.team_name,ra.team_logo);if(h)items.push(h);for(const p of rosterOrder((this._config.show_bench?ra.players:ra.starters)||ra.players||[]))items.push(playerTile(p,{showSlot:true,showLiveHalo:this._config.show_live_halo!==false,haloColor:this._config.live_halo_color}));}
     if(mode!=="players"){const h=this.section("league",la,l?.state||la.league_name,la.league_logo);if(h)items.push(h);for(const g of la.scoreboard||[])items.push(leagueGame(g));}
     return items.join("");
@@ -379,7 +379,7 @@ class ESPNFantasyLeagueTickerCard extends ESPNBaseCard {
   }
 }
 
-class ESPNFantasyUnifiedTickerCard extends ESPNFantasyLeagueTickerCard {}
+class ESPNFantasyUnifiedTickerCard extends ESPNFantasyLeagueTickerCard { static getStubConfig(){return {type:"custom:espn-fantasy-ticker-card",content:"both",auto_scroll:true,scroll_speed:"normal",frame:false,team_header:"logo_name",league_header:"logo_name"};} }
 
 class ESPNFantasyNewsCard extends ESPNBaseCard {
   static getStubConfig(){return {type:"custom:espn-fantasy-news-card",story_count:5};}
