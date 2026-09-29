@@ -275,18 +275,19 @@ function leagueScoreboard(games) {
 }
 
 class ESPNFantasyLeagueCard extends ESPNBaseCard {
-  constructor(){super();this._leagueView=null;this._matchupView=null;}
+  constructor(){super();this._leagueView=null;this._matchupView=null;this._rosterView=null;}
   set hass(v){const old=this._hass;this._hass=v;if(!old||!this.shadowRoot.hasChildNodes()){this.renderStable();return;}const ids=[findRoster(v,this._config.entity)?.entity_id,findLeague(v,this._config.entity)?.entity_id,findMatchup(v,this._config.entity)?.entity_id].filter(Boolean);if(!ids.length||ids.some(id=>old.states?.[id]!==v.states?.[id]))this.renderStable();}
   get hass(){return this._hass;}
-  static getStubConfig(){return {type:"custom:espn-fantasy-league-card",display_mode:"all",include_news:true};}
-  static getConfigForm(){return {schema:[
+  static getStubConfig(){return {type:"custom:espn-fantasy-league-card",display_mode:"all",include_news:true,story_count:5};}
+  static getConfigForm(){const sectionOptions=[{value:"roster",label:"Roster"},{value:"standings",label:"Standings"},{value:"scoreboard",label:"Scoreboard"},{value:"matchup",label:"My Matchup"},{value:"news",label:"News"}];return {schema:[
     {name:"entity",selector:{entity:{domain:"sensor"}}},
     {name:"display_mode",selector:{select:{options:[{value:"roster",label:"Roster"},{value:"standings",label:"Standings"},{value:"scoreboard",label:"Scoreboard"},{value:"matchup",label:"Matchup"},{value:"all",label:"All-in-one"}]}}},
     {name:"include_news",selector:{boolean:{}}},
+    {name:"story_count",selector:{number:{min:1,max:20,mode:"box"}}},
+    {name:"section_1",selector:{select:{options:sectionOptions}}},{name:"section_2",selector:{select:{options:sectionOptions}}},{name:"section_3",selector:{select:{options:sectionOptions}}},{name:"section_4",selector:{select:{options:sectionOptions}}},{name:"section_5",selector:{select:{options:sectionOptions}}},
     {name:"title",selector:{text:{}}},{name:"hide_title",selector:{boolean:{}}},
     {name:"label_roster",selector:{text:{}}},{name:"label_standings",selector:{text:{}}},{name:"label_scoreboard",selector:{text:{}}},{name:"label_matchup",selector:{text:{}}},{name:"label_news",selector:{text:{}}},
     {name:"label_starters",selector:{text:{}}},{name:"label_bench_ir",selector:{text:{}}},
-    {name:"story_count",selector:{number:{min:1,max:20,mode:"box"}}},
     {name:"appearance",selector:{select:{options:[{value:"theme",label:"Home Assistant theme"},{value:"glass",label:"Glass"},{value:"solid",label:"Solid"},{value:"transparent",label:"Transparent"}]}}},
     {name:"accent_color",selector:{color_rgb:{}}},{name:"glass_strength",selector:{select:{options:[{value:"subtle",label:"Subtle"},{value:"strong",label:"Strong"}]}}},
     {name:"border_style",selector:{select:{options:[{value:"theme",label:"Theme"},{value:"subtle",label:"Subtle"},{value:"none",label:"None"}]}}}
@@ -299,10 +300,15 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
   rosterState(){return findRoster(this.hass,this._config.entity)||findRoster(this.hass);}
   leagueState(){return findLeague(this.hass,this._config.entity)||findLeague(this.hass);}
   matchupState(){return findMatchup(this.hass,this._config.entity)||findMatchup(this.hass);}
+  orderedViews(){
+    const defaults=["roster","standings","scoreboard","matchup","news"],configured=[this._config.section_1,this._config.section_2,this._config.section_3,this._config.section_4,this._config.section_5].filter(v=>defaults.includes(v)),views=[...new Set([...configured,...defaults])];
+    return this._config.include_news===false?views.filter(v=>v!=="news"):views;
+  }
   rosterBody(){
-    const s=this.rosterState(),a=s?.attributes||{},players=rosterOrder(a.players||a.starters||[]);this._players=players;
+    const s=this.rosterState(),a=s?.attributes||{},labels=this.labels(),view=this._rosterView||this.remembered("roster","starters");
     if(!s)return '<div class="empty">No roster data yet.</div>';
-    return '<div class="team-head single"><div class="team-side">'+teamLogo(a.team_logo,a.team_name)+'<div class="team-name">'+esc(a.team_name)+'</div><div class="big-score">'+num(a.score,2)+'</div><div class="projection">Proj '+num(a.live_projected_score??a.projected_score)+'</div></div></div><div class="player-list">'+players.map(p=>playerTile(p,{showSlot:true,showLiveHalo:this._config.show_live_halo!==false,haloColor:this._config.live_halo_color})).join("")+'</div>';
+    const starters=a.starters||[],starterIds=new Set(starters.map(p=>String(p.id))),all=a.players||starters,players=rosterOrder(view==="bench"?all.filter(p=>!starterIds.has(String(p.id))):starters);this._players=players;
+    return '<div class="team-head single"><div class="team-side">'+teamLogo(a.team_logo,a.team_name)+'<div class="team-name">'+esc(a.team_name)+'</div><div class="big-score">'+num(a.score,2)+'</div><div class="projection">Proj '+num(a.live_projected_score??a.projected_score)+'</div></div></div><div class="sub-switch"><button data-roster="starters" class="'+(view==="starters"?"active":"")+'">'+esc(labels.starters)+'</button><button data-roster="bench" class="'+(view==="bench"?"active":"")+'">'+esc(labels.bench)+'</button></div><div class="player-list">'+players.map(p=>playerTile(p,{showSlot:true,showLiveHalo:this._config.show_live_halo!==false,haloColor:this._config.live_halo_color})).join("")+'</div>';
   }
   matchupBody(){
     const s=this.matchupState(),a=s?.attributes||{},labels=this.labels(),view=this._matchupView||this.remembered("matchup","starters");
@@ -314,72 +320,27 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
     return matchupHeader(a)+'<div class="sub-switch"><button data-matchup="starters" class="'+(view==="starters"?"active":"")+'">'+esc(labels.starters)+'</button><button data-matchup="bench" class="'+(view==="bench"?"active":"")+'">'+esc(labels.bench)+'</button></div>'+rows;
   }
   newsBody(){
-    const players=this.rosterState()?.attributes?.players||[],count=Math.max(1,Number(this._config.story_count)||5);
+    const players=this.rosterState()?.attributes?.players||[],count=Math.min(20,Math.max(1,Number(this._config.story_count)||5));
     const stories=players.flatMap(p=>(Array.isArray(p.news)?p.news:[]).map(item=>({p,item}))).sort((x,y)=>(Date.parse(y.item.published)||0)-(Date.parse(x.item.published)||0)).slice(0,count);
     if(!stories.length)return '<div class="empty">No player news available yet.</div>';
     return '<div class="news-feed">'+stories.map(({p,item})=>'<article class="feed-story"><div class="feed-player"><div class="portrait">'+(p.headshot?'<img src="'+esc(p.headshot)+'" alt="" loading="lazy">':"")+'</div><div><div class="player-name">'+esc(p.name)+'</div><div class="player-meta">'+esc([p.position,p.nfl_team].filter(Boolean).join(" · "))+'</div></div></div><div class="news-meta">'+esc(item.published?fmtKickoff(item.published):"")+'</div><div class="news-headline">'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">'+esc(item.headline||"Player update")+"</a>":esc(item.headline||"Player update"))+'</div>'+(item.description?'<div class="news-description">'+esc(item.description)+"</div>":"")+(item.spin?'<div class="news-spin"><strong>Fantasy:</strong> '+esc(item.spin)+"</div>":"")+"</article>").join("")+"</div>";
   }
   setView(v){this._leagueView=v;this.remember("view",v);this.renderStable();}
   setMatchupView(v){this._matchupView=v;this.remember("matchup",v);this.renderStable();}
+  setRosterView(v){this._rosterView=v;this.remember("roster",v);this.renderStable();}
   render(){
     if(!this.hass)return;const labels=this.labels(),mode=this._config.display_mode||"all",league=this.leagueState(),la=league?.attributes||{},standings=la.standings||[],games=la.scoreboard||[];
-    const views=["roster","standings","scoreboard","matchup",...(this._config.include_news===false?[]:["news"])],requested=mode==="all"?(this._leagueView||this.remembered("view","standings")):mode,view=views.includes(requested)?requested:views[0];
+    const views=this.orderedViews(),requested=mode==="all"?(this._leagueView||this.remembered("view","standings")):mode,view=views.includes(requested)?requested:views[0];
     const body=view==="roster"?this.rosterBody():view==="standings"?(standings.length?leagueStandings(standings):'<div class="empty">No standings data yet.</div>'):view==="scoreboard"?(games.length?leagueScoreboard(games):'<div class="empty">No scoreboard data yet.</div>'):view==="matchup"?this.matchupBody():this.newsBody();
     const nav=mode==="all"?'<div class="main-switch">'+views.map(v=>'<button data-view="'+v+'" class="'+(view===v?"active":"")+'">'+esc(labels[v])+"</button>").join("")+"</div>":"";
     const title=this._config.title??league?.state??this.rosterState()?.attributes?.team_name??"ESPN Fantasy",header=this._config.hide_title?"":'<div class="header"><div class="title">'+esc(title)+'</div><div class="subtle">Week '+esc(la.current_week??la.matchup_period??"—")+'</div></div>';
-    this.shadowRoot.innerHTML='<style>'+this.styles()+'.main-switch,.sub-switch{display:flex;gap:5px;overflow-x:auto;margin:0 0 12px;scrollbar-width:none}.main-switch button,.sub-switch button{white-space:nowrap;border:1px solid var(--divider-color);border-radius:999px;padding:6px 11px;background:var(--secondary-background-color);color:var(--secondary-text-color);cursor:pointer}.main-switch button.active,.sub-switch button.active{background:color-mix(in srgb,var(--espn-accent,var(--primary-color)) 20%,var(--ha-card-background,var(--card-background-color)));color:var(--primary-text-color);border-color:var(--espn-accent,var(--primary-color))}.team-head.single{grid-template-columns:1fr}.match-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.news-feed{display:grid;gap:10px}.feed-story{padding:12px;border-radius:var(--ha-card-border-radius,12px);background:var(--secondary-background-color)}.feed-player{display:flex;align-items:center;gap:10px;margin-bottom:8px}.feed-player .portrait{width:48px;height:48px;flex:0 0 48px}@media(max-width:600px){.match-row{gap:5px}.match-row .player-tile{grid-template-columns:36px minmax(0,1fr);padding:6px}.match-row .portrait{width:36px;height:36px}.match-row .player-score{grid-column:2;text-align:left}}</style><ha-card><div class="wrap"><div class="header"><div class="title">'+esc(title)+'</div><div class="subtle">Week '+esc(la.current_week??la.matchup_period??"—")+'</div></div>'+nav+'<div class="main-content">'+body+'</div></div></ha-card>'+this.dialog();
+    this.shadowRoot.innerHTML='<style>'+this.styles()+'.main-switch,.sub-switch{display:flex;gap:5px;overflow-x:auto;margin:0 0 12px;scrollbar-width:none}.main-switch button,.sub-switch button{white-space:nowrap;border:1px solid var(--divider-color);border-radius:999px;padding:6px 11px;background:var(--secondary-background-color);color:var(--secondary-text-color);cursor:pointer}.main-switch button.active,.sub-switch button.active{background:color-mix(in srgb,var(--espn-accent,var(--primary-color)) 20%,var(--ha-card-background,var(--card-background-color)));color:var(--primary-text-color);border-color:var(--espn-accent,var(--primary-color))}.team-head.single{grid-template-columns:1fr}.match-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.news-feed{display:grid;gap:10px}.feed-story{padding:12px;border-radius:var(--ha-card-border-radius,12px);background:var(--secondary-background-color)}.feed-player{display:flex;align-items:center;gap:10px;margin-bottom:8px}.feed-player .portrait{width:48px;height:48px;flex:0 0 48px}@media(max-width:600px){.match-row{gap:5px}.match-row .player-tile{grid-template-columns:36px minmax(0,1fr);padding:6px}.match-row .portrait{width:36px;height:36px}.match-row .player-score{grid-column:2;text-align:left}}</style><ha-card><div class="wrap">'+header+nav+'<div class="main-content">'+body+'</div></div></ha-card>'+this.dialog();
     this.shadowRoot.querySelectorAll(".main-switch button").forEach(x=>x.addEventListener("click",()=>this.setView(x.dataset.view)));
-    this.shadowRoot.querySelectorAll(".sub-switch button").forEach(x=>x.addEventListener("click",()=>this.setMatchupView(x.dataset.matchup)));
+    this.shadowRoot.querySelectorAll("button[data-matchup]").forEach(x=>x.addEventListener("click",()=>this.setMatchupView(x.dataset.matchup)));
+    this.shadowRoot.querySelectorAll("button[data-roster]").forEach(x=>x.addEventListener("click",()=>this.setRosterView(x.dataset.roster)));
     this.bindPlayers(id=>this.openPlayer((this._players||[]).find(p=>String(p.id)===String(id)),this._config.stats));this.bindDialog();
   }
 }
-
-class ESPNFantasyLeagueTickerCard extends ESPNBaseCard {
-  constructor(){super();this._timer=null;this._index=0;}
-  set hass(v){const old=this._hass;this._hass=v;if(!old||!this.shadowRoot.querySelector(".fantasy-ticker"))this.render();else{const ids=[this._config.entity,this._config.roster_entity,this._config.league_entity].filter(Boolean);if(!ids.length||ids.some(id=>old.states?.[id]!==v.states?.[id]))this.renderStable();}}
-  get hass(){return this._hass;}
-  setConfig(v){if(this._timer){clearInterval(this._timer);this._timer=null;}this._config=v||{};this.render();}
-  static getStubConfig(){return {type:"custom:espn-fantasy-ticker-card",content:"both",auto_scroll:true,scroll_speed:"normal",frame:false,team_header:"logo_name",league_header:"logo_name"};}
-  static getConfigForm(){return {schema:[
-    {name:"roster_entity",selector:{entity:{domain:"sensor"}}},{name:"league_entity",selector:{entity:{domain:"sensor"}}},
-    {name:"content",selector:{select:{options:[{value:"players",label:"Players"},{value:"scoreboard",label:"Scoreboard"},{value:"both",label:"Players + Scoreboard"}]}}},
-    {name:"team_header",selector:{select:{options:[{value:"logo_name",label:"Logo + name"},{value:"logo",label:"Logo only"},{value:"name",label:"Name only"},{value:"hidden",label:"Hidden"}]}}},
-    {name:"league_header",selector:{select:{options:[{value:"logo_name",label:"Logo + name"},{value:"logo",label:"Logo only"},{value:"name",label:"Name only"},{value:"hidden",label:"Hidden"}]}}},
-    {name:"team_label",selector:{text:{}}},{name:"league_label",selector:{text:{}}},
-    {name:"show_bench",selector:{boolean:{}}},{name:"show_live_halo",selector:{boolean:{}}},{name:"live_halo_color",selector:{color_rgb:{}}},{name:"size",selector:{select:{options:[{value:"compact",label:"Compact"},{value:"standard",label:"Standard"},{value:"large",label:"Large"},{value:"xl",label:"XL / wall panel"}]}}},
-    {name:"auto_scroll",selector:{boolean:{}}},{name:"scroll_speed",selector:{select:{options:["slow","normal","fast"]}}},{name:"frame",selector:{boolean:{}}},
-    {name:"appearance",selector:{select:{options:[{value:"theme",label:"Home Assistant theme"},{value:"glass",label:"Glass"},{value:"solid",label:"Solid"},{value:"transparent",label:"Transparent"}]}}},
-    {name:"accent_color",selector:{color_rgb:{}}},{name:"glass_strength",selector:{select:{options:[{value:"subtle",label:"Subtle"},{value:"strong",label:"Strong"}]}}},
-    {name:"border_style",selector:{select:{options:[{value:"theme",label:"Theme"},{value:"subtle",label:"Subtle"},{value:"none",label:"None"}]}}}
-  ]};}
-  getGridOptions(){return {rows:"auto",columns:12,min_rows:2,min_columns:4};}
-  disconnectedCallback(){if(this._timer){clearInterval(this._timer);this._timer=null;}}
-  roster(){return findRoster(this.hass,this._config.roster_entity||this._config.entity)||findRoster(this.hass);}
-  league(){return findLeague(this.hass,this._config.league_entity||this._config.entity)||findLeague(this.hass);}
-  section(kind,a,name,logo){
-    const setting=this._config[kind+"_header"]||"logo_name";if(setting==="hidden")return "";
-    const label=this._config[kind+"_label"]||name|| (kind==="team"?"My Team":"League");
-    return '<div class="ticker-section" data-kind="'+kind+'">'+(setting!=="name"?teamLogo(logo,label):"")+(setting!=="logo"?'<strong>'+esc(label)+"</strong>":"")+"</div>";
-  }
-  markup(){
-    const mode=this._config.content||(this._config.type==="custom:espn-fantasy-league-ticker-card"?"scoreboard":"both"),r=this.roster(),ra=r?.attributes||{},l=this.league(),la=l?.attributes||{},items=[];
-    if(mode!=="scoreboard"){const h=this.section("team",ra,ra.team_name,ra.team_logo);if(h)items.push(h);for(const p of rosterOrder((this._config.show_bench?ra.players:ra.starters)||ra.players||[]))items.push(playerTile(p,{showSlot:true,showLiveHalo:this._config.show_live_halo!==false,haloColor:this._config.live_halo_color}));}
-    if(mode!=="players"){const h=this.section("league",la,l?.state||la.league_name,la.league_logo);if(h)items.push(h);for(const g of la.scoreboard||[])items.push(leagueGame(g));}
-    return items.join("");
-  }
-  syncTimer(){
-    if(this._timer){clearInterval(this._timer);this._timer=null;}if(!this._config.auto_scroll)return;
-    const ms={slow:6000,normal:4000,fast:2500}[this._config.scroll_speed]||4000;
-    this._timer=setInterval(()=>{const el=this.shadowRoot.querySelector(".fantasy-ticker"),items=[...(el?.children||[])];if(!el||items.length<2)return;this._index=(this._index+1)%items.length;el.scrollTo({left:items[this._index].offsetLeft-el.offsetLeft,behavior:this._index===0?"auto":"smooth"});},ms);
-  }
-  updateTicker(){const el=this.shadowRoot.querySelector(".fantasy-ticker");if(!el){this.render();return;}const left=el.scrollLeft;el.innerHTML=this.markup();el.scrollLeft=left;this.syncTimer();}
-  render(){
-    if(!this.hass)return;const markup=this.markup(),frameless=this._config.frame===false,size=this._config.size||"standard";
-    this.shadowRoot.innerHTML='<style>'+this.styles()+'.fantasy-ticker{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.fantasy-ticker>*{flex:0 0 auto;scroll-snap-align:start}.fantasy-ticker .player-tile{min-width:320px}.fantasy-ticker .league-game{min-width:280px}.ticker-section{min-width:190px;min-height:76px;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;box-sizing:border-box;border-radius:14px;background:var(--secondary-background-color)}.ticker-section .team-logo-wrap{margin:0;width:46px;height:46px}.ticker-section .team-logo,.ticker-section .team-logo-fallback{width:46px;height:46px}.fantasy-ticker-card.frameless{background:transparent!important;border:none!important;box-shadow:none!important;backdrop-filter:none!important}.fantasy-ticker-card.frameless .wrap{padding:0}.fantasy-ticker-card.size-compact .player-tile{min-width:220px;grid-template-columns:40px minmax(0,1fr) auto;min-height:54px}.fantasy-ticker-card.size-compact .portrait{width:40px;height:40px}.fantasy-ticker-card.size-large .player-tile{min-width:340px;grid-template-columns:62px minmax(0,1fr) auto;min-height:82px}.fantasy-ticker-card.size-large .portrait{width:62px;height:62px}.fantasy-ticker-card.size-xl .player-tile{min-width:430px;grid-template-columns:82px minmax(0,1fr) auto;min-height:108px}.fantasy-ticker-card.size-xl .portrait{width:82px;height:82px}</style><ha-card class="fantasy-ticker-card size-'+esc(size)+" "+(frameless?"frameless":"")+'"><div class="wrap">'+(markup?'<div class="fantasy-ticker">'+markup+"</div>":'<div class="empty">No fantasy ticker data yet.</div>')+"</div></ha-card>";this.syncTimer();
-  }
-}
-
-class ESPNFantasyUnifiedTickerCard extends ESPNFantasyLeagueTickerCard { static getStubConfig(){return {type:"custom:espn-fantasy-ticker-card",content:"both",auto_scroll:true,scroll_speed:"normal",frame:false,team_header:"logo_name",league_header:"logo_name"};} }
 
 class ESPNFantasyNewsCard extends ESPNBaseCard {
   static getStubConfig(){return {type:"custom:espn-fantasy-news-card",story_count:5};}
