@@ -150,7 +150,7 @@ class ESPNBaseCard extends HTMLElement {
     if(doc&&!seen.has(doc))positions.push([doc,doc.scrollLeft,doc.scrollTop]);
     return positions;
   }
-  renderStable(){const positions=this.scrollPositions();this.render();const restore=()=>{for(const [el,left,top] of positions){if(el.scrollLeft!==left)el.scrollLeft=left;if(el.scrollTop!==top)el.scrollTop=top;}};restore();requestAnimationFrame(()=>{restore();requestAnimationFrame(restore);});}
+  renderStable(){const positions=this.scrollPositions(),images=new Map();this.shadowRoot.querySelectorAll("img[src]").forEach(img=>{const key=img.getAttribute("src"),list=images.get(key)||[];list.push(img);images.set(key,list);});this.render();this.shadowRoot.querySelectorAll("img[src]").forEach(img=>{const list=images.get(img.getAttribute("src"));const prior=list?.shift();if(prior&&prior!==img)img.replaceWith(prior);});const restore=()=>{for(const [el,left,top] of positions){if(el.scrollLeft!==left)el.scrollLeft=left;if(el.scrollTop!==top)el.scrollTop=top;}};restore();requestAnimationFrame(()=>{restore();requestAnimationFrame(restore);});}
   getCardSize(){ return 4; }
   getGridOptions(){ return { rows:"auto", columns:12, min_rows:2, min_columns:4 }; }
   bindPlayers(handler){ this.shadowRoot.querySelectorAll(".player-tile[data-player-id]").forEach((n)=>n.addEventListener("click",()=>handler?.(n.dataset.playerId,n.dataset.entity,n))); }
