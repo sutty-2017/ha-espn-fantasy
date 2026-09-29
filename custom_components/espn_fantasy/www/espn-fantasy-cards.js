@@ -299,7 +299,8 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
   constructor(){super();this._leagueView=null;this._matchupView=null;this._rosterView=null;this._newsScrollTop=0;}
   set hass(v){const old=this._hass;this._hass=v;if(!old||!this.shadowRoot.hasChildNodes()){this.renderStable();return;}const ids=[findRoster(v,this._config.entity)?.entity_id,findLeague(v,this._config.entity)?.entity_id,findMatchup(v,this._config.entity)?.entity_id].filter(Boolean);if(!ids.length||ids.some(id=>old.states?.[id]!==v.states?.[id]))this.renderStable();}
   get hass(){return this._hass;}
-  static getStubConfig(){return {type:"custom:espn-fantasy-league-card",display_mode:"all",include_news:true,story_count:5,news_height:500,show_header_logo:true};}\n  static async getConfigElement(){return document.createElement("espn-fantasy-league-editor");}
+  static getStubConfig(){return {type:"custom:espn-fantasy-league-card",display_mode:"all",include_news:true,story_count:5,news_height:500,show_header_logo:true};}
+  static async getConfigElement(){return document.createElement("espn-fantasy-league-editor");}
   static getConfigForm(){const sectionOptions=[{value:"roster",label:"Roster"},{value:"standings",label:"Standings"},{value:"scoreboard",label:"Scoreboard"},{value:"matchup",label:"My Matchup"},{value:"news",label:"News"}];return {schema:[
     {name:"entity",selector:{entity:{domain:"sensor"}}},
     {name:"display_mode",selector:{select:{options:[{value:"roster",label:"Roster"},{value:"standings",label:"Standings"},{value:"scoreboard",label:"Scoreboard"},{value:"matchup",label:"Matchup"},{value:"all",label:"All-in-one"}]}}},
