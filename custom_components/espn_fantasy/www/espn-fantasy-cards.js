@@ -378,7 +378,9 @@ class ESPNFantasyLeagueTickerCard extends ESPNBaseCard {
   }
 }
 
-class ESPNFantasyUnifiedTickerCard extends ESPNFantasyLeagueTickerCard {}\n\nclass ESPNFantasyNewsCard extends ESPNBaseCard {
+class ESPNFantasyUnifiedTickerCard extends ESPNFantasyLeagueTickerCard {}
+
+class ESPNFantasyNewsCard extends ESPNBaseCard {
   static getStubConfig(){return {type:"custom:espn-fantasy-news-card",story_count:5};}
   static getConfigForm(){return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"story_count",selector:{number:{min:1,max:20,mode:"box"}}},{name:"appearance",selector:{select:{options:[{value:"theme",label:"Home Assistant theme"},{value:"glass",label:"Glass"},{value:"solid",label:"Solid"},{value:"transparent",label:"Transparent"}]}}},{name:"accent_color",selector:{color_rgb:{}}},{name:"glass_strength",selector:{select:{options:[{value:"subtle",label:"Subtle"},{value:"strong",label:"Strong"}]}}},{name:"border_style",selector:{select:{options:[{value:"theme",label:"Theme"},{value:"subtle",label:"Subtle"},{value:"none",label:"None"}]}}}]};}
   getGridOptions(){return {rows:"auto",columns:12,min_rows:3,min_columns:4};}
