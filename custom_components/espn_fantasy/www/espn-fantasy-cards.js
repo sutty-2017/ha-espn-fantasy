@@ -346,6 +346,7 @@ class ESPNFantasyLeagueTickerCard extends ESPNBaseCard {
     {name:"team_header",selector:{select:{options:[{value:"logo_name",label:"Logo + name"},{value:"logo",label:"Logo only"},{value:"name",label:"Name only"},{value:"hidden",label:"Hidden"}]}}},
     {name:"league_header",selector:{select:{options:[{value:"logo_name",label:"Logo + name"},{value:"logo",label:"Logo only"},{value:"name",label:"Name only"},{value:"hidden",label:"Hidden"}]}}},
     {name:"team_label",selector:{text:{}}},{name:"league_label",selector:{text:{}}},
+    {name:"show_bench",selector:{boolean:{}}},{name:"show_live_halo",selector:{boolean:{}}},{name:"live_halo_color",selector:{color_rgb:{}}},{name:"size",selector:{select:{options:[{value:"compact",label:"Compact"},{value:"standard",label:"Standard"},{value:"large",label:"Large"},{value:"xl",label:"XL / wall panel"}]}}},
     {name:"auto_scroll",selector:{boolean:{}}},{name:"scroll_speed",selector:{select:{options:["slow","normal","fast"]}}},{name:"frame",selector:{boolean:{}}},
     {name:"appearance",selector:{select:{options:[{value:"theme",label:"Home Assistant theme"},{value:"glass",label:"Glass"},{value:"solid",label:"Solid"},{value:"transparent",label:"Transparent"}]}}},
     {name:"accent_color",selector:{color_rgb:{}}},{name:"glass_strength",selector:{select:{options:[{value:"subtle",label:"Subtle"},{value:"strong",label:"Strong"}]}}},
@@ -362,7 +363,7 @@ class ESPNFantasyLeagueTickerCard extends ESPNBaseCard {
   }
   markup(){
     const mode=this._config.content||"both",r=this.roster(),ra=r?.attributes||{},l=this.league(),la=l?.attributes||{},items=[];
-    if(mode!=="scoreboard"){const h=this.section("team",ra,ra.team_name,ra.team_logo);if(h)items.push(h);for(const p of rosterOrder(ra.starters||ra.players||[]))items.push(playerTile(p,{showSlot:true,showLiveHalo:this._config.show_live_halo!==false,haloColor:this._config.live_halo_color}));}
+    if(mode!=="scoreboard"){const h=this.section("team",ra,ra.team_name,ra.team_logo);if(h)items.push(h);for(const p of rosterOrder((this._config.show_bench?ra.players:ra.starters)||ra.players||[]))items.push(playerTile(p,{showSlot:true,showLiveHalo:this._config.show_live_halo!==false,haloColor:this._config.live_halo_color}));}
     if(mode!=="players"){const h=this.section("league",la,l?.state||la.league_name,la.league_logo);if(h)items.push(h);for(const g of la.scoreboard||[])items.push(leagueGame(g));}
     return items.join("");
   }
@@ -373,8 +374,8 @@ class ESPNFantasyLeagueTickerCard extends ESPNBaseCard {
   }
   updateTicker(){const el=this.shadowRoot.querySelector(".fantasy-ticker");if(!el){this.render();return;}const left=el.scrollLeft;el.innerHTML=this.markup();el.scrollLeft=left;this.syncTimer();}
   render(){
-    if(!this.hass)return;const markup=this.markup(),frameless=this._config.frame===false;
-    this.shadowRoot.innerHTML='<style>'+this.styles()+'.fantasy-ticker{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.fantasy-ticker>*{flex:0 0 auto;scroll-snap-align:start}.fantasy-ticker .player-tile{min-width:320px}.fantasy-ticker .league-game{min-width:280px}.ticker-section{min-width:190px;min-height:76px;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;box-sizing:border-box;border-radius:14px;background:var(--secondary-background-color)}.ticker-section .team-logo-wrap{margin:0;width:46px;height:46px}.ticker-section .team-logo,.ticker-section .team-logo-fallback{width:46px;height:46px}.fantasy-ticker-card.frameless{background:transparent!important;border:none!important;box-shadow:none!important;backdrop-filter:none!important}.fantasy-ticker-card.frameless .wrap{padding:0}</style><ha-card class="fantasy-ticker-card '+(frameless?"frameless":"")+'"><div class="wrap">'+(markup?'<div class="fantasy-ticker">'+markup+"</div>":'<div class="empty">No fantasy ticker data yet.</div>')+"</div></ha-card>";this.syncTimer();
+    if(!this.hass)return;const markup=this.markup(),frameless=this._config.frame===false,size=this._config.size||"standard";
+    this.shadowRoot.innerHTML='<style>'+this.styles()+'.fantasy-ticker{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.fantasy-ticker>*{flex:0 0 auto;scroll-snap-align:start}.fantasy-ticker .player-tile{min-width:320px}.fantasy-ticker .league-game{min-width:280px}.ticker-section{min-width:190px;min-height:76px;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;box-sizing:border-box;border-radius:14px;background:var(--secondary-background-color)}.ticker-section .team-logo-wrap{margin:0;width:46px;height:46px}.ticker-section .team-logo,.ticker-section .team-logo-fallback{width:46px;height:46px}.fantasy-ticker-card.frameless{background:transparent!important;border:none!important;box-shadow:none!important;backdrop-filter:none!important}.fantasy-ticker-card.frameless .wrap{padding:0}</style><ha-card class="fantasy-ticker-card size-'+esc(size)+" "+(frameless?"frameless":"")+'"><div class="wrap">'+(markup?'<div class="fantasy-ticker">'+markup+"</div>":'<div class="empty">No fantasy ticker data yet.</div>')+"</div></ha-card>";this.syncTimer();
   }
 }
 
