@@ -44,6 +44,38 @@ jobs:
           assert '_CARD_URL = f"{_CARD_STATIC_URL}?v={_CARD_VERSION}"' in init
           print(f"Manifest/frontend/cache version source is consistent: {manifest_version}")
           PY
+      - name: Smoke-test normalized league scoreboard
+        run: |
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+
+          path = Path("custom_components/espn_fantasy/model.py")
+          spec = importlib.util.spec_from_file_location("espn_fantasy_model", path)
+          model = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(model)
+
+          data = {
+              "scoringPeriodId": 4,
+              "status": {"currentScoringPeriod": 4, "currentMatchupPeriod": 4},
+              "teams": [
+                  {"id": 1, "name": "Alpha", "record": {"overall": {"wins": 3, "losses": 0}}},
+                  {"id": 2, "name": "Beta", "record": {"overall": {"wins": 2, "losses": 1}}},
+              ],
+              "current_matchup": [{
+                  "id": 99,
+                  "matchupPeriodId": 4,
+                  "home": {"teamId": 1, "totalPoints": 101.5, "rosterForCurrentScoringPeriod": {"entries": []}},
+                  "away": {"teamId": 2, "totalPoints": 98.2, "rosterForCurrentScoringPeriod": {"entries": []}},
+              }],
+              "pro_team_schedules": [],
+          }
+          normalized = model.build_normalized_model(data, 1)
+          scoreboard = normalized["league"]["scoreboard"]
+          assert len(scoreboard) == 1
+          assert scoreboard[0]["home_team_name"] == "Alpha"
+          assert scoreboard[0]["away_team_name"] == "Beta"
+          PY
       - name: Check required card registrations
         run: |
           FILE=custom_components/espn_fantasy/www/espn-fantasy-cards.js
