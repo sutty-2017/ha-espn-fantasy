@@ -336,8 +336,12 @@ def _league_model(
     normalized_teams = [_league_team(team) for team in teams.values()]
     normalized_teams.sort(
         key=lambda team: (
-            team.get("playoff_seed") is None,
-            team.get("playoff_seed") or 999,
+            team.get("rank") is None and team.get("playoff_seed") is None,
+            team.get("rank") if team.get("rank") is not None else (
+                team.get("playoff_seed") if team.get("playoff_seed") is not None else 999
+            ),
+            -(team.get("wins") or 0),
+            team.get("losses") or 0,
             -(team.get("points_for") or 0),
         )
     )
