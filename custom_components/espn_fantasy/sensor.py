@@ -323,6 +323,8 @@ class LeagueSensor(ESPNBaseSensor):
             "scoring_type": settings.get("scoringSettings", {}).get("scoringType"),
             "standings": league.get("standings") or [],
             "scoreboard": league.get("scoreboard") or [],
+            "activity": league.get("activity") or [],
+            "activity_count": len(league.get("activity") or []),
             "matchup_count": league.get("matchup_count") or 0,
             "matchup_period": league.get("matchup_period"),
         }

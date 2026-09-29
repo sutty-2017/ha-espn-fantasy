@@ -417,6 +417,76 @@ def _league_team(team: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _league_activity(
+    data: dict[str, Any], teams: dict[int, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Normalize ESPN transaction records into coherent league activity events."""
+    player_names: dict[int, str] = {}
+    for team in teams.values():
+        for entry in (team.get("roster") or {}).get("entries") or []:
+            pool = entry.get("playerPoolEntry") or {}
+            player = pool.get("player") or {}
+            player_id = _int(player.get("id") or entry.get("playerId") or pool.get("id"))
+            if player_id is not None and player.get("fullName"):
+                player_names[player_id] = player["fullName"]
+
+    events: list[dict[str, Any]] = []
+    for tx in data.get("transactions") or []:
+        if not isinstance(tx, dict):
+            continue
+        items = tx.get("items") or []
+        normalized_items: list[dict[str, Any]] = []
+        phrases: list[str] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            player_id = _int(item.get("playerId"))
+            pool = item.get("playerPoolEntry") or {}
+            raw_player = pool.get("player") or {}
+            name = raw_player.get("fullName") or player_names.get(player_id) or (
+                f"Player {player_id}" if player_id is not None else "Player"
+            )
+            item_type = str(item.get("type") or "").upper()
+            from_id = _int(item.get("fromTeamId"))
+            to_id = _int(item.get("toTeamId"))
+            from_name = _team_name(teams[from_id]) if from_id in teams else None
+            to_name = _team_name(teams[to_id]) if to_id in teams else None
+            if "ADD" in item_type:
+                phrase = f"{to_name or 'Team'} added {name}"
+            elif "DROP" in item_type:
+                phrase = f"{from_name or 'Team'} dropped {name}"
+            elif from_name and to_name:
+                phrase = f"{name}: {from_name} → {to_name}"
+            else:
+                phrase = name
+            phrases.append(phrase)
+            normalized_items.append({
+                "type": item_type.lower() or None,
+                "player_id": player_id,
+                "player_name": name,
+                "from_team_id": from_id,
+                "from_team_name": from_name,
+                "to_team_id": to_id,
+                "to_team_name": to_name,
+            })
+        team_id = _int(tx.get("teamId"))
+        event_type = str(tx.get("type") or tx.get("transactionType") or "transaction").lower()
+        description = " · ".join(phrases) if phrases else event_type.replace("_", " ").title()
+        events.append({
+            "id": tx.get("id") or tx.get("transactionId"),
+            "type": event_type,
+            "status": str(tx.get("status") or "").lower() or None,
+            "timestamp": _int(tx.get("processDate") or tx.get("proposedDate") or tx.get("date")),
+            "team_id": team_id,
+            "team_name": _team_name(teams[team_id]) if team_id in teams else None,
+            "bid_amount": _float(tx.get("bidAmount")),
+            "items": normalized_items,
+            "description": description,
+        })
+    events.sort(key=lambda event: event.get("timestamp") or 0, reverse=True)
+    return events
+
+
 def _league_model(
     data: dict[str, Any],
     teams: dict[int, dict[str, Any]],
@@ -474,6 +544,7 @@ def _league_model(
         "team_count": len(standings),
         "matchup_count": len(scoreboard),
         "matchup_period": matchup_period,
+        "activity": _league_activity(data, teams),
     }
 
 def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]:

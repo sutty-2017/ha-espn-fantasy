@@ -163,6 +163,12 @@ class ESPNClient:
         meta["season_schedule"] = schedule.get("schedule", [])
 
         try:
+            transactions = await self._get_json([("view", "mTransactions2")])
+            meta["transactions"] = transactions.get("transactions", [])
+        except ESPNError:
+            meta["transactions"] = []
+
+        try:
             async with self.session.get(
                 self.season_url,
                 params={"view": "proTeamSchedules_wl"},
@@ -189,28 +195,50 @@ class ESPNClient:
     async def get_player_history_many(
         self, player_ids: list[int], scoring_period: int
     ) -> dict[int, list[dict[str, Any]]]:
-        """Fetch current-season weekly stats for a focused set of players.
-
-        kona_playercard supports a player-id filter, avoiding a full player-pool
-        download. Failures are non-fatal because mRoster may already include
-        enough weekly rows for the normalized model.
-        """
+        """Fetch each elapsed scoring period explicitly for focused players."""
         ids = list(dict.fromkeys(int(player_id) for player_id in player_ids if player_id))
         if not ids:
             return {}
-        fantasy_filter = {
-            "players": {
-                "filterIds": {"value": ids},
-                "filterStatsForTopScoringPeriodIds": {
-                    "value": max(1, int(scoring_period)),
-                    "additionalValue": [f"00{self.season}", f"10{self.season}"],
-                },
-            }
-        }
+        result: dict[int, list[dict[str, Any]]] = {player_id: [] for player_id in ids}
+        fantasy_filter = {"players": {"filterIds": {"value": ids}}}
+        for period in range(1, max(1, int(scoring_period)) + 1):
+            try:
+                async with self.session.get(
+                    self.url,
+                    params=[("view", "kona_playercard"), ("scoringPeriodId", period)],
+                    headers={"X-Fantasy-Filter": json.dumps(fantasy_filter)},
+                    cookies=self._cookies(),
+                    timeout=30,
+                ) as response:
+                    if response.status != 200:
+                        continue
+                    payload = await response.json()
+            except Exception:  # noqa: BLE001
+                continue
+            for item in payload.get("players") or []:
+                if not isinstance(item, dict):
+                    continue
+                player = item.get("player") or (item.get("playerPoolEntry") or {}).get("player") or {}
+                player_id = self._int(player.get("id") or item.get("id"))
+                if player_id in result:
+                    result[player_id].extend(
+                        stat for stat in (player.get("stats") or [])
+                        if self._int(stat.get("scoringPeriodId")) == period
+                    )
+        return result
+
+    async def get_player_status_many(
+        self, player_ids: list[int]
+    ) -> dict[int, dict[str, Any]]:
+        """Fetch current injury fields for the configured roster."""
+        ids = list(dict.fromkeys(int(player_id) for player_id in player_ids if player_id))
+        if not ids:
+            return {}
+        fantasy_filter = {"players": {"filterIds": {"value": ids}}}
         try:
             async with self.session.get(
                 self.url,
-                params=[("view", "kona_playercard"), ("scoringPeriodId", scoring_period)],
+                params=[("view", "kona_playercard")],
                 headers={"X-Fantasy-Filter": json.dumps(fantasy_filter)},
                 cookies=self._cookies(),
                 timeout=30,
@@ -218,23 +246,14 @@ class ESPNClient:
                 if response.status != 200:
                     return {}
                 payload = await response.json()
-        except (TimeoutError, ValueError):
-            return {}
         except Exception:  # noqa: BLE001
             return {}
-
-        result: dict[int, list[dict[str, Any]]] = {}
+        result: dict[int, dict[str, Any]] = {}
         for item in payload.get("players") or []:
-            if not isinstance(item, dict):
-                continue
-            player = (
-                item.get("player")
-                or (item.get("playerPoolEntry") or {}).get("player")
-                or {}
-            )
+            player = item.get("player") or (item.get("playerPoolEntry") or {}).get("player") or {}
             player_id = self._int(player.get("id") or item.get("id"))
             if player_id is not None:
-                result[player_id] = list(player.get("stats") or [])
+                result[player_id] = {"injuryStatus": player.get("injuryStatus"), "injured": player.get("injured")}
         return result
 
     async def get_player_news(self, player_id: int, limit: int = 5) -> list[dict[str, Any]]:

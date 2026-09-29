@@ -33,6 +33,8 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
         self._player_news_updated = 0.0
         self._player_history: dict[int, list[dict]] = {}
         self._player_history_updated = 0.0
+        self._player_status: dict[int, dict] = {}
+        self._player_status_updated = 0.0
         self.client = ESPNClient(
             async_get_clientsession(hass),
             season=int(entry.data[CONF_SEASON]),
@@ -121,6 +123,33 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                             )
                             keyed[key] = stat
                         player["stats"] = list(keyed.values())
+
+            # Injury fields are not consistently included in mRoster. Enrich the
+            # same roster player objects used by normalization so every card sees
+            # one shared status value.
+            if player_ids and (
+                not self._player_status or now - self._player_status_updated >= 900
+            ):
+                fetched_status = await self.client.get_player_status_many(player_ids)
+                if fetched_status:
+                    self._player_status.update(fetched_status)
+                self._player_status_updated = now
+            self._player_status = {
+                player_id: item for player_id, item in self._player_status.items()
+                if player_id in current_player_ids
+            }
+            for team in data.get("teams") or []:
+                for roster_entry in (team.get("roster") or {}).get("entries") or []:
+                    player = (roster_entry.get("playerPoolEntry") or {}).get("player") or {}
+                    try:
+                        player_id = int(player.get("id") or roster_entry.get("playerId"))
+                    except (TypeError, ValueError):
+                        continue
+                    status = self._player_status.get(player_id) or {}
+                    if status.get("injuryStatus") not in (None, ""):
+                        player["injuryStatus"] = status["injuryStatus"]
+                    if status.get("injured") is not None:
+                        player["injured"] = status["injured"]
 
             # Keep the news cache scoped to the current roster so dropped/traded
             # players do not accumulate in Home Assistant state attributes.
