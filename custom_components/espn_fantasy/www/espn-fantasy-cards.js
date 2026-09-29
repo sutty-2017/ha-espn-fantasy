@@ -89,7 +89,21 @@ function outlookDetails(p) {
   return `<div class="outlook-card"><div class="outlook-heading">Fantasy outlook</div><div class="outlook-preview">${esc(preview)}</div><details class="outlook"><summary>Read full outlook</summary>${updated}${weekly ? `<div class="outlook-title">This week</div><div class="outlook-text">${esc(weekly)}</div>` : ""}${season ? `<div class="outlook-title">Season outlook</div><div class="outlook-text">${esc(season)}</div>` : ""}</details></div>`;
 }
 
-function newsDetails(p) {\n  const news=Array.isArray(p?.news)?p.news.filter(Boolean):[];\n  if(!news.length)return "";\n  const rows=news.slice(0,5).map((item)=>{\n    const published=item.published?fmtKickoff(item.published):"";\n    const headline=String(item.headline||item.description||"Player update").trim();\n    const description=item.description&&item.description!==item.headline?String(item.description).trim():"";\n    const spin=String(item.spin||"").trim();\n    const body=[description?`<div class="news-description">${esc(description)}</div>`:"",spin?`<div class="news-spin"><strong>Fantasy:</strong> ${esc(spin)}</div>`:""].join("");\n    const title=item.url?`<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(headline)}</a>`:esc(headline);\n    return `<article class="news-item"><div class="news-meta">${esc(published)}${item.type?` · ${esc(item.type)}`:""}</div><div class="news-headline">${title}</div>${body}</article>`;\n  }).join("");\n  return `<div class="news-card"><div class="outlook-heading">Latest news</div>${rows}</div>`;\n}\nfunction playerDetails(p, order, opts = {}) {
+function newsDetails(p) {
+  const news=Array.isArray(p?.news)?p.news.filter(Boolean):[];
+  if(!news.length)return "";
+  const rows=news.slice(0,5).map((item)=>{
+    const published=item.published?fmtKickoff(item.published):"";
+    const headline=String(item.headline||item.description||"Player update").trim();
+    const description=item.description&&item.description!==item.headline?String(item.description).trim():"";
+    const spin=String(item.spin||"").trim();
+    const body=[description?`<div class="news-description">${esc(description)}</div>`:"",spin?`<div class="news-spin"><strong>Fantasy:</strong> ${esc(spin)}</div>`:""].join("");
+    const title=item.url?`<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(headline)}</a>`:esc(headline);
+    return `<article class="news-item"><div class="news-meta">${esc(published)}${item.type?` · ${esc(item.type)}`:""}</div><div class="news-headline">${title}</div>${body}</article>`;
+  }).join("");
+  return `<div class="news-card"><div class="outlook-heading">Latest news</div>${rows}</div>`;
+}
+function playerDetails(p, order, opts = {}) {
   return `<div class="player-details">${playerTile(p,opts)}${statGrid(p,order)}${outlookDetails(p)}${newsDetails(p)}</div>`;
 }
 
