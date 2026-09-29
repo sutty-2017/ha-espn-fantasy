@@ -64,6 +64,15 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                     except (TypeError, ValueError):
                         continue
 
+            # Keep the news cache scoped to the current roster so dropped/traded
+            # players do not accumulate in Home Assistant state attributes.
+            current_player_ids = set(player_ids)
+            self._player_news = {
+                player_id: items
+                for player_id, items in self._player_news.items()
+                if player_id in current_player_ids
+            }
+
             now = time.monotonic()
             if player_ids and (
                 not self._player_news or now - self._player_news_updated >= 1800
