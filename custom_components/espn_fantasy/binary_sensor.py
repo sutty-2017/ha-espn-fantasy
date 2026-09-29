@@ -46,8 +46,24 @@ class PlayerGameActiveSensor(CoordinatorEntity[ESPNDataUpdateCoordinator], Binar
         return _find_live_player(self.coordinator.data.get("live_scoring", {}), self.player_id)
 
     @property
+    def _normalized_player(self) -> dict[str, Any]:
+        matchup = (self.coordinator.data.get("normalized") or {}).get("matchup") or {}
+        my_team = matchup.get("my_team") or {}
+        return next(
+            (
+                player
+                for player in my_team.get("roster") or []
+                if str(player.get("id")) == str(self.player_id)
+            ),
+            {},
+        )
+
+    @property
     def is_on(self) -> bool:
-        return self._live is not None
+        # mLiveScoring can contain player records even when a game is not
+        # currently live. The normalized NFL game state is the authoritative
+        # signal for this binary sensor.
+        return self._normalized_player.get("game_status") == "in_progress"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -60,6 +76,8 @@ class PlayerGameActiveSensor(CoordinatorEntity[ESPNDataUpdateCoordinator], Binar
             "nfl_team": PRO_TEAM_NAMES.get(player.get("proTeamId"), player.get("proTeamId")),
             "opponent": _opponent(self.coordinator, player),
             "current_week": _current_week(self.coordinator),
+            "game_status": self._normalized_player.get("game_status"),
+            "game_start": self._normalized_player.get("game_start"),
             "roster_slot": entry.get("lineupSlotId"),
             "live_points": next(
                 (live.get(key) for key in ("liveAppliedStatTotal", "appliedStatTotal", "livePoints", "points") if live.get(key) is not None),
