@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from pathlib import Path
 
@@ -17,8 +18,10 @@ _LOGGER = logging.getLogger(__name__)
 
 _CARD_FILENAME = "espn-fantasy-cards.js"
 _CARD_PATH = Path(__file__).parent / "www" / _CARD_FILENAME
+_MANIFEST_PATH = Path(__file__).parent / "manifest.json"
+_CARD_VERSION = json.loads(_MANIFEST_PATH.read_text(encoding="utf-8"))["version"]
 _CARD_STATIC_URL = f"/espn_fantasy/{_CARD_FILENAME}"
-_CARD_URL = f"{_CARD_STATIC_URL}?v=0.1.26"
+_CARD_URL = f"{_CARD_STATIC_URL}?v={_CARD_VERSION}"
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
