@@ -55,7 +55,8 @@ function playerTile(p, opts = {}) {
   const score = p.actual_points;
   const status = p.game_status || "unknown";
   const primary = status === "scheduled" ? statusText(p) : `${num(score)} pts`;
-  const adviceAllowed=opts.showLineupAdvice&&Number(p.lineup_alert_difference||0)>=Number(opts.lineupAdviceThreshold||0);\n  const advice=adviceAllowed&&p.lineup_alert==="lower_than_bench"?`<span class="lineup-advice lineup-down" title="${esc(`Bench upgrade: ${p.lineup_alert_player_name||"player"} +${num(p.lineup_alert_difference)} pts`)}">↓</span>`:adviceAllowed&&p.lineup_alert==="higher_than_starter"?`<span class="lineup-advice lineup-up" title="${esc(`Projected upgrade over ${p.lineup_alert_player_name||"starter"}: +${num(p.lineup_alert_difference)} pts`)}">↑</span>`:"";
+  const adviceAllowed=opts.showLineupAdvice&&Number(p.lineup_alert_difference||0)>=Number(opts.lineupAdviceThreshold||0);
+  const advice=adviceAllowed&&p.lineup_alert==="lower_than_bench"?`<span class="lineup-advice lineup-down" title="${esc(`Bench upgrade: ${p.lineup_alert_player_name||"player"} +${num(p.lineup_alert_difference)} pts`)}">↓</span>`:adviceAllowed&&p.lineup_alert==="higher_than_starter"?`<span class="lineup-advice lineup-up" title="${esc(`Projected upgrade over ${p.lineup_alert_player_name||"starter"}: +${num(p.lineup_alert_difference)} pts`)}">↑</span>`:"";
   const projection = p.projected_points == null ? "" : `Proj ${num(p.projected_points)} ${advice}`;
   const meta = [opts.showSlot ? p.lineup_slot : p.position, p.nfl_team, opponentText(p)].filter(Boolean).join(" · ");
   const badge = status === "in_progress" ? '<span class="status live">LIVE</span>' :
