@@ -3,13 +3,11 @@ name: Frontend validation
 on:
   push:
     paths:
-      - "custom_components/espn_fantasy/www/**"
-      - "custom_components/espn_fantasy/model.py"
+      - "custom_components/espn_fantasy/**"
       - ".github/workflows/frontend.yml"
   pull_request:
     paths:
-      - "custom_components/espn_fantasy/www/**"
-      - "custom_components/espn_fantasy/model.py"
+      - "custom_components/espn_fantasy/**"
       - ".github/workflows/frontend.yml"
 
 jobs:
@@ -20,8 +18,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
       - name: Check JavaScript syntax
         run: node --check custom_components/espn_fantasy/www/espn-fantasy-cards.js
+      - name: Check Python syntax
+        run: python -m compileall -q custom_components/espn_fantasy
+      - name: Check frontend and integration versions match
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          root = Path("custom_components/espn_fantasy")
+          manifest_version = json.loads((root / "manifest.json").read_text())["version"]
+          js = (root / "www/espn-fantasy-cards.js").read_text()
+          init = (root / "__init__.py").read_text()
+          js_version = re.search(r'CARD_VERSION\s*=\s*"([^"]+)"', js).group(1)
+          cache_version = re.search(r'_CARD_URL\s*=.*?\?v=([0-9.]+)', init).group(1)
+
+          assert manifest_version == js_version == cache_version, (
+              f"Version mismatch: manifest={manifest_version}, "
+              f"frontend={js_version}, cache={cache_version}"
+          )
+          print(f"All version markers match: {manifest_version}")
+          PY
       - name: Check required card registrations
         run: |
           FILE=custom_components/espn_fantasy/www/espn-fantasy-cards.js
@@ -40,5 +63,3 @@ jobs:
           grep -q '"espn-fantasy-league-ticker-card",ESPNFantasyLeagueTickerCard' "$FILE"
           grep -q '"espn-fantasy-news-card",ESPNFantasyNewsCard' "$FILE"
           grep -q 'window.customCards' "$FILE"
-      - name: Check Python syntax
-        run: python -m py_compile custom_components/espn_fantasy/model.py
