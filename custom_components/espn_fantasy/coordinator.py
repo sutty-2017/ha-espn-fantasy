@@ -81,16 +81,17 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                 scoring_period = None
 
             now = time.monotonic()
+            history_missing = any(
+                player_id not in self._player_history for player_id in player_ids
+            )
             if player_ids and scoring_period and (
-                not self._player_history
-                or now - self._player_history_updated >= 21600
+                history_missing or now - self._player_history_updated >= 21600
             ):
                 fetched_history = await self.client.get_player_history_many(
                     player_ids, scoring_period
                 )
-                for player_id, items in fetched_history.items():
-                    if items:
-                        self._player_history[player_id] = items
+                for player_id in player_ids:
+                    self._player_history[player_id] = fetched_history.get(player_id, [])
                 self._player_history_updated = now
 
             # Merge focused historical rows into the current roster payload so
