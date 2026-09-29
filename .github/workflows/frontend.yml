@@ -92,7 +92,7 @@ jobs:
           grep -q '"espn-fantasy-matchup-card",ESPNFantasyMatchupCard' "$FILE"
           grep -q '"espn-fantasy-league-card",ESPNFantasyLeagueCard' "$FILE"
           grep -q '"espn-fantasy-league-ticker-card",ESPNFantasyLeagueTickerCard' "$FILE"
-          grep -q '"espn-fantasy-ticker-card",ESPNFantasyLeagueTickerCard' "$FILE"
+          grep -q 'class ESPNFantasyUnifiedTickerCard' "$FILE"\n          grep -q '"espn-fantasy-ticker-card",ESPNFantasyUnifiedTickerCard' "$FILE"
           grep -q 'display_mode:"all"' "$FILE"
           grep -q 'Players + Scoreboard' "$FILE"
           grep -q 'Bench / IR' "$FILE"
