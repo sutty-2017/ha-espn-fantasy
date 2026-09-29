@@ -109,5 +109,8 @@ jobs:
           grep -q 'data-news-player' "$FILE"
           grep -q 'bindTickerPlayers' "$FILE"
           grep -q 'injuryBadge(p)' "$FILE"
+          grep -q 'Historical stats' "$FILE"
+          grep -q 'lineup_alert_threshold' "$FILE"
+          grep -q 'lineup-advice' "$FILE"
           grep -q '"espn-fantasy-news-card",ESPNFantasyNewsCard' "$FILE"
           grep -q 'window.customCards' "$FILE"
