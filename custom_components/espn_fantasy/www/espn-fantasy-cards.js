@@ -1,4 +1,4 @@
-const CARD_VERSION = "0.1.27";
+const CARD_VERSION = "0.1.28";
 
 const esc = (value) => String(value ?? "").replace(/[&<>\"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
@@ -344,7 +344,7 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
 
 class ESPNFantasyLeagueTickerCard extends ESPNBaseCard {
   constructor(){super();this._timer=null;this._raf=null;this._index=0;this._lastFrame=0;}
-  set hass(v){const old=this._hass;this._hass=v;if(!old||!this.shadowRoot.querySelector(".ticker-viewport"))this.render();else{const ids=[this._config.entity,this._config.roster_entity,this._config.league_entity].filter(Boolean);if(!ids.length||ids.some(id=>old.states?.[id]!==v.states?.[id]))this.updateTicker();}}
+  set hass(v){const old=this._hass;this._hass=v;if(!old||!this.shadowRoot.querySelector(".ticker-viewport"))this.render();else{const ids=[this.roster()?.entity_id,this.league()?.entity_id].filter(Boolean);if(!ids.length||ids.some(id=>old.states?.[id]!==v.states?.[id]))this.updateTicker();}}
   get hass(){return this._hass;}
   stopMotion(){if(this._timer){clearInterval(this._timer);this._timer=null;}if(this._raf){cancelAnimationFrame(this._raf);this._raf=null;}this._lastFrame=0;}
   setConfig(v){this.stopMotion();this._config=v||{};this.render();}
