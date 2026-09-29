@@ -343,15 +343,92 @@ def _matchup(
     return None
 
 
+def _player_id_from_entry(entry: dict[str, Any]) -> int | None:
+    """Return a player ID across ESPN roster entry shapes."""
+    pool = entry.get("playerPoolEntry") or {}
+    player = pool.get("player") or {}
+    return _int(player.get("id") or entry.get("playerId") or pool.get("id"))
+
+
+def _merge_roster_entry(
+    matchup_entry: dict[str, Any],
+    canonical_entry: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Combine current-matchup placement with canonical roster player data.
+
+    ESPN returns multiple copies of a roster. The mRoster copy is enriched by
+    the coordinator with history and injury data, while the matchup copy is
+    authoritative for the current lineup slot. Preserve both instead of
+    normalizing the matchup copy in isolation.
+    """
+    if not canonical_entry:
+        return matchup_entry
+
+    merged = dict(canonical_entry)
+    merged.update({
+        key: value
+        for key, value in matchup_entry.items()
+        if key != "playerPoolEntry"
+    })
+
+    canonical_pool = canonical_entry.get("playerPoolEntry") or {}
+    matchup_pool = matchup_entry.get("playerPoolEntry") or {}
+    merged_pool = dict(canonical_pool)
+    merged_pool.update({
+        key: value
+        for key, value in matchup_pool.items()
+        if key != "player"
+    })
+
+    canonical_player = canonical_pool.get("player") or {}
+    matchup_player = matchup_pool.get("player") or {}
+    merged_player = dict(matchup_player)
+    merged_player.update(canonical_player)
+
+    # Keep all historical rows from the canonical/enriched player while also
+    # retaining any current live row that exists only in the matchup payload.
+    keyed_stats: dict[tuple[Any, Any, Any, Any], dict[str, Any]] = {}
+    for stat in [
+        *(canonical_player.get("stats") or []),
+        *(matchup_player.get("stats") or []),
+    ]:
+        key = (
+            stat.get("seasonId"),
+            stat.get("scoringPeriodId"),
+            stat.get("statSourceId"),
+            stat.get("statSplitTypeId"),
+        )
+        keyed_stats[key] = stat
+    if keyed_stats:
+        merged_player["stats"] = list(keyed_stats.values())
+
+    merged_pool["player"] = merged_player
+    merged["playerPoolEntry"] = merged_pool
+    return merged
+
+
 def _side(
     side: dict[str, Any],
     team: dict[str, Any],
     scoring_period: int | None,
     pro_teams: dict[int, dict[str, Any]],
 ) -> dict[str, Any]:
-    roster = (
+    matchup_roster = (
         (side.get("rosterForCurrentScoringPeriod") or {}).get("entries") or []
     )
+    canonical_roster = (team.get("roster") or {}).get("entries") or []
+    canonical_by_id = {
+        player_id: entry
+        for entry in canonical_roster
+        if (player_id := _player_id_from_entry(entry)) is not None
+    }
+    roster = [
+        _merge_roster_entry(entry, canonical_by_id.get(_player_id_from_entry(entry)))
+        for entry in matchup_roster
+    ]
+    # Fall back to mRoster when ESPN omits the matchup roster entirely.
+    if not roster:
+        roster = canonical_roster
     players = [_player(entry, scoring_period, pro_teams) for entry in roster]
     for player in players:
         player["season_summary"] = _season_summary(player.get("weekly_history") or [])
