@@ -55,7 +55,7 @@ function playerTile(p, opts = {}) {
   const score = p.actual_points;
   const status = p.game_status || "unknown";
   const primary = status === "scheduled" ? statusText(p) : `${num(score)} pts`;
-  const advice=p.lineup_alert==="lower_than_bench"?`<span class="lineup-advice lineup-down" title="${esc(`Bench upgrade: ${p.lineup_alert_player_name||"player"} +${num(p.lineup_alert_difference)} pts`)}">↓</span>`:p.lineup_alert==="higher_than_starter"?`<span class="lineup-advice lineup-up" title="${esc(`Projected upgrade over ${p.lineup_alert_player_name||"starter"}: +${num(p.lineup_alert_difference)} pts`)}">↑</span>`:"";
+  const advice=opts.showLineupAdvice&&p.lineup_alert==="lower_than_bench"?`<span class="lineup-advice lineup-down" title="${esc(`Bench upgrade: ${p.lineup_alert_player_name||"player"} +${num(p.lineup_alert_difference)} pts`)}">↓</span>`:opts.showLineupAdvice&&p.lineup_alert==="higher_than_starter"?`<span class="lineup-advice lineup-up" title="${esc(`Projected upgrade over ${p.lineup_alert_player_name||"starter"}: +${num(p.lineup_alert_difference)} pts`)}">↑</span>`:"";
   const projection = p.projected_points == null ? "" : `Proj ${num(p.projected_points)} ${advice}`;
   const meta = [opts.showSlot ? p.lineup_slot : p.position, p.nfl_team, opponentText(p)].filter(Boolean).join(" · ");
   const badge = status === "in_progress" ? '<span class="status live">LIVE</span>' :
@@ -347,7 +347,7 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
     const s=this.rosterState(),a=s?.attributes||{},labels=this.labels(),view=this._rosterView||this.remembered("roster","starters");
     if(!s)return '<div class="empty">No roster data yet.</div>';
     const starters=a.starters||[],starterIds=new Set(starters.map(p=>String(p.id))),all=a.players||starters,players=rosterOrder(view==="bench"?all.filter(p=>!starterIds.has(String(p.id))):starters);this._players=players;
-    return '<div class="team-head single"><div class="team-side">'+teamLogo(a.team_logo,a.team_name)+'<div class="team-name">'+esc(a.team_name)+'</div><div class="big-score">'+num(a.score,2)+'</div><div class="projection">Proj '+num(a.live_projected_score??a.projected_score)+'</div></div></div><div class="sub-switch"><button data-roster="starters" class="'+(view==="starters"?"active":"")+'">'+esc(labels.starters)+'</button><button data-roster="bench" class="'+(view==="bench"?"active":"")+'">'+esc(labels.bench)+'</button></div><div class="player-list">'+players.map(p=>playerTile(p,{showSlot:true,showLiveHalo:this._config.show_live_halo!==false,haloColor:this._config.live_halo_color})).join("")+'</div>';
+    return '<div class="team-head single"><div class="team-side">'+teamLogo(a.team_logo,a.team_name)+'<div class="team-name">'+esc(a.team_name)+'</div><div class="big-score">'+num(a.score,2)+'</div><div class="projection">Proj '+num(a.live_projected_score??a.projected_score)+'</div></div></div><div class="sub-switch"><button data-roster="starters" class="'+(view==="starters"?"active":"")+'">'+esc(labels.starters)+'</button><button data-roster="bench" class="'+(view==="bench"?"active":"")+'">'+esc(labels.bench)+'</button></div><div class="player-list">'+players.map(p=>playerTile(p,{showSlot:true,showLineupAdvice:true,showLiveHalo:this._config.show_live_halo!==false,haloColor:this._config.live_halo_color})).join("")+'</div>';
   }
   matchupBody(){
     const s=this.matchupState(),a=s?.attributes||{},labels=this.labels(),view=this._matchupView||this.remembered("matchup","starters");
