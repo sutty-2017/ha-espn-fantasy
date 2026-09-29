@@ -232,6 +232,8 @@ def _player(
         "position": POSITION_NAMES.get(position_id, position_id),
         "lineup_slot_id": slot_id,
         "lineup_slot": LINEUP_SLOT_NAMES.get(slot_id, slot_id),
+        "eligible_slot_ids": [_int(slot) for slot in (player.get("eligibleSlots") or []) if _int(slot) is not None],
+        "eligible_slots": [LINEUP_SLOT_NAMES.get(_int(slot), _int(slot)) for slot in (player.get("eligibleSlots") or []) if _int(slot) is not None],
         "starter": slot_id not in BENCH_SLOTS if slot_id is not None else None,
         "pro_team_id": pro_team_id,
         "nfl_team": _team_abbrev(pro_team),
@@ -252,6 +254,71 @@ def _player(
         "default_stats": POSITION_DEFAULT_STATS.get(POSITION_NAMES.get(position_id, position_id), []),
         **game,
     }
+
+
+def _season_summary(history: list[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize completed/current weekly fantasy results."""
+    actual = [
+        row for row in history
+        if isinstance(row.get("actual_points"), (int, float))
+    ]
+    points = [float(row["actual_points"]) for row in actual]
+    return {
+        "weeks_with_stats": len(actual),
+        "total_points": round(sum(points), 2) if points else None,
+        "average_points": round(sum(points) / len(points), 2) if points else None,
+        "high_points": round(max(points), 2) if points else None,
+        "low_points": round(min(points), 2) if points else None,
+    }
+
+
+def _apply_lineup_advice(players: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Annotate projection-based starter/bench swap opportunities.
+
+    ESPN's eligibleSlots is authoritative here, which keeps FLEX/Superflex/IDP
+    leagues from being reduced to hard-coded position comparisons.
+    """
+    starters = [p for p in players if p.get("starter") is True]
+    bench = [
+        p for p in players
+        if p.get("lineup_slot_id") == 20
+        and isinstance(p.get("projected_points"), (int, float))
+    ]
+    for player in players:
+        player["lineup_alert"] = None
+        player["lineup_alert_player_id"] = None
+        player["lineup_alert_player_name"] = None
+        player["lineup_alert_difference"] = None
+
+    for starter in starters:
+        slot = starter.get("lineup_slot_id")
+        starter_projection = starter.get("projected_points")
+        if slot is None or not isinstance(starter_projection, (int, float)):
+            continue
+        candidates = [
+            candidate for candidate in bench
+            if slot in (candidate.get("eligible_slot_ids") or [])
+            and float(candidate["projected_points"]) > float(starter_projection)
+        ]
+        if not candidates:
+            continue
+        better = max(candidates, key=lambda p: float(p["projected_points"]))
+        difference = round(float(better["projected_points"]) - float(starter_projection), 2)
+        starter.update({
+            "lineup_alert": "lower_than_bench",
+            "lineup_alert_player_id": better.get("id"),
+            "lineup_alert_player_name": better.get("name"),
+            "lineup_alert_difference": difference,
+        })
+        previous = better.get("lineup_alert_difference")
+        if not isinstance(previous, (int, float)) or difference > previous:
+            better.update({
+                "lineup_alert": "higher_than_starter",
+                "lineup_alert_player_id": starter.get("id"),
+                "lineup_alert_player_name": starter.get("name"),
+                "lineup_alert_difference": difference,
+            })
+    return players
 
 
 def _matchup(
@@ -286,6 +353,9 @@ def _side(
         (side.get("rosterForCurrentScoringPeriod") or {}).get("entries") or []
     )
     players = [_player(entry, scoring_period, pro_teams) for entry in roster]
+    for player in players:
+        player["season_summary"] = _season_summary(player.get("weekly_history") or [])
+    _apply_lineup_advice(players)
     starters = [player for player in players if player.get("starter")]
     status_counts = {
         status: sum(1 for player in starters if player.get("game_status") == status)
