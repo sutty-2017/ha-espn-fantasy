@@ -28,9 +28,15 @@ jobs:
           grep -q 'class ESPNFantasyPlayerCard' "$FILE"
           grep -q 'class ESPNFantasyTickerCard' "$FILE"
           grep -q 'class ESPNFantasyTeamCard' "$FILE"
+          grep -q 'class ESPNFantasyMatchupCard' "$FILE"
+          grep -q 'class ESPNFantasyLeagueCard' "$FILE"
+          grep -q 'class ESPNFantasyLeagueTickerCard' "$FILE"
           grep -q '"espn-fantasy-player-card",ESPNFantasyPlayerCard' "$FILE"
           grep -q '"espn-fantasy-player-ticker-card",ESPNFantasyTickerCard' "$FILE"
           grep -q '"espn-fantasy-team-card",ESPNFantasyTeamCard' "$FILE"
+          grep -q '"espn-fantasy-matchup-card",ESPNFantasyMatchupCard' "$FILE"
+          grep -q '"espn-fantasy-league-card",ESPNFantasyLeagueCard' "$FILE"
+          grep -q '"espn-fantasy-league-ticker-card",ESPNFantasyLeagueTickerCard' "$FILE"
           grep -q 'window.customCards' "$FILE"
       - name: Check Python syntax
         run: python -m py_compile custom_components/espn_fantasy/model.py
