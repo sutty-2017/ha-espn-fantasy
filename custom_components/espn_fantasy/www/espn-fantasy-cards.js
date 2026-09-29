@@ -16,9 +16,9 @@ const fmtKickoff = (value) => {
 };
 const stateList = (hass) => Object.values(hass?.states || {});
 const findByAttrs = (hass, predicate) => stateList(hass).find((s) => predicate(s.attributes || {}, s));
-const findRoster = (hass, entity) => entity ? hass.states[entity] : findByAttrs(hass, (a) => Array.isArray(a.players) && a.team_name && "starters_remaining" in a);
-const findMatchup = (hass, entity) => entity ? hass.states[entity] : findByAttrs(hass, (a) => Array.isArray(a.my_roster) && Array.isArray(a.opponent_roster));
-const findLeague = (hass, entity) => entity ? hass.states[entity] : findByAttrs(hass, (a) => Array.isArray(a.standings) && Array.isArray(a.scoreboard) && "league_id" in a);
+const findRoster = (hass, entity) => { const s=entity?hass.states[entity]:null; return s && Array.isArray(s.attributes?.players) && s.attributes?.team_name && "starters_remaining" in s.attributes ? s : findByAttrs(hass, (a) => Array.isArray(a.players) && a.team_name && "starters_remaining" in a); };
+const findMatchup = (hass, entity) => { const s=entity?hass.states[entity]:null; return s && Array.isArray(s.attributes?.my_roster) && Array.isArray(s.attributes?.opponent_roster) ? s : findByAttrs(hass, (a) => Array.isArray(a.my_roster) && Array.isArray(a.opponent_roster)); };
+const findLeague = (hass, entity) => { const s=entity?hass.states[entity]:null; return s && Array.isArray(s.attributes?.standings) && Array.isArray(s.attributes?.scoreboard) && "league_id" in s.attributes ? s : findByAttrs(hass, (a) => Array.isArray(a.standings) && Array.isArray(a.scoreboard) && "league_id" in a); };
 
 const playerEntity = (hass, id) => findByAttrs(hass, (a) => String(a.player_id) === String(id))?.entity_id;
 
