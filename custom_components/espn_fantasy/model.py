@@ -365,14 +365,22 @@ def _league_model(
                 "home_team_id": home_id,
                 "home_team_name": _league_team(home_team).get("name") if home_team else None,
                 "home_logo": home_team.get("logo"),
-                "home_score": _float(home.get("totalPoints")),
+                "home_score": _float(home.get("totalPointsLive", home.get("totalPoints"))),
+                "home_projected_score": _float(home.get("totalProjectedPointsLive", home.get("totalProjectedPoints"))),
                 "away_team_id": away_id,
                 "away_team_name": _league_team(away_team).get("name") if away_team else None,
                 "away_logo": away_team.get("logo"),
-                "away_score": _float(away.get("totalPoints")),
+                "away_score": _float(away.get("totalPointsLive", away.get("totalPoints"))),
+                "away_projected_score": _float(away.get("totalProjectedPointsLive", away.get("totalProjectedPoints"))),
             }
         )
-    return {"standings": standings, "scoreboard": scoreboard}
+    return {
+        "standings": standings,
+        "scoreboard": scoreboard,
+        "team_count": len(standings),
+        "matchup_count": len(scoreboard),
+        "matchup_period": matchup_period,
+    }
 
 def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]:
     """Build a stable integration-owned model from ESPN response shapes."""
