@@ -136,7 +136,7 @@ if(!customElements.get("espn-fantasy-player-editor"))customElements.define("espn
 
 class ESPNBaseCard extends HTMLElement {
   constructor(){ super(); this.attachShadow({mode:"open"}); this._config={}; this._openPlayerId=null; }
-  set hass(v){ const old=this._hass; this._hass=v; const id=this._config.entity; if(!old||!this.shadowRoot.hasChildNodes()||(id&&old.states?.[id]!==v.states?.[id]))this.render(); } get hass(){ return this._hass; }
+  set hass(v){ const old=this._hass; this._hass=v; const id=this._config.entity; if(!old||!this.shadowRoot.hasChildNodes()||!id||old.states?.[id]!==v.states?.[id])this.render(); } get hass(){ return this._hass; }
   setConfig(v){ this._config=v || {}; this.render(); }
   getCardSize(){ return 4; }
   getGridOptions(){ return { rows:"auto", columns:12, min_rows:2, min_columns:4 }; }
@@ -172,7 +172,7 @@ class ESPNFantasyTickerCard extends ESPNBaseCard {
   set hass(v){
     const old=this._hass;this._hass=v;const id=this._config.entity;
     if(!old||!this.shadowRoot.querySelector(".ticker"))this.render();
-    else if(id&&old.states?.[id]!==v.states?.[id])this.updateTicker();
+    else if(!id||old.states?.[id]!==v.states?.[id])this.updateTicker();
   }
   get hass(){return this._hass;}
   setConfig(v){if(this._timer){clearInterval(this._timer);this._timer=null;}this._config=v||{};this.render();}
