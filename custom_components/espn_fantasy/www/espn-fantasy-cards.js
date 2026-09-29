@@ -276,6 +276,8 @@ function leagueScoreboard(games) {
 
 class ESPNFantasyLeagueCard extends ESPNBaseCard {
   constructor(){super();this._leagueView=null;this._matchupView=null;}
+  set hass(v){const old=this._hass;this._hass=v;if(!old||!this.shadowRoot.hasChildNodes()){this.renderStable();return;}const ids=[findRoster(v,this._config.entity)?.entity_id,findLeague(v,this._config.entity)?.entity_id,findMatchup(v,this._config.entity)?.entity_id].filter(Boolean);if(!ids.length||ids.some(id=>old.states?.[id]!==v.states?.[id]))this.renderStable();}
+  get hass(){return this._hass;}
   static getStubConfig(){return {type:"custom:espn-fantasy-league-card",display_mode:"all",include_news:true};}
   static getConfigForm(){return {schema:[
     {name:"entity",selector:{entity:{domain:"sensor"}}},
