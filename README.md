@@ -63,10 +63,10 @@ Player entities expose fantasy-relevant attributes including position, NFL team,
 A focused player card with headshot, injury indicator, game status, fantasy score/projection, configurable detailed statistics, fantasy outlook, and latest player news.
 
 ### ESPN Fantasy League
-The main dashboard card. It can run as a standalone **Roster**, **Standings**, **Scoreboard**, or **Matchup** view, or as an **All-in-one** card that switches between those views and optional **News**. Matchup includes its own **Starters / Bench & IR** switch. Navigation labels and the card title are customizable and the selected views are remembered.
+The main dashboard card. It can run as a standalone **Roster**, **Standings**, **Scoreboard**, or **Matchup** view, or as an **All-in-one** card that switches between those views and optional **News**. Roster and Matchup each include their own **Starters / Bench & IR** switch. All-in-one navigation sections can be reordered, News has a configurable story count, navigation labels and the card title are customizable, and selected views are remembered.
 
 ### ESPN Fantasy Ticker
-One ticker for **Players**, **Scoreboard**, or **Players + Scoreboard**. Combined mode can insert customizable team and league section headers using logo + name, logo only, name only, or no header.
+One ticker for **Players**, **Scoreboard**, or **Players + Scoreboard**. The identity panel stays pinned on the left while content scrolls and switches between your team and league identity in combined mode. Choose **Step** or continuous **Smooth** scrolling, flip Players/Scoreboard order, and customize logo + name, logo only, name only, or hidden identity modes. When ESPN does not provide a league logo, the ticker uses ESPN Fantasy branding.
 
 ### ESPN Fantasy News
 A newest-first feed of fantasy news for players on your roster. Each story includes the player's name and portrait, with a configurable story count.
@@ -112,4 +112,4 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current development line is **v0.1.27**, consolidating the dashboard into a League card and Fantasy Ticker while preserving standalone Player and News cards. It also hardens Home Assistant theme inheritance, scroll stability, and image preservation to reduce dashboard jumps and logo flicker.
+The current development line is **v0.1.28**, refining the consolidated League and Fantasy Ticker cards with shorter roster views, reorderable League sections, configurable News count, pinned ticker identities, reversible ticker section order, and continuous smooth scrolling.
