@@ -346,9 +346,25 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
     if(!stories.length)return '<div class="empty">No player news available yet.</div>';
     return '<div class="news-feed">'+stories.map(({p,item})=>'<article class="feed-story" data-news-player="'+esc(p.id)+'"><div class="feed-player"><div class="portrait">'+(p.headshot?'<img src="'+esc(p.headshot)+'" alt="" loading="lazy">':"")+'</div><div><div class="player-name">'+esc(p.name)+'</div><div class="player-meta">'+esc([p.position,p.nfl_team].filter(Boolean).join(" · "))+'</div></div></div><div class="news-meta">'+esc(item.published?fmtKickoff(item.published):"")+'</div><div class="news-headline">'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">'+esc(item.headline||"Player update")+"</a>":esc(item.headline||"Player update"))+'</div>'+(item.description?'<div class="news-description">'+esc(item.description)+"</div>":"")+(item.spin?'<div class="news-spin"><strong>Fantasy:</strong> '+esc(item.spin)+"</div>":"")+"</article>").join("")+"</div>";
   }
-  setView(v){this._leagueView=v;this.remember("view",v);this.renderStable();}
-  setMatchupView(v){this._matchupView=v;this.remember("matchup",v);this.renderStable();}
-  setRosterView(v){this._rosterView=v;this.remember("roster",v);this.renderStable();}
+  bodyFor(view){
+    const la=this.leagueState()?.attributes||{},standings=la.standings||[],games=la.scoreboard||[];
+    if(view==="roster")return this.rosterBody();
+    if(view==="standings")return standings.length?leagueStandings(standings):'<div class="empty">No standings data yet.</div>';
+    if(view==="scoreboard")return games.length?leagueScoreboard(games):'<div class="empty">No scoreboard data yet.</div>';
+    if(view==="matchup")return this.matchupBody();
+    return this.newsBody();
+  }
+  bindLeagueContent(){
+    this.bindPlayers(id=>{const pools=[...(this.rosterState()?.attributes?.players||[]),...(this.matchupState()?.attributes?.my_players||[]),...(this.matchupState()?.attributes?.opponent_players||[])];this.openPlayer(pools.find(p=>String(p.id)===String(id)),this._config.stats);});
+    this.shadowRoot.querySelectorAll("[data-news-player]").forEach(x=>x.addEventListener("click",e=>{if(e.target.closest("a"))return;const p=(this.rosterState()?.attributes?.players||[]).find(p=>String(p.id)===String(x.dataset.newsPlayer));this.openPlayer(p,this._config.stats);}));
+    this.shadowRoot.querySelectorAll("button[data-matchup]").forEach(x=>x.addEventListener("click",()=>this.setMatchupView(x.dataset.matchup)));
+    this.shadowRoot.querySelectorAll("button[data-roster]").forEach(x=>x.addEventListener("click",()=>this.setRosterView(x.dataset.roster)));
+    const feed=this.shadowRoot.querySelector(".news-feed");if(feed){feed.scrollTop=this._newsScrollTop;feed.addEventListener("scroll",()=>{this._newsScrollTop=feed.scrollTop;},{passive:true});}
+  }
+  replaceBody(view){const content=this.shadowRoot.querySelector(".main-content");if(!content){this.renderStable();return;}const feed=this.shadowRoot.querySelector(".news-feed");if(feed)this._newsScrollTop=feed.scrollTop;content.innerHTML=this.bodyFor(view);this.shadowRoot.querySelectorAll(".main-switch button").forEach(x=>x.classList.toggle("active",x.dataset.view===view));this.bindLeagueContent();}
+  setView(v){this._leagueView=v;this.remember("view",v);this.replaceBody(v);}
+  setMatchupView(v){this._matchupView=v;this.remember("matchup",v);this.replaceBody("matchup");}
+  setRosterView(v){this._rosterView=v;this.remember("roster",v);this.replaceBody("roster");}
   render(){
     if(!this.hass)return;const labels=this.labels(),mode=this._config.display_mode||"all",league=this.leagueState(),la=league?.attributes||{},standings=la.standings||[],games=la.scoreboard||[];
     const views=this.orderedViews(),requested=mode==="all"?(this._leagueView||this.remembered("view","standings")):mode,view=views.includes(requested)?requested:views[0];
