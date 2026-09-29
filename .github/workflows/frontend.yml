@@ -37,13 +37,12 @@ jobs:
           js = (root / "www/espn-fantasy-cards.js").read_text()
           init = (root / "__init__.py").read_text()
           js_version = re.search(r'CARD_VERSION\s*=\s*"([^"]+)"', js).group(1)
-          cache_version = re.search(r'_CARD_URL\s*=.*?\?v=([0-9.]+)', init).group(1)
-
-          assert manifest_version == js_version == cache_version, (
-              f"Version mismatch: manifest={manifest_version}, "
-              f"frontend={js_version}, cache={cache_version}"
+          assert manifest_version == js_version, (
+              f"Version mismatch: manifest={manifest_version}, frontend={js_version}"
           )
-          print(f"All version markers match: {manifest_version}")
+          assert '_CARD_VERSION = json.loads(_MANIFEST_PATH.read_text' in init
+          assert '_CARD_URL = f"{_CARD_STATIC_URL}?v={_CARD_VERSION}"' in init
+          print(f"Manifest/frontend/cache version source is consistent: {manifest_version}")
           PY
       - name: Check required card registrations
         run: |
