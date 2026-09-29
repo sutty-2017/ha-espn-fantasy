@@ -1,3 +1,6 @@
+
+> **v0.1.31:** Adds normalized league transaction activity to Home Assistant, optional Activity in the All-in-One card and ticker, reliable per-week current-season history fetching, and shared roster injury-status enrichment.
+
 # ESPN Fantasy Football for Home Assistant
 
 Bring your ESPN Fantasy Football league into Home Assistant with native entities, automation-friendly data, and a coordinated dashboard card suite.
@@ -114,4 +117,4 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current development line is **v0.1.30**, adding current-season player history and season summaries, automation-friendly lineup advice, collapsible player-popup sections, and matched player/scoreboard ticker heights.
+The current development line is **v0.1.31**, adding current-season player history and season summaries, automation-friendly lineup advice, collapsible player-popup sections, and matched player/scoreboard ticker heights.
