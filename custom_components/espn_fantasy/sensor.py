@@ -558,6 +558,12 @@ class PlayerSensor(ESPNBaseSensor):
             "stats": normalized_player.get("stats") or _decode_stats(actual),
             "stat_labels": normalized_player.get("stat_labels") or {},
             "default_stats": normalized_player.get("default_stats") or [],
+            "weekly_history": normalized_player.get("weekly_history") or [],
+            "season_summary": normalized_player.get("season_summary") or {},
+            "lineup_alert": normalized_player.get("lineup_alert"),
+            "lineup_alert_player_id": normalized_player.get("lineup_alert_player_id"),
+            "lineup_alert_player_name": normalized_player.get("lineup_alert_player_name"),
+            "lineup_alert_difference": normalized_player.get("lineup_alert_difference"),
             "last_news_date": normalized_player.get("last_news_date"),
             "news": (self.coordinator.data.get("player_news") or {}).get(self.player_id, []),
             "latest_news": next(

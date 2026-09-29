@@ -31,6 +31,8 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
         self.entry = entry
         self._player_news: dict[int, list[dict]] = {}
         self._player_news_updated = 0.0
+        self._player_history: dict[int, list[dict]] = {}
+        self._player_history_updated = 0.0
         self.client = ESPNClient(
             async_get_clientsession(hass),
             season=int(entry.data[CONF_SEASON]),
@@ -63,6 +65,62 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                         player_ids.append(int(player_id))
                     except (TypeError, ValueError):
                         continue
+
+            current_player_ids = set(player_ids)
+            self._player_history = {
+                player_id: items
+                for player_id, items in self._player_history.items()
+                if player_id in current_player_ids
+            }
+            scoring_period = data.get("scoringPeriodId")
+            if scoring_period is None:
+                scoring_period = (data.get("status") or {}).get("currentScoringPeriod")
+            try:
+                scoring_period = int(scoring_period)
+            except (TypeError, ValueError):
+                scoring_period = None
+
+            now = time.monotonic()
+            history_missing = any(
+                player_id not in self._player_history for player_id in player_ids
+            )
+            if player_ids and scoring_period and (
+                history_missing or now - self._player_history_updated >= 21600
+            ):
+                fetched_history = await self.client.get_player_history_many(
+                    player_ids, scoring_period
+                )
+                for player_id in player_ids:
+                    self._player_history[player_id] = fetched_history.get(player_id, [])
+                self._player_history_updated = now
+
+            # Merge focused historical rows into the current roster payload so
+            # normalization has one defensive path regardless of ESPN response shape.
+            for team in data.get("teams") or []:
+                try:
+                    if int(team.get("id", -1)) != team_id:
+                        continue
+                except (TypeError, ValueError):
+                    continue
+                for roster_entry in (team.get("roster") or {}).get("entries") or []:
+                    player = (roster_entry.get("playerPoolEntry") or {}).get("player") or {}
+                    try:
+                        player_id = int(player.get("id") or roster_entry.get("playerId"))
+                    except (TypeError, ValueError):
+                        continue
+                    historical = self._player_history.get(player_id) or []
+                    if historical:
+                        existing = list(player.get("stats") or [])
+                        keyed = {}
+                        for stat in [*existing, *historical]:
+                            key = (
+                                stat.get("seasonId"),
+                                stat.get("scoringPeriodId"),
+                                stat.get("statSourceId"),
+                                stat.get("statSplitTypeId"),
+                            )
+                            keyed[key] = stat
+                        player["stats"] = list(keyed.values())
 
             # Keep the news cache scoped to the current roster so dropped/traded
             # players do not accumulate in Home Assistant state attributes.

@@ -76,6 +76,38 @@ jobs:
           assert scoreboard[0]["home_team_name"] == "Alpha"
           assert scoreboard[0]["away_team_name"] == "Beta"
           PY
+      - name: Smoke-test history and lineup advice
+        run: |
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+
+          path = Path("custom_components/espn_fantasy/model.py")
+          spec = importlib.util.spec_from_file_location("espn_fantasy_model", path)
+          model = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(model)
+
+          history = [
+              {"week": 3, "actual_points": 18.0},
+              {"week": 2, "actual_points": 12.0},
+          ]
+          summary = model._season_summary(history)
+          assert summary["weeks_with_stats"] == 2
+          assert summary["total_points"] == 30.0
+          assert summary["average_points"] == 15.0
+
+          players = [
+              {"id": 1, "name": "Starter", "starter": True, "lineup_slot_id": 2, "projected_points": 10.0},
+              {"id": 2, "name": "Bench", "starter": False, "lineup_slot_id": 20, "eligible_slot_ids": [2, 23], "projected_points": 14.5},
+              {"id": 3, "name": "Wrong Slot", "starter": False, "lineup_slot_id": 20, "eligible_slot_ids": [0], "projected_points": 25.0},
+          ]
+          model._apply_lineup_advice(players)
+          assert players[0]["lineup_alert"] == "lower_than_bench"
+          assert players[0]["lineup_alert_player_id"] == 2
+          assert players[0]["lineup_alert_difference"] == 4.5
+          assert players[1]["lineup_alert"] == "higher_than_starter"
+          assert players[2]["lineup_alert"] is None
+          PY
       - name: Check required card registrations
         run: |
           FILE=custom_components/espn_fantasy/www/espn-fantasy-cards.js
@@ -109,5 +141,8 @@ jobs:
           grep -q 'data-news-player' "$FILE"
           grep -q 'bindTickerPlayers' "$FILE"
           grep -q 'injuryBadge(p)' "$FILE"
+          grep -q 'Historical stats' "$FILE"
+          grep -q 'lineup_alert_threshold' "$FILE"
+          grep -q 'lineup-advice' "$FILE"
           grep -q '"espn-fantasy-news-card",ESPNFantasyNewsCard' "$FILE"
           grep -q 'window.customCards' "$FILE"
