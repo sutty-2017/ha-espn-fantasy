@@ -112,4 +112,4 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current development line is **v0.1.28**, refining the consolidated League and Fantasy Ticker cards with shorter roster views, reorderable League sections, configurable News count, pinned ticker identities, reversible ticker section order, and continuous smooth scrolling.
+The current development line is **v0.1.29**, polishing the consolidated League and Fantasy Ticker cards with stable tab styling, shared player interactions and injury badges, scrollable News, compact section ordering, bundled branding, and customizable opaque ticker identities.
