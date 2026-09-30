@@ -116,7 +116,11 @@ jobs:
           assert bracket["projected"] is True
           assert [r["label"] for r in bracket["rounds"]] == ["Semifinals", "Championship"]
           assert bracket["rounds"][0]["matches"][0]["home_seed"] == 1
-          assert bracket["sections"][0]["tier"] == "WINNERS_BRACKET"
+          assert [section["tier"] for section in bracket["sections"]] == [
+              "WINNERS_BRACKET", "LOSERS_BRACKET"
+          ]
+          assert bracket["sections"][1]["label"] == "Winners Consolation Ladder"
+          assert bracket["sections"][1]["rounds"][0]["matches"][0]["home_team_name"] == "TBD"
 
           postseason = dict(data)
           postseason["season_schedule"] = [
@@ -162,9 +166,10 @@ jobs:
           }
           normalized = model.build_normalized_model(diagnostic, 1)["league"]
           assert [section["tier"] for section in normalized["playoff_bracket"]["sections"]] == [
-              "WINNERS_BRACKET", "CONSOLATION_LADDER"
+              "WINNERS_BRACKET", "LOSERS_BRACKET", "CONSOLATION_LADDER"
           ]
-          assert normalized["playoff_bracket"]["sections"][1]["rounds"][0]["matches"]
+          assert normalized["playoff_bracket"]["sections"][1]["label"] == "Winners Consolation Ladder"
+          assert normalized["playoff_bracket"]["sections"][2]["rounds"][0]["matches"]
           assert normalized["waivers"]["system"] == "waiver_order"
           assert normalized["waivers"]["acquisition_budget"] is None
           assert all(item["budget_remaining"] is None for item in normalized["waivers"]["order"])
@@ -391,6 +396,13 @@ jobs:
           grep -q 'injuryBadge(p)' "$FILE"
           grep -q 'Historical stats' "$FILE"
           grep -q 'lineup_alert_threshold' "$FILE"
-          grep -q 'lineup-advice' "$FILE"
+          grep -q 'lineup-advice-badge' "$FILE"
+          grep -q 'roster_lineup_advice' "$FILE"
+          grep -q 'matchup_lineup_advice' "$FILE"
+          grep -q 'standings_roster_popups' "$FILE"
+          grep -q 'scoreboard_matchup_popups' "$FILE"
+          grep -q 'openLeagueDialog' "$FILE"
+          grep -q 'data-dialog-team-id' "$FILE"
+          grep -q 'data-scoreboard-index' "$FILE"
           grep -q '"espn-fantasy-news-card",ESPNFantasyNewsCard' "$FILE"
           grep -q 'window.customCards' "$FILE"
