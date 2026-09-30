@@ -45,7 +45,13 @@ class ESPNClient:
             cookies["SWID"] = self.swid
         return cookies or None
 
-    async def _get_json(self, params: Any) -> dict[str, Any]:
+    async def _get_json(
+        self,
+        params: Any,
+        *,
+        expected_any: tuple[str, ...] = (),
+        context: str = "ESPN response",
+    ) -> dict[str, Any]:
         async with self.session.get(
             self.url, params=params, cookies=self._cookies(), timeout=30
         ) as response:
@@ -58,9 +64,17 @@ class ESPNClient:
             if response.status != 200:
                 raise ESPNError(f"ESPN returned HTTP {response.status}.")
             try:
-                return await response.json()
+                payload = await response.json()
             except ValueError as err:
                 raise ESPNError("ESPN returned invalid JSON.") from err
+            if not isinstance(payload, dict):
+                raise ESPNError(f"{context} was not a JSON object.")
+            if expected_any and not any(key in payload for key in expected_any):
+                expected = ", ".join(expected_any)
+                raise ESPNError(
+                    f"{context} was HTTP 200 but omitted expected content ({expected})."
+                )
+            return payload
 
     @staticmethod
     def _merge_rosters(
@@ -100,7 +114,9 @@ class ESPNClient:
                 ("view", "mSettings"),
                 ("view", "mStandings"),
                 ("view", "mStatus"),
-            ]
+            ],
+            expected_any=("teams", "settings", "status"),
+            context="ESPN league metadata",
         )
 
         status = meta.get("status", {})
@@ -133,7 +149,9 @@ class ESPNClient:
             [
                 ("view", "mRoster"),
                 ("scoringPeriodId", scoring_period),
-            ]
+            ],
+            expected_any=("teams",),
+            context="ESPN roster",
         )
         meta["teams"] = self._merge_rosters(
             meta.get("teams", []), roster.get("teams", [])
@@ -147,7 +165,11 @@ class ESPNClient:
         if matchup_period is not None:
             matchup_params.append(("matchupPeriodId", matchup_period))
 
-        matchup = await self._get_json(matchup_params)
+        matchup = await self._get_json(
+            matchup_params,
+            expected_any=("schedule",),
+            context="ESPN matchup",
+        )
         meta["current_matchup"] = matchup.get("schedule", [])
 
         try:
@@ -162,7 +184,11 @@ class ESPNClient:
         except ESPNError:
             meta["live_scoring"] = {}
 
-        schedule = await self._get_json([("view", "mSchedule")])
+        schedule = await self._get_json(
+            [("view", "mSchedule")],
+            expected_any=("schedule",),
+            context="ESPN season schedule",
+        )
         season_schedule = list(schedule.get("schedule", []))
         # ESPN can expose consolation/placement paths only in postseason
         # segments. Merge those schedules without replacing richer segment-0 rows.

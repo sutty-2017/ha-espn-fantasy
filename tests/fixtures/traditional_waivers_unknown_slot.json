@@ -1,0 +1,141 @@
+{
+  "scoringPeriodId": 4,
+  "status": {
+    "currentScoringPeriod": 4,
+    "currentMatchupPeriod": 4
+  },
+  "settings": {
+    "rosterSettings": {
+      "lineupSlotCounts": {
+        "0": 1,
+        "20": 6,
+        "27": 1
+      }
+    },
+    "scoringSettings": {
+      "scoringType": "H2H_POINTS"
+    },
+    "acquisitionSettings": {
+      "acquisitionType": "WAIVERS_TRADITIONAL",
+      "isUsingAcquisitionBudget": false,
+      "acquisitionBudget": 100
+    },
+    "scheduleSettings": {
+      "playoffTeamCount": 4,
+      "consolationLadderDisabled": false,
+      "playoffReseed": false
+    }
+  },
+  "teams": [
+    {
+      "id": 1,
+      "name": "Alpha",
+      "waiverRank": 1,
+      "playoffSeed": 1,
+      "transactionCounter": {
+        "acquisitionBudgetSpent": 0
+      },
+      "record": {
+        "overall": {
+          "wins": 3,
+          "losses": 0
+        }
+      },
+      "roster": {
+        "entries": [
+          {
+            "playerId": 101,
+            "lineupSlotId": 27,
+            "playerPoolEntry": {
+              "player": {
+                "id": 101,
+                "fullName": "Fixture Player",
+                "defaultPositionId": 2,
+                "eligibleSlots": [
+                  2,
+                  20,
+                  27
+                ],
+                "stats": []
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "name": "Beta",
+      "waiverRank": 2,
+      "playoffSeed": 2,
+      "transactionCounter": {
+        "acquisitionBudgetSpent": 0
+      },
+      "record": {
+        "overall": {
+          "wins": 2,
+          "losses": 1
+        }
+      },
+      "roster": {
+        "entries": []
+      }
+    },
+    {
+      "id": 3,
+      "name": "Gamma",
+      "waiverRank": 3,
+      "playoffSeed": 3,
+      "transactionCounter": {
+        "acquisitionBudgetSpent": 0
+      },
+      "record": {
+        "overall": {
+          "wins": 1,
+          "losses": 2
+        }
+      },
+      "roster": {
+        "entries": []
+      }
+    },
+    {
+      "id": 4,
+      "name": "Delta",
+      "waiverRank": 4,
+      "playoffSeed": 4,
+      "transactionCounter": {
+        "acquisitionBudgetSpent": 0
+      },
+      "record": {
+        "overall": {
+          "wins": 0,
+          "losses": 3
+        }
+      },
+      "roster": {
+        "entries": []
+      }
+    }
+  ],
+  "current_matchup": [
+    {
+      "id": 1,
+      "matchupPeriodId": 4,
+      "home": {
+        "teamId": 1,
+        "rosterForCurrentScoringPeriod": {
+          "entries": []
+        }
+      },
+      "away": {
+        "teamId": 2,
+        "rosterForCurrentScoringPeriod": {
+          "entries": []
+        }
+      }
+    }
+  ],
+  "season_schedule": [],
+  "pro_team_schedules": []
+}

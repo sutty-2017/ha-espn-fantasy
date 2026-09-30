@@ -95,6 +95,83 @@ def _float(value: Any) -> float | None:
         return None
 
 
+def _slot_name(slot_id: int | None) -> str | None:
+    """Return a stable label while preserving unknown ESPN slot IDs."""
+    if slot_id is None:
+        return None
+    return str(LINEUP_SLOT_NAMES.get(slot_id, f"Slot {slot_id}"))
+
+
+def _league_capabilities(data: dict[str, Any]) -> dict[str, Any]:
+    """Describe the ESPN league shape without assuming one roster/scoring format."""
+    settings = data.get("settings") or {}
+    roster = settings.get("rosterSettings") or {}
+    schedule = settings.get("scheduleSettings") or {}
+    scoring = settings.get("scoringSettings") or {}
+    acquisition = settings.get("acquisitionSettings") or {}
+
+    raw_slots = roster.get("lineupSlotCounts") or {}
+    slot_counts: dict[str, int] = {}
+    unknown_slots: list[int] = []
+    for raw_id, raw_count in raw_slots.items():
+        slot_id = _int(raw_id)
+        count = _int(raw_count)
+        if slot_id is None or count is None or count <= 0:
+            continue
+        slot_counts[_slot_name(slot_id) or f"Slot {slot_id}"] = count
+        if slot_id not in LINEUP_SLOT_NAMES:
+            unknown_slots.append(slot_id)
+
+    acquisition_type = str(acquisition.get("acquisitionType") or "").upper()
+    uses_budget = bool(
+        acquisition.get("isUsingAcquisitionBudget")
+        or acquisition.get("isUsingAcquisitionBudgetEnabled")
+        or any(token in acquisition_type for token in ("BUDGET", "FAAB", "FAB"))
+    )
+    scoring_type = scoring.get("scoringType")
+    playoff_count = _int(schedule.get("playoffTeamCount"))
+    team_count = len(data.get("teams") or [])
+
+    observed_slots: set[int] = set()
+    observed_positions: set[int] = set()
+    for team in data.get("teams") or []:
+        for entry in (team.get("roster") or {}).get("entries") or []:
+            slot_id = _int(entry.get("lineupSlotId"))
+            if slot_id is not None:
+                observed_slots.add(slot_id)
+            player = (entry.get("playerPoolEntry") or {}).get("player") or {}
+            position_id = _int(player.get("defaultPositionId"))
+            if position_id is not None:
+                observed_positions.add(position_id)
+            for eligible in player.get("eligibleSlots") or []:
+                eligible_id = _int(eligible)
+                if eligible_id is not None:
+                    observed_slots.add(eligible_id)
+
+    unknown_slots = sorted(set(unknown_slots) | {slot for slot in observed_slots if slot not in LINEUP_SLOT_NAMES})
+    unknown_positions = sorted(position for position in observed_positions if position not in POSITION_NAMES)
+
+    return {
+        "team_count": team_count,
+        "scoring_type": scoring_type,
+        "lineup_slot_counts": slot_counts,
+        "lineup_slot_ids": sorted(set(observed_slots) | {_int(k) for k in raw_slots if _int(k) is not None}),
+        "has_ir": any(slot_counts.get(name, 0) for name in ("IR",)),
+        "has_idp": any(position in observed_positions for position in range(8, 16)),
+        "has_unknown_lineup_slots": bool(unknown_slots),
+        "unknown_lineup_slot_ids": unknown_slots,
+        "unknown_position_ids": unknown_positions,
+        "acquisition_type": acquisition_type or None,
+        "uses_acquisition_budget": uses_budget,
+        "has_waivers": not any(token in acquisition_type for token in ("FREE_AGENT", "NO_WAIVER", "NONE")),
+        "playoff_team_count": playoff_count,
+        "playoff_reseed": schedule.get("playoffReseed"),
+        "consolation_ladder_enabled": schedule.get("consolationLadderDisabled") is not True,
+        "has_divisions": bool((settings.get("scheduleSettings") or {}).get("divisions")),
+        "keeper_count": _int((settings.get("draftSettings") or {}).get("keeperCount")),
+    }
+
+
 def _team_name(team: dict[str, Any]) -> str:
     return (
         team.get("name")
@@ -231,9 +308,9 @@ def _player(
         "position_id": position_id,
         "position": POSITION_NAMES.get(position_id, position_id),
         "lineup_slot_id": slot_id,
-        "lineup_slot": LINEUP_SLOT_NAMES.get(slot_id, slot_id),
+        "lineup_slot": _slot_name(slot_id),
         "eligible_slot_ids": [_int(slot) for slot in (player.get("eligibleSlots") or []) if _int(slot) is not None],
-        "eligible_slots": [LINEUP_SLOT_NAMES.get(_int(slot), _int(slot)) for slot in (player.get("eligibleSlots") or []) if _int(slot) is not None],
+        "eligible_slots": [_slot_name(_int(slot)) for slot in (player.get("eligibleSlots") or []) if _int(slot) is not None],
         "starter": slot_id not in BENCH_SLOTS if slot_id is not None else None,
         "pro_team_id": pro_team_id,
         "nfl_team": _team_abbrev(pro_team),
@@ -819,11 +896,13 @@ def _playoff_bracket_model(
     """Build every ESPN postseason tier, with a winners-bracket projection fallback."""
     tier_labels = {
         "WINNERS_BRACKET": "Championship Bracket",
-        "LOSERS_BRACKET": "Consolation Bracket",
+        "WINNERS_CONSOLATION_LADDER": "Winners Consolation Ladder",
+        "LOSERS_BRACKET": "Winners Consolation Ladder",
         "CONSOLATION_LADDER": "Consolation Ladder",
     }
     tier_order = {
         "WINNERS_BRACKET": 0,
+        "WINNERS_CONSOLATION_LADDER": 1,
         "LOSERS_BRACKET": 1,
         "CONSOLATION_LADDER": 2,
     }
@@ -859,6 +938,53 @@ def _playoff_bracket_model(
             "rounds": rounds,
         })
 
+    schedule_settings = settings.get("scheduleSettings") or {}
+    has_winners_consolation = any(
+        section["tier"] in {"WINNERS_CONSOLATION_LADDER", "LOSERS_BRACKET"}
+        for section in sections
+    )
+    if (
+        sections
+        and schedule_settings.get("consolationLadderDisabled") is not True
+        and not has_winners_consolation
+    ):
+        periods = sorted({
+            game.get("matchup_period")
+            for game in playoff_games
+            if isinstance(game.get("matchup_period"), int)
+        })
+        sections.append({
+            "tier": "LOSERS_BRACKET",
+            "label": "Winners Consolation Ladder",
+            "rounds": [{
+                "index": index + 1,
+                "label": f"Round {index + 1}" if len(periods) > 1 else "Winners Consolation",
+                "matchup_period": period,
+                "matches": [{
+                    "id": f"projected-winners-consolation-r{index + 1}",
+                    "matchup_period": period,
+                    "playoff_tier": "LOSERS_BRACKET",
+                    "winner": None,
+                    "status": "projected",
+                    "home_team_id": None,
+                    "home_team_name": "TBD",
+                    "home_logo": None,
+                    "home_seed": None,
+                    "home_score": None,
+                    "home_projected_score": None,
+                    "away_team_id": None,
+                    "away_team_name": "TBD",
+                    "away_logo": None,
+                    "away_seed": None,
+                    "away_score": None,
+                    "away_projected_score": None,
+                }],
+            } for index, period in enumerate(periods or [None])],
+        })
+        sections.sort(key=lambda section: (
+            tier_order.get(section["tier"], 99), section["tier"]
+        ))
+
     if sections:
         winners = next(
             (section for section in sections if section["tier"] == "WINNERS_BRACKET"),
@@ -886,6 +1012,43 @@ def _playoff_bracket_model(
         schedule_settings = settings.get("scheduleSettings") or {}
         if schedule_settings.get("consolationLadderDisabled") is not True:
             playoff_count = _int(schedule_settings.get("playoffTeamCount")) or 0
+            postseason_periods = sorted(
+                _int(period)
+                for period in (schedule_settings.get("matchupPeriods") or {})
+                if _int(period) is not None
+                and _int(period) > (_int(schedule_settings.get("matchupPeriodCount")) or 0)
+            )
+            winners_consolation_rounds = []
+            for index, period in enumerate(postseason_periods or [None]):
+                winners_consolation_rounds.append({
+                    "index": index + 1,
+                    "label": f"Round {index + 1}" if len(postseason_periods) > 1 else "Winners Consolation",
+                    "matchup_period": period,
+                    "matches": [{
+                        "id": f"projected-winners-consolation-r{index + 1}-{match_index}",
+                        "matchup_period": period,
+                        "playoff_tier": "LOSERS_BRACKET",
+                        "winner": None,
+                        "status": "projected",
+                        "home_team_id": None,
+                        "home_team_name": "TBD",
+                        "home_logo": None,
+                        "home_seed": None,
+                        "home_score": None,
+                        "home_projected_score": None,
+                        "away_team_id": None,
+                        "away_team_name": "TBD",
+                        "away_logo": None,
+                        "away_seed": None,
+                        "away_score": None,
+                        "away_projected_score": None,
+                    } for match_index in range(max(1, playoff_count // 4))],
+                })
+            sections.append({
+                "tier": "LOSERS_BRACKET",
+                "label": "Winners Consolation Ladder",
+                "rounds": winners_consolation_rounds,
+            })
             consolation = sorted(
                 standings,
                 key=lambda team: (
@@ -978,6 +1141,8 @@ def _league_model(
     data: dict[str, Any],
     teams: dict[int, dict[str, Any]],
     matchup_period: int | None,
+    scoring_period: int | None,
+    pro_teams: dict[int, dict[str, Any]],
 ) -> dict[str, Any]:
     """Build standings, schedule, scoreboard, bracket, and league activity."""
     normalized_teams = [_league_team(team) for team in teams.values()]
@@ -1061,8 +1226,15 @@ def _league_model(
         _int(data.get("scoringPeriodId"))
         or _int((data.get("status") or {}).get("currentScoringPeriod")),
     )
+    team_rosters = [
+        _side({"teamId": team_key}, team, scoring_period, pro_teams)
+        for team_key, team in teams.items()
+    ]
+    team_rosters.sort(key=lambda item: str(item.get("team_name") or ""))
+
     return {
         "standings": standings,
+        "team_rosters": team_rosters,
         "scoreboard": scoreboard,
         "schedule": schedule,
         "schedule_periods": schedule_periods,
@@ -1101,13 +1273,16 @@ def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]
         for team in data.get("pro_team_schedules") or []
         if _int(team.get("id")) is not None
     }
-    league = _league_model(data, teams, matchup_period)
+    league = _league_model(
+        data, teams, matchup_period, scoring_period, pro_teams
+    )
     matchup = _matchup(data, team_id, matchup_period)
     if not matchup:
         return {
             "scoring_period": scoring_period,
             "matchup_period": matchup_period,
             "team_id": team_id,
+            "capabilities": _league_capabilities(data),
             "league": league,
             "matchup": None,
         }
@@ -1123,6 +1298,7 @@ def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]
         "scoring_period": scoring_period,
         "matchup_period": matchup_period,
         "team_id": team_id,
+        "capabilities": _league_capabilities(data),
         "league": league,
         "matchup": {
             "id": matchup.get("id"),

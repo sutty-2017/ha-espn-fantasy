@@ -27,7 +27,24 @@ async def async_get_config_entry_diagnostics(
     # the member directory from downloadable diagnostics.
     coordinator_data.pop("members", None)
 
+    normalized = coordinator_data.get("normalized") or {}
+    compatibility = {
+        "season": entry.data.get("season"),
+        "league_id": entry.data.get("league_id"),
+        "team_id": entry.data.get("team_id"),
+        "scoring_period": normalized.get("scoring_period"),
+        "matchup_period": normalized.get("matchup_period"),
+        "capabilities": normalized.get("capabilities") or {},
+        "optional_data": {
+            "live_scoring": bool(coordinator_data.get("live_scoring")),
+            "season_schedule": bool(coordinator_data.get("season_schedule")),
+            "transactions": bool(coordinator_data.get("transactions")),
+            "pro_team_schedules": bool(coordinator_data.get("pro_team_schedules")),
+        },
+    }
+
     return {
+        "compatibility": compatibility,
         "entry": {
             "title": entry.title,
             "data": async_redact_data(dict(entry.data), TO_REDACT),

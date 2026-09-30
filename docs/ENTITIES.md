@@ -24,10 +24,11 @@ Attributes:
 - `current_week` — current matchup period.
 - `scoring_type` — ESPN scoring type.
 - `standings` — normalized full league standings, including team identity, record, rank/seed, points and logo data.
+- `team_rosters` — normalized current roster detail for every fantasy team, used by Standings and Scoreboard drill-down popups.
 - `scoreboard` — normalized current league matchups with team IDs/names/logos, scores and projections.
 - `schedule` — normalized full-season fantasy matchups with period, team identity, scores/projections, winner/status, playoff tier, and seeds where available.
 - `schedule_periods` — sorted matchup periods present in the normalized full-season schedule.
-- `playoff_bracket` (includes `sections` for each ESPN postseason tier, plus legacy `rounds` for the primary bracket) — normalized winners-bracket model used by the card. Includes availability/projected flags, data source, playoff-team count, rounds, round labels, matchup periods, and normalized matchups.
+- `playoff_bracket` (includes `sections` for each ESPN postseason tier, plus legacy `rounds` for the primary bracket) — normalized postseason model used by the card. Sections are presented in ESPN-style order: Championship Bracket, Winners Consolation Ladder, then Consolation Ladder when enabled. Empty projected postseason paths remain visible with TBD placeholders until ESPN supplies their matchups.
 - `activity` — normalized recent league transactions. This is the complete Activity feed used by the cards.
 - `activity_count` — number of normalized Activity events currently available.
 - `matchup_count` — number of current scoreboard matchups.
