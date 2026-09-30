@@ -426,7 +426,8 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
     this.bindActivities(this.leagueState()?.attributes?.activity||[]);
     this.shadowRoot.querySelectorAll("button[data-matchup]").forEach(x=>x.addEventListener("click",()=>this.setMatchupView(x.dataset.matchup)));
     this.shadowRoot.querySelectorAll("button[data-roster]").forEach(x=>x.addEventListener("click",()=>this.setRosterView(x.dataset.roster)));
-    const feed=this.shadowRoot.querySelector(".news-feed");if(feed){feed.scrollTop=this._newsScrollTop;feed.addEventListener("scroll",()=>{this._newsScrollTop=feed.scrollTop;},{passive:true});}\n    const activity=this.shadowRoot.querySelector(".activity-feed");if(activity){activity.scrollTop=this._activityScrollTop;activity.addEventListener("scroll",()=>{this._activityScrollTop=activity.scrollTop;},{passive:true});}
+    const feed=this.shadowRoot.querySelector(".news-feed");if(feed){feed.scrollTop=this._newsScrollTop;feed.addEventListener("scroll",()=>{this._newsScrollTop=feed.scrollTop;},{passive:true});}
+    const activity=this.shadowRoot.querySelector(".activity-feed");if(activity){activity.scrollTop=this._activityScrollTop;activity.addEventListener("scroll",()=>{this._activityScrollTop=activity.scrollTop;},{passive:true});}
   }
   replaceBody(view){const content=this.shadowRoot.querySelector(".main-content");if(!content){this.renderStable();return;}const feed=this.shadowRoot.querySelector(".news-feed");if(feed)this._newsScrollTop=feed.scrollTop;const activity=this.shadowRoot.querySelector(".activity-feed");if(activity)this._activityScrollTop=activity.scrollTop;content.innerHTML=this.bodyFor(view);this.shadowRoot.querySelectorAll(".main-switch button").forEach(x=>x.classList.toggle("active",x.dataset.view===view));this.bindLeagueContent();}
   setView(v){this._leagueView=v;this.remember("view",v);this.replaceBody(v);}
