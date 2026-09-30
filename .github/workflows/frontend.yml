@@ -174,6 +174,68 @@ jobs:
           assert player["season_summary"]["weeks_with_stats"] == 3
           assert player["season_summary"]["total_points"] == 36.0
           PY
+      - name: Smoke-test normalized league activity
+        run: |
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+
+          path = Path("custom_components/espn_fantasy/model.py")
+          spec = importlib.util.spec_from_file_location("espn_fantasy_model", path)
+          model = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(model)
+
+          player_a = {"id": 101, "fullName": "Dropped Player", "defaultPositionId": 3, "proTeamId": 1, "stats": []}
+          player_b = {"id": 202, "fullName": "Added Player", "defaultPositionId": 2, "proTeamId": 2, "stats": []}
+          data = {
+              "scoringPeriodId": 4,
+              "status": {"currentScoringPeriod": 4, "currentMatchupPeriod": 4},
+              "teams": [
+                  {"id": 1, "name": "Alpha", "logo": "alpha.png", "roster": {"entries": []}},
+                  {"id": 2, "name": "Beta", "logo": "beta.png", "roster": {"entries": []}},
+              ],
+              "current_matchup": [],
+              "pro_team_schedules": [{"id": 1, "abbrev": "ATL"}, {"id": 2, "abbrev": "BUF"}],
+              "transaction_players": {101: player_a, 202: player_b},
+              "transactions": [{
+                  "id": 9, "type": "WAIVER", "teamId": 1, "status": "EXECUTED", "processDate": 123,
+                  "items": [
+                      {"type": "DROP", "playerId": 101, "fromTeamId": 1},
+                      {"type": "ADD", "playerId": 202, "toTeamId": 1},
+                  ],
+              }],
+          }
+          normalized = model.build_normalized_model(data, 1)
+          event = normalized["league"]["activity"][0]
+          assert event["team_name"] == "Alpha"
+          assert event["team_logo"] == "alpha.png"
+          assert event["is_trade"] is False
+          assert event["items"][0]["player"]["name"] == "Dropped Player"
+          assert event["items"][1]["player"]["name"] == "Added Player"
+          assert event["sides"][0]["team_name"] == "Alpha"
+
+          data["transactions"] = [{
+              "id": 10, "type": "TRADE", "status": "EXECUTED", "processDate": 124,
+              "items": [
+                  {"type": "TRADE", "playerId": 101, "fromTeamId": 1, "toTeamId": 2},
+                  {"type": "TRADE", "playerId": 202, "fromTeamId": 2, "toTeamId": 1},
+              ],
+          }]
+          event = model.build_normalized_model(data, 1)["league"]["activity"][0]
+          assert event["is_trade"] is True
+          assert len(event["sides"]) == 2
+          assert {side["team_name"] for side in event["sides"]} == {"Alpha", "Beta"}
+          assert all(side["sent"] and side["received"] for side in event["sides"])
+          PY
+      - name: Check automation-facing sensors
+        run: |
+          FILE=custom_components/espn_fantasy/sensor.py
+          grep -q 'class LeagueActivitySensor' "$FILE"
+          grep -q 'class LineupRecommendationsSensor' "$FILE"
+          grep -q 'class InjuredPlayersSensor' "$FILE"
+          grep -q '"recent_activity"' "$FILE"
+          grep -q '"recommendations"' "$FILE"
+          grep -q '"has_injuries"' "$FILE"
       - name: Check required card registrations
         run: |
           FILE=custom_components/espn_fantasy/www/espn-fantasy-cards.js
