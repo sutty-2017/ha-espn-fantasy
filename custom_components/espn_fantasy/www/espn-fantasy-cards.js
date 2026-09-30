@@ -335,21 +335,72 @@ function activityItem(event, compact=false, index=0) {
 
 class ESPNFantasyLeagueEditor extends HTMLElement {
   constructor(){super();this.attachShadow({mode:"open"});this._config={};}
-  set hass(v){this._hass=v;const form=this.shadowRoot.querySelector("ha-form");if(form)form.hass=v;else this.render();} get hass(){return this._hass;}
+  set hass(v){this._hass=v;this.shadowRoot.querySelectorAll("ha-form").forEach(form=>form.hass=v);if(!this.shadowRoot.hasChildNodes())this.render();} get hass(){return this._hass;}
   setConfig(v){this._config=v||{};this.render();}
-  fire(config){this._config=config;this.dispatchEvent(new CustomEvent("config-changed",{detail:{config},bubbles:true,composed:true}));this.render();}
-  order(){const d=["roster","standings","scoreboard","matchup","news","activity"],c=[this._config.section_1,this._config.section_2,this._config.section_3,this._config.section_4,this._config.section_5,this._config.section_6].filter(v=>d.includes(v));return [...new Set([...c,...d])];}
-  move(i,d){const a=this.order(),j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];const p={};a.forEach((v,n)=>p["section_"+(n+1)]=v);this.fire({...this._config,...p});}
-  render(){if(!this.hass)return;const schema=[
-    {name:"entity",selector:{entity:{domain:"sensor"}}},{name:"display_mode",selector:{select:{options:[{value:"roster",label:"Roster"},{value:"standings",label:"Standings"},{value:"scoreboard",label:"Scoreboard"},{value:"matchup",label:"Matchup"},{value:"all",label:"All-in-one"}]}}},
-    {name:"include_news",selector:{boolean:{}}},{name:"include_activity",selector:{boolean:{}}},{name:"lineup_alert_threshold",selector:{number:{min:0,max:50,step:0.5,mode:"box",unit_of_measurement:"pts"}}},{name:"story_count",selector:{number:{min:1,max:20,mode:"box"}}},{name:"news_height",selector:{number:{min:200,max:1200,step:25,mode:"box",unit_of_measurement:"px"}}},
-    {name:"title",selector:{text:{}}},{name:"hide_title",selector:{boolean:{}}},{name:"show_header_logo",selector:{boolean:{}}},
-    {name:"label_roster",selector:{text:{}}},{name:"label_standings",selector:{text:{}}},{name:"label_scoreboard",selector:{text:{}}},{name:"label_matchup",selector:{text:{}}},{name:"label_news",selector:{text:{}}},{name:"label_activity",selector:{text:{}}},{name:"label_starters",selector:{text:{}}},{name:"label_bench_ir",selector:{text:{}}},
-    {name:"appearance",selector:{select:{options:[{value:"theme",label:"Home Assistant theme"},{value:"glass",label:"Glass"},{value:"solid",label:"Solid"},{value:"transparent",label:"Transparent"}]}}},{name:"accent_color",selector:{color_rgb:{}}},{name:"glass_strength",selector:{select:{options:[{value:"subtle",label:"Subtle"},{value:"strong",label:"Strong"}]}}},{name:"border_style",selector:{select:{options:[{value:"theme",label:"Theme"},{value:"subtle",label:"Subtle"},{value:"none",label:"None"}]}}}
-  ];
-  const names={entity:"Entity",display_mode:"Display",include_news:"Include news",story_count:"News stories",news_height:"News feed height",title:"Title",hide_title:"Hide title",show_header_logo:"Show ESPN Fantasy logo",label_roster:"Roster label",label_standings:"Standings label",label_scoreboard:"Scoreboard label",label_matchup:"Matchup label",label_news:"News label",label_activity:"Activity label",include_activity:"Include league activity",label_starters:"Starters label",label_bench_ir:"Bench / IR label",appearance:"Appearance",accent_color:"Accent color",glass_strength:"Glass strength",border_style:"Border"},labels={roster:"Roster",standings:"Standings",scoreboard:"Scoreboard",matchup:"My Matchup",news:"News",activity:"Activity"};
-  this.shadowRoot.innerHTML='<style>:host{display:block}.order-title{font-weight:600;margin:18px 0 6px}.hint{font-size:12px;color:var(--secondary-text-color);margin-bottom:8px}.order-row{display:grid;grid-template-columns:minmax(0,1fr) 40px 40px;gap:6px;align-items:center;min-height:40px;border-bottom:1px solid var(--divider-color)}button{border:0;background:var(--secondary-background-color);color:var(--primary-text-color);border-radius:8px;min-height:32px;cursor:pointer}button:disabled{opacity:.35}</style><ha-form></ha-form><div class="order-title">All-in-one section order</div><div class="hint">Use the arrows to arrange the tabs.</div>'+this.order().map((v,i,a)=>'<div class="order-row"><span>'+esc(labels[v])+'</span><button data-i="'+i+'" data-d="-1" '+(i===0?'disabled':'')+'>↑</button><button data-i="'+i+'" data-d="1" '+(i===a.length-1?'disabled':'')+'>↓</button></div>').join('');
-  const form=this.shadowRoot.querySelector("ha-form");form.hass=this.hass;form.data={story_count:5,news_height:500,lineup_alert_threshold:0,show_header_logo:true,...this._config};form.schema=schema;form.computeLabel=x=>names[x.name]||x.name;form.addEventListener("value-changed",e=>this.fire({...this._config,...e.detail.value}));this.shadowRoot.querySelectorAll("button[data-i]").forEach(x=>x.addEventListener("click",()=>this.move(Number(x.dataset.i),Number(x.dataset.d))));}
+  defaults(){return ["roster","standings","scoreboard","matchup","news","activity","schedule","bracket"];}
+  enabled(){
+    const d=this.defaults(),hasNew=d.some(v=>Object.prototype.hasOwnProperty.call(this._config,"section_"+v));
+    if(hasNew)return Object.fromEntries(d.map(v=>[v,this._config["section_"+v]!==false]));
+    const mode=this._config.display_mode||"all";
+    if(mode!=="all")return Object.fromEntries(d.map(v=>[v,v===mode]));
+    return {roster:true,standings:true,scoreboard:true,matchup:true,news:this._config.include_news!==false,activity:this._config.include_activity===true,schedule:false,bracket:false};
+  }
+  order(){const d=this.defaults(),configured=d.map((_,i)=>this._config["section_"+(i+1)]).filter(v=>d.includes(v));return [...new Set([...configured,...d])];}
+  visibleOrder(){const enabled=this.enabled();return this.order().filter(v=>enabled[v]);}
+  scrollPositions(){const positions=[],seen=new Set();let node=this;while(node){let parent=node.parentNode;if(!parent&&node.getRootNode)parent=node.getRootNode().host;node=parent;if(node instanceof Element&&node.scrollHeight>node.clientHeight+1&&!seen.has(node)){positions.push([node,node.scrollLeft,node.scrollTop]);seen.add(node);}}const doc=document.scrollingElement;if(doc&&!seen.has(doc))positions.push([doc,doc.scrollLeft,doc.scrollTop]);return positions;}
+  fire(config){const positions=this.scrollPositions();this._config=config;this.dispatchEvent(new CustomEvent("config-changed",{detail:{config},bubbles:true,composed:true}));this.render();const restore=()=>positions.forEach(([el,left,top])=>{el.scrollLeft=left;el.scrollTop=top;});restore();requestAnimationFrame(()=>{restore();requestAnimationFrame(restore);});}
+  toggle(section,checked){const enabled=this.enabled();enabled[section]=checked;if(!Object.values(enabled).some(Boolean))return;const patch={};for(const key of this.defaults())patch["section_"+key]=enabled[key];this.fire({...this._config,...patch});}
+  move(i,direction){const visible=this.visibleOrder(),j=i+direction;if(j<0||j>=visible.length)return;[visible[i],visible[j]]=[visible[j],visible[i]];const enabled=this.enabled(),hidden=this.order().filter(v=>!enabled[v]),combined=[...visible,...hidden],patch={};combined.forEach((v,n)=>patch["section_"+(n+1)]=v);this.fire({...this._config,...patch});}
+  bindForm(name,schema,labels,data={}){
+    const form=this.shadowRoot.querySelector('ha-form[data-form="'+name+'"]');if(!form)return;
+    form.hass=this.hass;form.data={...data,...this._config};form.schema=schema;form.computeLabel=x=>labels[x.name]||x.name;
+    form.addEventListener("value-changed",e=>this.fire({...this._config,...e.detail.value}));
+  }
+  render(){
+    if(!this.hass)return;
+    const enabled=this.enabled(),visible=this.visibleOrder();
+    const labels={roster:"Roster",standings:"Standings",scoreboard:"Scoreboard",matchup:"My Matchup",news:"News",activity:"Activity",schedule:"Schedule",bracket:"Playoff Bracket"};
+    const checkboxRows=this.defaults().map(v=>'<label class="section-check"><input type="checkbox" data-section="'+v+'" '+(enabled[v]?"checked":"")+'><span>'+esc(labels[v])+'</span></label>').join("");
+    const orderRows=visible.map((v,i,a)=>'<div class="order-row"><span>'+esc(labels[v])+'</span><button type="button" data-i="'+i+'" data-d="-1" '+(i===0?"disabled":"")+'>↑</button><button type="button" data-i="'+i+'" data-d="1" '+(i===a.length-1?"disabled":"")+'>↓</button></div>').join("");
+    const groups=[];
+    groups.push('<section class="editor-group"><div class="group-title">Card</div><ha-form data-form="card"></ha-form></section>');
+    if(enabled.roster)groups.push('<section class="editor-group"><div class="group-title">Roster</div><ha-form data-form="roster"></ha-form></section>');
+    if(enabled.standings)groups.push('<section class="editor-group"><div class="group-title">Standings</div><ha-form data-form="standings"></ha-form></section>');
+    if(enabled.scoreboard)groups.push('<section class="editor-group"><div class="group-title">Scoreboard</div><ha-form data-form="scoreboard"></ha-form></section>');
+    if(enabled.matchup)groups.push('<section class="editor-group"><div class="group-title">Matchup</div><ha-form data-form="matchup"></ha-form></section>');
+    if(enabled.roster||enabled.matchup)groups.push('<section class="editor-group"><div class="group-title">Roster & Matchup</div><ha-form data-form="lineup"></ha-form></section>');
+    if(enabled.news)groups.push('<section class="editor-group"><div class="group-title">News</div><ha-form data-form="news"></ha-form></section>');
+    if(enabled.activity)groups.push('<section class="editor-group"><div class="group-title">Activity</div><ha-form data-form="activity"></ha-form></section>');
+    if(enabled.news||enabled.activity)groups.push('<section class="editor-group"><div class="group-title">News & Activity feed</div><div class="hint">These controls are shared by the enabled feed sections.</div><ha-form data-form="feeds"></ha-form></section>');
+    if(enabled.schedule)groups.push('<section class="editor-group"><div class="group-title">Schedule</div><ha-form data-form="schedule"></ha-form></section>');
+    if(enabled.bracket)groups.push('<section class="editor-group"><div class="group-title">Playoff Bracket</div><ha-form data-form="bracket"></ha-form></section>');
+    groups.push('<section class="editor-group"><div class="group-title">Appearance</div><ha-form data-form="appearance"></ha-form></section>');
+    this.shadowRoot.innerHTML='<style>:host{display:block}.section-box{margin-bottom:18px}.group-title,.order-title{font-weight:700;margin:18px 0 7px}.group-title{font-size:14px}.hint{font-size:12px;color:var(--secondary-text-color);margin-bottom:8px}.checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:10px}.section-check{display:flex;align-items:center;gap:8px;min-height:38px;padding:0 9px;border:1px solid var(--divider-color);border-radius:10px}.section-check input{width:18px;height:18px}.order-row{display:grid;grid-template-columns:minmax(0,1fr) 40px 40px;gap:6px;align-items:center;min-height:40px;border-bottom:1px solid var(--divider-color)}button{border:0;background:var(--secondary-background-color);color:var(--primary-text-color);border-radius:8px;min-height:32px;cursor:pointer}button:disabled{opacity:.35}.editor-group{margin-top:8px;padding-top:2px;border-top:1px solid var(--divider-color)}@media(max-width:430px){.checks{grid-template-columns:1fr}}</style><div class="section-box"><div class="order-title">Sections & Order</div><div class="hint">Choose the sections to include. Only enabled sections appear in the order list.</div><div class="checks">'+checkboxRows+'</div>'+orderRows+'</div>'+groups.join("");
+    this.shadowRoot.querySelectorAll("input[data-section]").forEach(x=>x.addEventListener("change",()=>this.toggle(x.dataset.section,x.checked)));
+    this.shadowRoot.querySelectorAll("button[data-i]").forEach(x=>x.addEventListener("click",()=>this.move(Number(x.dataset.i),Number(x.dataset.d))));
+    this.bindForm("card",[
+      {name:"entity",selector:{entity:{domain:"sensor"}}},{name:"title",selector:{text:{}}},{name:"hide_title",selector:{boolean:{}}},{name:"show_header_logo",selector:{boolean:{}}}
+    ],{entity:"Entity",title:"Title",hide_title:"Hide title",show_header_logo:"Show ESPN Fantasy logo"},{show_header_logo:true});
+    if(enabled.roster)this.bindForm("roster",[
+      {name:"label_roster",selector:{text:{}}},{name:"lineup_alert_threshold",selector:{number:{min:0,max:50,step:0.5,mode:"box",unit_of_measurement:"pts"}}}
+    ],{label_roster:"Shortcut title",lineup_alert_threshold:"Lineup alert threshold"},{lineup_alert_threshold:0});
+    if(enabled.standings)this.bindForm("standings",[{name:"label_standings",selector:{text:{}}}],{label_standings:"Shortcut title"});
+    if(enabled.scoreboard)this.bindForm("scoreboard",[{name:"label_scoreboard",selector:{text:{}}}],{label_scoreboard:"Shortcut title"});
+    if(enabled.matchup)this.bindForm("matchup",[{name:"label_matchup",selector:{text:{}}}],{label_matchup:"Shortcut title"});
+    if(enabled.roster||enabled.matchup)this.bindForm("lineup",[{name:"label_starters",selector:{text:{}}},{name:"label_bench_ir",selector:{text:{}}}],{label_starters:"Starters title",label_bench_ir:"Bench / IR title"});
+    if(enabled.news)this.bindForm("news",[{name:"label_news",selector:{text:{}}}],{label_news:"Shortcut title"});
+    if(enabled.activity)this.bindForm("activity",[{name:"label_activity",selector:{text:{}}}],{label_activity:"Shortcut title"});
+    if(enabled.news||enabled.activity)this.bindForm("feeds",[
+      {name:"story_count",selector:{number:{min:1,max:20,mode:"box"}}},{name:"news_height",selector:{number:{min:200,max:1200,step:25,mode:"box",unit_of_measurement:"px"}}}
+    ],{story_count:"Items to show",news_height:"Feed height"},{story_count:5,news_height:500});
+    if(enabled.schedule)this.bindForm("schedule",[{name:"label_schedule",selector:{text:{}}}],{label_schedule:"Shortcut title"});
+    if(enabled.bracket)this.bindForm("bracket",[{name:"label_bracket",selector:{text:{}}}],{label_bracket:"Shortcut title"});
+    this.bindForm("appearance",[
+      {name:"appearance",selector:{select:{options:[{value:"theme",label:"Home Assistant theme"},{value:"glass",label:"Glass"},{value:"solid",label:"Solid"},{value:"transparent",label:"Transparent"}]}}},
+      {name:"accent_color",selector:{color_rgb:{}}},{name:"glass_strength",selector:{select:{options:[{value:"subtle",label:"Subtle"},{value:"strong",label:"Strong"}]}}},
+      {name:"border_style",selector:{select:{options:[{value:"theme",label:"Theme"},{value:"subtle",label:"Subtle"},{value:"none",label:"None"}]}}}
+    ],{appearance:"Appearance",accent_color:"Accent color",glass_strength:"Glass strength",border_style:"Border"});
+  }
 }
 if(!customElements.get("espn-fantasy-league-editor"))customElements.define("espn-fantasy-league-editor",ESPNFantasyLeagueEditor);
 
