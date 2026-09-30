@@ -1,7 +1,14 @@
-
+> **v0.1.32:** Restores complete weekly history/injury normalization, expands League Activity with rich player/team identity and transaction popups, and adds automation-friendly Activity, Lineup Recommendations, and Injured Players sensors.\n\n
 > **v0.1.31:** Adds normalized league transaction activity to Home Assistant, optional Activity in the All-in-One card and ticker, reliable per-week current-season history fetching, and shared roster injury-status enrichment.
 
 # ESPN Fantasy Football for Home Assistant
+
+> [!CAUTION]
+> **Personal-use / early-development project.** This integration is currently built and tested primarily for the maintainer's own Home Assistant and ESPN Fantasy setup. Other leagues, scoring systems, roster formats, ESPN response changes, and Home Assistant environments may behave differently. If you install or use it, you do so **at your own risk**. Keep backups and review changes before relying on it for dashboards or automations.
+
+> [!NOTE]
+> **AI-assisted development:** This project is maintained by the repository owner with substantial coding, debugging, refactoring, documentation, and test assistance from **ChatGPT by OpenAI**. The maintainer directs the project, tests it against the real Home Assistant/ESPN environment, and decides what is merged and released. AI-generated or AI-assisted code should be reviewed and tested like any other contribution.
+
 
 Bring your ESPN Fantasy Football league into Home Assistant with native entities, automation-friendly data, and a coordinated dashboard card suite.
 
@@ -58,9 +65,9 @@ Treat these cookies like credentials. Do not commit them to GitHub, include them
 
 ## Home Assistant data
 
-The integration creates a device for the configured fantasy league/team and exposes sensors for league information, your team, record, points for/against, current week, roster, matchup, and each rostered player. Each player also receives a **Game Active** binary sensor.
+The integration creates a device for the configured fantasy league/team and exposes sensors for league information, **League Activity**, **Lineup Recommendations**, **Injured Players**, your team, record, points for/against, current week, roster, matchup, and each rostered player. Each player also receives a **Game Active** binary sensor.
 
-Player entities expose fantasy-relevant attributes including position, NFL team, lineup slot, injury status, ownership, actual/projected points, game status, opponent, detailed game statistics, weekly/season outlooks, and cached player news. This makes the same data used by the cards available for Home Assistant templates and automations.
+Player entities expose fantasy-relevant attributes including position, NFL team, lineup slot, injury status, ownership, actual/projected points, game status, opponent, detailed game statistics, weekly history/season summary, lineup recommendations, weekly/season outlooks, and cached player news. This makes the same normalized data used by the cards available for Home Assistant templates and automations.\n\nFor a complete map of every provided sensor, binary sensor, and the important attributes tucked inside them, see **[Home Assistant entities and attributes](docs/ENTITIES.md)**.
 
 ## Dashboard cards
 
@@ -68,10 +75,10 @@ Player entities expose fantasy-relevant attributes including position, NFL team,
 A focused player card with headshot, injury indicator, game status, fantasy score/projection, configurable detailed statistics, fantasy outlook, and latest player news.
 
 ### ESPN Fantasy League
-The main dashboard card. It can run as a standalone **Roster**, **Standings**, **Scoreboard**, or **Matchup** view, or as an **All-in-one** card that switches between those views and optional **News**. Roster and Matchup each include their own **Starters / Bench & IR** switch. The Roster view flags a starter with a red down arrow and an eligible higher-projected bench option with a green up arrow; the minimum projection difference is configurable. All-in-one navigation sections can be reordered with compact arrow controls. News has a configurable story count and scrollable height, news stories open the shared player-details popup, navigation labels and the card title are customizable, and selected views are remembered. The header can optionally show the bundled ESPN Fantasy mark.
+The main dashboard card. It can run as a standalone **Roster**, **Standings**, **Scoreboard**, or **Matchup** view, or as an **All-in-one** card that switches between those views and optional **News** and **Activity**. Roster and Matchup each include their own **Starters / Bench & IR** switch. The Roster view flags a starter with a red down arrow and an eligible higher-projected bench option with a green up arrow; the minimum projection difference is configurable. All-in-one navigation sections can be reordered with compact arrow controls. News has a configurable story count and scrollable height, news stories open the shared player-details popup, navigation labels and the card title are customizable, and selected views are remembered. The header can optionally show the bundled ESPN Fantasy mark.
 
 ### ESPN Fantasy Ticker
-One ticker for **Players**, **Scoreboard**, or **Players + Scoreboard**. The identity panel stays pinned on the left while content scrolls and switches between your team and league identity in combined mode. Choose **Step** or continuous **Smooth** scrolling, flip Players/Scoreboard order, and customize logo + name, logo only, name only, or hidden identity modes. When ESPN does not provide a league logo, the ticker uses bundled ESPN Fantasy branding. The pinned identity background is opaque with a soft fade edge and can be color-customized in the card editor. Player tiles in the ticker open the same shared player-details popup used elsewhere.
+One ticker for **Players**, **Scoreboard**, or **Players + Scoreboard**. The identity panel stays pinned on the left while content scrolls and switches between your team and league identity in combined mode. Choose **Step** or continuous **Smooth** scrolling, flip Players/Scoreboard order, and customize logo + name, logo only, name only, or hidden identity modes. When ESPN does not provide a league logo, the ticker uses bundled ESPN Fantasy branding. The pinned identity background is opaque with a soft fade edge and can be color-customized in the card editor. Player tiles in the ticker open the same shared player-details popup used elsewhere. Activity can also be included in the ticker; transaction tiles are wider for readability and open the shared transaction-details popup.
 
 ### ESPN Fantasy News
 A newest-first feed of fantasy news for players on your roster. Each story includes the player's name and portrait, with a configurable story count, and selecting a story opens that player's shared details popup.
