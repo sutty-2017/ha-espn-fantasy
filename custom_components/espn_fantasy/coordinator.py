@@ -82,6 +82,14 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                         data["current_matchup"] = live["schedule"]
                     team_id = int(self.entry.data[CONF_TEAM_ID])
                     data["normalized"] = build_normalized_model(data, team_id)
+                    matchup = (data["normalized"] or {}).get("matchup") or {}
+                    my_team = matchup.get("my_team") or {}
+                    for collection in ("roster", "starters"):
+                        for player in my_team.get(collection) or []:
+                            try:
+                                player["news"] = self._player_news.get(int(player.get("id")), [])
+                            except (TypeError, ValueError):
+                                player["news"] = []
                     self.update_interval = timedelta(seconds=60)
                     return data
 
