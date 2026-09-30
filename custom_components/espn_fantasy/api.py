@@ -166,8 +166,8 @@ class ESPNClient:
         season_schedule = list(schedule.get("schedule", []))
         # ESPN can expose consolation/placement paths only in postseason
         # segments. Merge those schedules without replacing richer segment-0 rows.
-        seen_schedule = {
-            str(game.get("id"))
+        schedule_by_id = {
+            str(game.get("id")): game
             for game in season_schedule
             if isinstance(game, dict) and game.get("id") is not None
         }
@@ -188,11 +188,20 @@ class ESPNClient:
                 if not isinstance(game, dict):
                     continue
                 game_id = str(game.get("id")) if game.get("id") is not None else None
-                if game_id and game_id in seen_schedule:
+                if game_id and game_id in schedule_by_id:
+                    existing = schedule_by_id[game_id]
+                    # Segment-specific rows can carry postseason tier/advancement
+                    # metadata omitted by the whole-season representation.
+                    for key, value in game.items():
+                        if value is not None and (
+                            key == "playoffTierType"
+                            or existing.get(key) in (None, "", [], {})
+                        ):
+                            existing[key] = value
                     continue
                 season_schedule.append(game)
                 if game_id:
-                    seen_schedule.add(game_id)
+                    schedule_by_id[game_id] = game
         meta["season_schedule"] = season_schedule
 
         try:
