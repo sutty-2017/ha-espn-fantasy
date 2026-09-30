@@ -397,8 +397,8 @@ class ESPNFantasyLeagueEditor extends HTMLElement {
     this.shadowRoot.querySelectorAll("input[data-section]").forEach(x=>x.addEventListener("change",()=>this.toggle(x.dataset.section,x.checked)));
     this.shadowRoot.querySelectorAll("button[data-i]").forEach(x=>x.addEventListener("click",()=>this.move(Number(x.dataset.i),Number(x.dataset.d))));
     this.bindForm("card",[
-      {name:"entity",selector:{entity:{domain:"sensor"}}},{name:"title",selector:{text:{}}},{name:"hide_title",selector:{boolean:{}}},{name:"show_header_logo",selector:{boolean:{}}}
-    ],{entity:"Entity",title:"Title",hide_title:"Hide title",show_header_logo:"Show ESPN Fantasy logo"},{show_header_logo:true});
+      {name:"entity",selector:{entity:{domain:"sensor"}}},{name:"title",selector:{text:{}}},{name:"hide_title",selector:{boolean:{}}},{name:"show_header_logo",selector:{boolean:{}}},{name:"show_team_logo_background",selector:{boolean:{}}}
+    ],{entity:"Entity",title:"Title",hide_title:"Hide title",show_header_logo:"Show ESPN Fantasy logo",show_team_logo_background:"Show team logo background"},{show_header_logo:true,show_team_logo_background:true});
     if(enabled.roster)this.bindForm("roster",[
       {name:"label_roster",selector:{text:{}}},{name:"lineup_alert_threshold",selector:{number:{min:0,max:50,step:0.5,mode:"box",unit_of_measurement:"pts"}}}
     ],{label_roster:"Shortcut title",lineup_alert_threshold:"Lineup alert threshold"},{lineup_alert_threshold:0});
@@ -670,7 +670,7 @@ class ESPNFantasyUnifiedTickerCard extends ESPNFantasyLeagueTickerCard { static 
 
 class ESPNFantasyNewsCard extends ESPNBaseCard {
   static getStubConfig(){return {type:"custom:espn-fantasy-news-card",story_count:5};}
-  static getConfigForm(){return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"story_count",selector:{number:{min:1,max:20,mode:"box"}}},{name:"appearance",selector:{select:{options:[{value:"theme",label:"Home Assistant theme"},{value:"glass",label:"Glass"},{value:"solid",label:"Solid"},{value:"transparent",label:"Transparent"}]}}},{name:"accent_color",selector:{color_rgb:{}}},{name:"glass_strength",selector:{select:{options:[{value:"subtle",label:"Subtle"},{value:"strong",label:"Strong"}]}}},{name:"border_style",selector:{select:{options:[{value:"theme",label:"Theme"},{value:"subtle",label:"Subtle"},{value:"none",label:"None"}]}}}]};}
+  static getConfigForm(){return {schema:[{name:"entity",required:true,selector:{entity:{domain:"sensor"}}},{name:"story_count",selector:{number:{min:1,max:20,mode:"box"}}},{name:"show_team_logo_background",selector:{boolean:{}}},{name:"appearance",selector:{select:{options:[{value:"theme",label:"Home Assistant theme"},{value:"glass",label:"Glass"},{value:"solid",label:"Solid"},{value:"transparent",label:"Transparent"}]}}},{name:"accent_color",selector:{color_rgb:{}}},{name:"glass_strength",selector:{select:{options:[{value:"subtle",label:"Subtle"},{value:"strong",label:"Strong"}]}}},{name:"border_style",selector:{select:{options:[{value:"theme",label:"Theme"},{value:"subtle",label:"Subtle"},{value:"none",label:"None"}]}}}]};}
   getGridOptions(){return {rows:"auto",columns:12,min_rows:3,min_columns:4};}
   stories(){
     const s=findRoster(this.hass,this._config.entity),players=s?.attributes?.players||[];
