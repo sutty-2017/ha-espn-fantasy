@@ -2,70 +2,96 @@
 
 ## Release state
 
-- Published stable release: **v0.1.36**
-- Published tag: **v0.1.36**
-- Exact published release commit: **cc8b6888fd20b135fc19f95552fea25b747c83f6**
-- Release PR: **#12** (squash-merged)
-- Release branch: **dev/v0.1.36-bugfixes**
-- The published tag was verified **identical** to the exact merged release commit (ahead 0 / behind 0).
+- Published stable release: **v0.1.37**
+- Published tag: **v0.1.37**
+- Exact merged release commit: **452c2531d6f3e1e2513b28eed81eb27a16c26d40**
+- Release PR: **#13** (squash-merged)
+- Development branch: **dev/resilience-compatibility**
 - Pre-merge release gates passed: **Frontend validation, Hassfest, HACS validation**.
-- Tagged manifest and frontend card version are both **0.1.36**.
-- This handoff update is post-release housekeeping on main; do not move the v0.1.36 tag to include it.
+- Manifest and frontend card version are both **0.1.37**.
+- The maintainer confirmed v0.1.37 was posted after the merge.
+- This handoff update is post-release housekeeping on main; do not move the v0.1.37 tag to include it.
 
-## v0.1.36 published scope
+## v0.1.37 published scope
 
-### Traditional waiver budget fix
-- Real v0.1.35 diagnostics showed ESPN can expose `acquisitionBudget: 100` even when the league is `WAIVERS_TRADITIONAL` and `isUsingAcquisitionBudget: false`.
-- Per-team `budget_spent` / `budget_remaining` are now populated only when the league is positively identified as using FAB/FAAB/acquisition budget.
-- Traditional waiver-order leagues therefore no longer display the bogus **100 left** value.
-- Regression coverage reproduces the diagnostic combination explicitly.
+### League compatibility / resilience
+- Added a normalized league capability profile derived from ESPN settings.
+- Unknown ESPN lineup-slot IDs are preserved with stable fallback labels such as `Slot 27` instead of being silently lost or mislabelled.
+- Critical ESPN HTTP-200 responses now receive structural validation so sparse/malformed responses fail with clearer context.
+- Home Assistant diagnostics now include a compatibility summary covering league capabilities and optional-data availability.
+- Added a sanitized fixture format and first traditional-waiver/unknown-slot regression fixture.
+- CI now executes compatibility fixtures alongside the existing smoke-test suite.
+- README includes guidance for testing additional league formats without sharing ESPN authentication cookies or member data.
 
-### Pre-playoff Consolation Ladder projection
-- v0.1.35 fetched postseason segment data defensively, but before ESPN publishes actual postseason matchup rows the standings fallback projected only the Championship Bracket.
-- When ESPN settings say the consolation ladder is enabled, the standings fallback now adds a **Consolation Ladder** section directly below the projected Championship Bracket.
-- Actual ESPN postseason tier data continues to take precedence once available.
-- Regression coverage verifies an enabled consolation ladder is exposed by the pre-playoff projection.
+### Complete postseason presentation
+- Postseason sections are presented in ESPN-style order:
+  1. Championship Bracket
+  2. Winners Consolation Ladder
+  3. Consolation Ladder
+- Winners Consolation remains visible with projected **TBD** placeholders before ESPN supplies that tier's actual matchup rows.
+- Existing ESPN-provided postseason data continues to take precedence when available.
 
-### All-in-One Playoffs navigation fix
-- The bracket scroll-state variable was initialized as a number while Playoffs later treated it as a per-section object.
-- Leaving Playoffs could therefore throw before another All-in-One section rendered, making the card appear stuck until a browser refresh.
-- Bracket scroll state is now initialized consistently as an object so normal section navigation continues after viewing Playoffs.
+### Lineup-advice badges
+- Projection-based lineup recommendations are presented as portrait-anchored badges in the actual **Roster** and **My Matchup** sections.
+- Lower-projected starter: orange **−** badge.
+- Qualifying higher-projected bench player: green **+** badge.
+- Roster and Matchup have independent lineup-advice toggles and continue to respect the configured projection-difference threshold.
+- Drill-down popup rosters/matchups intentionally do not add these badges merely because they reuse the same visual components.
 
-### NFL-team watermark visibility
-- Player NFL-team background watermark opacity increased from **0.075** to **0.12**.
-- The watermark remains deliberately subtle and behind player content.
-- Existing watermark toggles/default behavior are unchanged.
+### Standings and Scoreboard drill-downs
+- Standings teams can open a roster-style popup for that fantasy team.
+- Scoreboard games can open a matchup-style popup for those two teams.
+- Matchup drill-down supports Starters and Bench / IR views.
+- Team headers can drill into the selected team's roster.
+- Player rows can drill into existing player details.
+- Navigation uses **one modal with an internal Back stack**, avoiding stacked dialogs.
+- Standings roster popups and Scoreboard matchup popups have independent editor toggles, defaulting on.
+- League sensor exposes one normalized `team_rosters` collection for all fantasy teams; Scoreboard rows continue to reference teams by ID rather than duplicating full rosters into every game.
 
 ## Validation completed
 
-1. Frontend validation passed on the final release branch, including JavaScript/Python syntax, version matching and all smoke tests.
-2. Added regression tests for the exact traditional-waiver dormant-budget case and enabled pre-playoff Consolation Ladder projection; both passed.
-3. Hassfest passed.
-4. HACS validation passed.
-5. Manifest/frontend versions are both **0.1.36**.
-6. PR #12 was squash-merged to main at **cc8b6888fd20b135fc19f95552fea25b747c83f6**.
-7. Published tag **v0.1.36** was verified identical to that exact release commit.
+1. Frontend validation passed on the final release head.
+2. JavaScript syntax passed.
+3. Python syntax passed.
+4. Manifest/frontend/cache version parity passed at **0.1.37**.
+5. League scoreboard normalization passed.
+6. Expanded schedule/postseason normalization passed.
+7. History and lineup-advice regression passed.
+8. Canonical roster enrichment passed.
+9. League activity normalization passed.
+10. Compatibility fixture tests passed.
+11. Adaptive live-polling checks passed.
+12. Automation-facing sensor checks passed.
+13. Required card registration checks passed.
+14. Hassfest passed.
+15. HACS validation passed.
+16. PR #13 was squash-merged to main at **452c2531d6f3e1e2513b28eed81eb27a16c26d40**.
+17. Maintainer subsequently posted **v0.1.37**.
 
 ## Current phase: real Home Assistant testing
 
-Focus testing on:
-- Waivers: confirm traditional waiver order shows ranks/teams with no budget or **100 left** text.
-- Playoffs: confirm Championship Bracket and projected Consolation Ladder both appear before ESPN publishes real postseason rows.
-- All-in-One navigation: enter Playoffs, move to several other sections, return to Playoffs, and verify no refresh is required.
-- Watermark: judge the new 0.12 opacity in player popup and ticker Players on actual dashboard themes/displays.
-- Activity wording for real lineup changes: Started, Benched and slot-to-slot roster moves.
-- First real trade payload available for validating grouped trade rendering.
-- Biography population/collapse behavior.
-- Existing Schedule and adaptive 60-second live-polling behavior for regressions.
+Treat v0.1.37 as the new stable baseline. Collect additional findings for the next concentrated release rather than modifying this published release.
+
+Useful real-world checks:
+- Confirm Championship → Winners Consolation → Consolation ordering and TBD behavior before ESPN publishes real postseason matchups.
+- Validate actual postseason tier replacement once ESPN begins supplying matchup rows.
+- Confirm orange − / green + badges identify the intended starter/bench pair in Roster and My Matchup.
+- Exercise independent Roster/Matchup advice toggles and threshold behavior.
+- Exercise Standings → roster → player and Scoreboard → matchup → team roster → player navigation, including Back behavior.
+- Test drill-downs with multiple league teams and Bench / IR.
+- Continue observing real lineup-change Activity wording and the first available real trade payload.
+- Continue biography, Schedule and adaptive 60-second live-polling regression testing.
+- Gather diagnostics from additional league formats when available: FAAB, Superflex, IDP, divisions, keeper, different playoff counts, etc.
 
 ## Known caveats
 
 - ESPN Fantasy endpoints, postseason segments/tier names, transaction payloads and athlete profile endpoints are unofficial/undocumented; normalization remains defensive.
-- The Consolation Ladder is a standings-based projection until ESPN supplies actual postseason tier matchups.
+- Projected postseason paths are placeholders until ESPN supplies actual matchup data.
 - Biography fields vary by player and ESPN may omit fields.
 - Real-world trade payload validation remains desirable because trades are comparatively infrequent.
-- The 60-second live path from v0.1.34 still requires continued real-game observation.
+- The 60-second live path still benefits from continued real-game observation.
 - Existing Player and Game Active entity lifecycle is based on roster entities created at setup/reload; dynamic roster entity lifecycle remains a future audit item.
+- Compatibility fixtures are a foundation, not proof of every ESPN league format; continue adding sanitized real-world shapes as testers provide them.
 
 ## Version direction
 
@@ -74,4 +100,4 @@ Remain on **0.1.x** for stabilization/refinement through the rest of the 2026 se
 ## Workflow
 
 Use the established release flow:
-**release candidate → CI → PR/merge → maintainer publishes → verify exact tag/main + post-release checks → real-world HA testing → collect feedback → next concentrated cycle**.
+**stable release → real-world HA testing → collect feedback → design/discuss → concentrated implementation/validation → release candidate → CI → PR/merge → maintainer publishes → verify release checkpoint → post-release handoff update**.
