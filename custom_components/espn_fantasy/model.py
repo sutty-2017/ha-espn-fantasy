@@ -784,17 +784,32 @@ def _playoff_bracket_model(
     settings: dict[str, Any],
     current_period: int | None,
 ) -> dict[str, Any]:
-    """Build playoff rounds from ESPN schedule, with a standings fallback."""
+    """Build every ESPN postseason tier, with a winners-bracket projection fallback."""
+    tier_labels = {
+        "WINNERS_BRACKET": "Championship Bracket",
+        "LOSERS_BRACKET": "Consolation Bracket",
+        "CONSOLATION_LADDER": "Consolation Ladder",
+    }
+    tier_order = {
+        "WINNERS_BRACKET": 0,
+        "LOSERS_BRACKET": 1,
+        "CONSOLATION_LADDER": 2,
+    }
     playoff_games = [
         game for game in schedule
-        if str(game.get("playoff_tier") or "").upper() == "WINNERS_BRACKET"
+        if str(game.get("playoff_tier") or "").upper() not in {"", "NONE"}
     ]
-    by_period: dict[int, list[dict[str, Any]]] = {}
+    grouped: dict[str, dict[int, list[dict[str, Any]]]] = {}
     for game in playoff_games:
+        tier = str(game.get("playoff_tier") or "").upper()
         period = game.get("matchup_period")
         if isinstance(period, int):
-            by_period.setdefault(period, []).append(game)
-    if by_period:
+            grouped.setdefault(tier, {}).setdefault(period, []).append(game)
+
+    sections: list[dict[str, Any]] = []
+    for tier, by_period in sorted(
+        grouped.items(), key=lambda item: (tier_order.get(item[0], 99), item[0])
+    ):
         periods = sorted(by_period)
         labels = _round_labels(len(periods))
         rounds = [
@@ -806,20 +821,36 @@ def _playoff_bracket_model(
             }
             for index, period in enumerate(periods)
         ]
+        sections.append({
+            "tier": tier,
+            "label": tier_labels.get(tier, tier.replace("_", " ").title()),
+            "rounds": rounds,
+        })
+
+    if sections:
+        winners = next(
+            (section for section in sections if section["tier"] == "WINNERS_BRACKET"),
+            sections[0],
+        )
         has_started = any(
-            game.get("status") in {"current", "final"}
-            for game in playoff_games
+            game.get("status") in {"current", "final"} for game in playoff_games
         )
         return {
             "available": True,
             "projected": not has_started,
             "source": "espn_schedule",
             "playoff_team_count": _int((settings.get("scheduleSettings") or {}).get("playoffTeamCount")),
-            "rounds": rounds,
+            "rounds": winners["rounds"],
+            "sections": sections,
         }
 
     projected = _projected_playoff_bracket(standings, settings)
     if projected:
+        projected["sections"] = [{
+            "tier": "WINNERS_BRACKET",
+            "label": "Championship Bracket",
+            "rounds": projected.get("rounds") or [],
+        }]
         return projected
     return {
         "available": False,
@@ -827,8 +858,8 @@ def _playoff_bracket_model(
         "source": None,
         "playoff_team_count": _int((settings.get("scheduleSettings") or {}).get("playoffTeamCount")),
         "rounds": [],
+        "sections": [],
     }
-
 
 def _league_model(
     data: dict[str, Any],

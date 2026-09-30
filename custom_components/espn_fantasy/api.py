@@ -192,6 +192,20 @@ class ESPNClient:
 
         return meta
 
+    async def get_live_matchup(
+        self, scoring_period: int, matchup_period: int | None
+    ) -> dict[str, Any]:
+        """Fetch only the current matchup/live-scoring payload."""
+        params: list[tuple[str, Any]] = [
+            ("view", "mLiveScoring"),
+            ("view", "mMatchupScore"),
+            ("view", "mBoxscore"),
+            ("scoringPeriodId", scoring_period),
+        ]
+        if matchup_period is not None:
+            params.append(("matchupPeriodId", matchup_period))
+        return await self._get_json(params)
+
     async def get_player_history_many(
         self, player_ids: list[int], scoring_period: int
     ) -> dict[int, list[dict[str, Any]]]:

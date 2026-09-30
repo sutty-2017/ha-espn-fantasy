@@ -8,6 +8,7 @@ CONF_SEASON = "season"
 CONF_ESPN_S2 = "espn_s2"
 CONF_SWID = "swid"
 DEFAULT_SCAN_INTERVAL = 300
+LIVE_SCAN_INTERVAL = 60
 
 # ESPN moved fantasy read requests to this host. The legacy fantasy.espn.com
 # endpoint redirects to the ESPN website, which returns HTML instead of JSON.
