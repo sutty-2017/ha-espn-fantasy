@@ -151,6 +151,20 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                     if status.get("injured") is not None:
                         player["injured"] = status["injured"]
 
+            # Activity can reference free agents or recently dropped players that
+            # are not on the configured roster. Resolve those IDs separately so
+            # transaction cards can show friendly names, photos, positions, and NFL teams.
+            transaction_player_ids: list[int] = []
+            for transaction in data.get("transactions") or []:
+                for item in transaction.get("items") or []:
+                    try:
+                        transaction_player_ids.append(int(item.get("playerId")))
+                    except (TypeError, ValueError):
+                        continue
+            data["transaction_players"] = await self.client.get_player_details_many(
+                transaction_player_ids
+            ) if transaction_player_ids else {}
+
             # Keep the news cache scoped to the current roster so dropped/traded
             # players do not accumulate in Home Assistant state attributes.
             current_player_ids = set(player_ids)

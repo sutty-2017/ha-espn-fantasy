@@ -227,6 +227,35 @@ class ESPNClient:
                     )
         return result
 
+    async def get_player_details_many(
+        self, player_ids: list[int]
+    ) -> dict[int, dict[str, Any]]:
+        """Fetch rich ESPN player metadata for transaction/activity players."""
+        ids = list(dict.fromkeys(int(player_id) for player_id in player_ids if player_id))
+        if not ids:
+            return {}
+        fantasy_filter = {"players": {"filterIds": {"value": ids}}}
+        try:
+            async with self.session.get(
+                self.url,
+                params=[("view", "kona_playercard")],
+                headers={"X-Fantasy-Filter": json.dumps(fantasy_filter)},
+                cookies=self._cookies(),
+                timeout=30,
+            ) as response:
+                if response.status != 200:
+                    return {}
+                payload = await response.json()
+        except Exception:  # noqa: BLE001
+            return {}
+        result: dict[int, dict[str, Any]] = {}
+        for item in payload.get("players") or []:
+            player = item.get("player") or (item.get("playerPoolEntry") or {}).get("player") or {}
+            player_id = self._int(player.get("id") or item.get("id"))
+            if player_id is not None:
+                result[player_id] = player
+        return result
+
     async def get_player_status_many(
         self, player_ids: list[int]
     ) -> dict[int, dict[str, Any]]:

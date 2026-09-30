@@ -343,15 +343,92 @@ def _matchup(
     return None
 
 
+def _player_id_from_entry(entry: dict[str, Any]) -> int | None:
+    """Return a player ID across ESPN roster entry shapes."""
+    pool = entry.get("playerPoolEntry") or {}
+    player = pool.get("player") or {}
+    return _int(player.get("id") or entry.get("playerId") or pool.get("id"))
+
+
+def _merge_roster_entry(
+    matchup_entry: dict[str, Any],
+    canonical_entry: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Combine current-matchup placement with canonical roster player data.
+
+    ESPN returns multiple copies of a roster. The mRoster copy is enriched by
+    the coordinator with history and injury data, while the matchup copy is
+    authoritative for the current lineup slot. Preserve both instead of
+    normalizing the matchup copy in isolation.
+    """
+    if not canonical_entry:
+        return matchup_entry
+
+    merged = dict(canonical_entry)
+    merged.update({
+        key: value
+        for key, value in matchup_entry.items()
+        if key != "playerPoolEntry"
+    })
+
+    canonical_pool = canonical_entry.get("playerPoolEntry") or {}
+    matchup_pool = matchup_entry.get("playerPoolEntry") or {}
+    merged_pool = dict(canonical_pool)
+    merged_pool.update({
+        key: value
+        for key, value in matchup_pool.items()
+        if key != "player"
+    })
+
+    canonical_player = canonical_pool.get("player") or {}
+    matchup_player = matchup_pool.get("player") or {}
+    merged_player = dict(matchup_player)
+    merged_player.update(canonical_player)
+
+    # Keep all historical rows from the canonical/enriched player while also
+    # retaining any current live row that exists only in the matchup payload.
+    keyed_stats: dict[tuple[Any, Any, Any, Any], dict[str, Any]] = {}
+    for stat in [
+        *(canonical_player.get("stats") or []),
+        *(matchup_player.get("stats") or []),
+    ]:
+        key = (
+            stat.get("seasonId"),
+            stat.get("scoringPeriodId"),
+            stat.get("statSourceId"),
+            stat.get("statSplitTypeId"),
+        )
+        keyed_stats[key] = stat
+    if keyed_stats:
+        merged_player["stats"] = list(keyed_stats.values())
+
+    merged_pool["player"] = merged_player
+    merged["playerPoolEntry"] = merged_pool
+    return merged
+
+
 def _side(
     side: dict[str, Any],
     team: dict[str, Any],
     scoring_period: int | None,
     pro_teams: dict[int, dict[str, Any]],
 ) -> dict[str, Any]:
-    roster = (
+    matchup_roster = (
         (side.get("rosterForCurrentScoringPeriod") or {}).get("entries") or []
     )
+    canonical_roster = (team.get("roster") or {}).get("entries") or []
+    canonical_by_id = {
+        player_id: entry
+        for entry in canonical_roster
+        if (player_id := _player_id_from_entry(entry)) is not None
+    }
+    roster = [
+        _merge_roster_entry(entry, canonical_by_id.get(_player_id_from_entry(entry)))
+        for entry in matchup_roster
+    ]
+    # Fall back to mRoster when ESPN omits the matchup roster entirely.
+    if not roster:
+        roster = canonical_roster
     players = [_player(entry, scoring_period, pro_teams) for entry in roster]
     for player in players:
         player["season_summary"] = _season_summary(player.get("weekly_history") or [])
@@ -418,37 +495,52 @@ def _league_team(team: dict[str, Any]) -> dict[str, Any]:
 
 
 def _league_activity(
-    data: dict[str, Any], teams: dict[int, dict[str, Any]]
+    data: dict[str, Any],
+    teams: dict[int, dict[str, Any]],
+    pro_teams: dict[int, dict[str, Any]],
+    scoring_period: int | None,
 ) -> list[dict[str, Any]]:
-    """Normalize ESPN transaction records into coherent league activity events."""
+    """Normalize ESPN transactions, including team-oriented trade sides."""
     player_names: dict[int, str] = {}
+    roster_players: dict[int, dict[str, Any]] = {}
     for team in teams.values():
         for entry in (team.get("roster") or {}).get("entries") or []:
             pool = entry.get("playerPoolEntry") or {}
             player = pool.get("player") or {}
             player_id = _int(player.get("id") or entry.get("playerId") or pool.get("id"))
-            if player_id is not None and player.get("fullName"):
-                player_names[player_id] = player["fullName"]
+            if player_id is not None:
+                roster_players[player_id] = player
+                if player.get("fullName"):
+                    player_names[player_id] = player["fullName"]
 
+    transaction_players = {
+        int(key): value
+        for key, value in (data.get("transaction_players") or {}).items()
+        if str(key).isdigit()
+    }
     events: list[dict[str, Any]] = []
     for tx in data.get("transactions") or []:
         if not isinstance(tx, dict):
             continue
-        items = tx.get("items") or []
         normalized_items: list[dict[str, Any]] = []
         phrases: list[str] = []
-        for item in items:
+        side_ids: set[int] = set()
+        for item in tx.get("items") or []:
             if not isinstance(item, dict):
                 continue
             player_id = _int(item.get("playerId"))
             pool = item.get("playerPoolEntry") or {}
-            raw_player = pool.get("player") or {}
+            raw_player = pool.get("player") or transaction_players.get(player_id) or roster_players.get(player_id) or {}
             name = raw_player.get("fullName") or player_names.get(player_id) or (
                 f"Player {player_id}" if player_id is not None else "Player"
             )
             item_type = str(item.get("type") or "").upper()
             from_id = _int(item.get("fromTeamId"))
             to_id = _int(item.get("toTeamId"))
+            if from_id in teams:
+                side_ids.add(from_id)
+            if to_id in teams:
+                side_ids.add(to_id)
             from_name = _team_name(teams[from_id]) if from_id in teams else None
             to_name = _team_name(teams[to_id]) if to_id in teams else None
             if "ADD" in item_type:
@@ -460,32 +552,82 @@ def _league_activity(
             else:
                 phrase = name
             phrases.append(phrase)
+            position_id = _int(raw_player.get("defaultPositionId"))
+            pro_team_id = _int(raw_player.get("proTeamId"))
+            normalized_player = (
+                _player(
+                    {
+                        "playerId": player_id,
+                        "lineupSlotId": 20,
+                        "playerPoolEntry": {"id": player_id, "player": raw_player},
+                    },
+                    scoring_period,
+                    pro_teams,
+                )
+                if raw_player
+                else None
+            )
             normalized_items.append({
                 "type": item_type.lower() or None,
                 "player_id": player_id,
                 "player_name": name,
+                "position": POSITION_NAMES.get(position_id, position_id),
+                "nfl_team": _team_abbrev(pro_teams.get(pro_team_id) or {}),
+                "headshot": _player_image(player_id, position_id, pro_team_id, pro_teams),
+                "injury_status": normalized_player.get("injury_status") if normalized_player else None,
                 "from_team_id": from_id,
                 "from_team_name": from_name,
                 "to_team_id": to_id,
                 "to_team_name": to_name,
+                "player": normalized_player,
             })
+
         team_id = _int(tx.get("teamId"))
+        if team_id in teams:
+            side_ids.add(team_id)
         event_type = str(tx.get("type") or tx.get("transactionType") or "transaction").lower()
+        is_trade = "trade" in event_type or (
+            len(side_ids) > 1
+            and any(
+                item.get("from_team_id") in teams and item.get("to_team_id") in teams
+                for item in normalized_items
+            )
+        )
+        sides: list[dict[str, Any]] = []
+        for side_id in sorted(side_ids):
+            team = teams.get(side_id) or {}
+            sent = [
+                item for item in normalized_items
+                if item.get("from_team_id") == side_id and item.get("to_team_id") != side_id
+            ]
+            received = [
+                item for item in normalized_items
+                if item.get("to_team_id") == side_id and item.get("from_team_id") != side_id
+            ]
+            sides.append({
+                "team_id": side_id,
+                "team_name": _team_name(team),
+                "team_logo": team.get("logo"),
+                "sent": sent,
+                "received": received,
+            })
         description = " · ".join(phrases) if phrases else event_type.replace("_", " ").title()
         events.append({
             "id": tx.get("id") or tx.get("transactionId"),
             "type": event_type,
+            "is_trade": is_trade,
             "status": str(tx.get("status") or "").lower() or None,
             "timestamp": _int(tx.get("processDate") or tx.get("proposedDate") or tx.get("date")),
             "team_id": team_id,
             "team_name": _team_name(teams[team_id]) if team_id in teams else None,
+            "team_logo": teams[team_id].get("logo") if team_id in teams else None,
             "bid_amount": _float(tx.get("bidAmount")),
             "items": normalized_items,
+            "sides": sides,
             "description": description,
         })
     events.sort(key=lambda event: event.get("timestamp") or 0, reverse=True)
     return events
-
 
 def _league_model(
     data: dict[str, Any],
@@ -544,7 +686,17 @@ def _league_model(
         "team_count": len(standings),
         "matchup_count": len(scoreboard),
         "matchup_period": matchup_period,
-        "activity": _league_activity(data, teams),
+        "activity": _league_activity(
+            data,
+            teams,
+            {
+                _int(team.get("id")): team
+                for team in data.get("pro_team_schedules") or []
+                if _int(team.get("id")) is not None
+            },
+            _int(data.get("scoringPeriodId"))
+            or _int((data.get("status") or {}).get("currentScoringPeriod")),
+        )
     }
 
 def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]:
