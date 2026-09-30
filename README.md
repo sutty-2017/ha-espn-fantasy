@@ -138,7 +138,7 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current development line is **v0.1.36**, focused on real-world bug fixes and postseason presentation stability.
+The current stable release is **v0.1.36**. Compatibility/resilience work is being developed separately and is not yet a release candidate.
 
 
 ## Help test another league format
