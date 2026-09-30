@@ -1,4 +1,4 @@
-> **v0.1.39:** Adds a League-card-wide maximum height with internal scrolling, widens Scoreboard matchup drill-downs, and aligns the single Winners Consolation matchup with the second postseason round.\n\n> **v0.1.38:** Fixes a setup regression where ESPN can return HTTP 200 without a `schedule` key for optional whole-season schedule enrichment; the integration now degrades gracefully instead of failing setup.\n\n> **v0.1.37:** Adds compatibility/resilience diagnostics and fixture testing, complete postseason presentation with Winners Consolation, Roster/Matchup lineup-advice badges, and interactive Scoreboard/Standings drill-down popups with single-modal Back navigation.
+> **v0.1.40:** Fixes a v0.1.39 Playoff Bracket regression that could hide the Championship Bracket while aligning Winners Consolation to the final postseason round.\n\n> **v0.1.39:** Adds a League-card-wide maximum height with internal scrolling, widens Scoreboard matchup drill-downs, and aligns the single Winners Consolation matchup with the second postseason round.\n\n> **v0.1.38:** Fixes a setup regression where ESPN can return HTTP 200 without a `schedule` key for optional whole-season schedule enrichment; the integration now degrades gracefully instead of failing setup.\n\n> **v0.1.37:** Adds compatibility/resilience diagnostics and fixture testing, complete postseason presentation with Winners Consolation, Roster/Matchup lineup-advice badges, and interactive Scoreboard/Standings drill-down popups with single-modal Back navigation.
 
 > **v0.1.36:** Fixes traditional-waiver budget display, adds the enabled Consolation Ladder to pre-playoff standings projections, fixes All-in-One navigation after viewing Playoffs, and improves team-logo watermark visibility.
 
@@ -140,7 +140,7 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current release candidate is **v0.1.39**, a focused League-card UI refinement release on top of v0.1.38.
+The current release candidate is **v0.1.40**, a focused Playoff Bracket rendering hotfix on top of v0.1.39.
 
 
 ## Help test another league format
