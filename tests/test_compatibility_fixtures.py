@@ -27,8 +27,8 @@ class CompatibilityFixtureTests(unittest.TestCase):
         self.assertEqual(len(normalized["league"]["team_rosters"]), 4)
         self.assertEqual(normalized["league"]["team_rosters"][0]["team_name"], "Alpha")
         self.assertEqual(normalized["league"]["team_rosters"][0]["roster"][0]["lineup_slot"], "Slot 27")
-        self.assertEqual(normalized["league"]["scoreboard"][0]["home_team"]["team_name"], "Alpha")
-        self.assertEqual(normalized["league"]["scoreboard"][0]["away_team"]["team_name"], "Beta")
+        self.assertEqual(normalized["league"]["scoreboard"][0]["home_team_name"], "Alpha")
+        self.assertEqual(normalized["league"]["scoreboard"][0]["away_team_name"], "Beta")
         sections = normalized["league"]["playoff_bracket"]["sections"]
         self.assertEqual(
             [section["label"] for section in sections],
