@@ -423,7 +423,8 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
   bindLeagueContent(){
     this.bindPlayers(id=>{const pools=[...(this.rosterState()?.attributes?.players||[]),...(this.matchupState()?.attributes?.my_players||[]),...(this.matchupState()?.attributes?.opponent_players||[])];this.openPlayer(pools.find(p=>String(p.id)===String(id)),this._config.stats);});
     this.shadowRoot.querySelectorAll("[data-news-player]").forEach(x=>x.addEventListener("click",e=>{if(e.target.closest("a"))return;const p=(this.rosterState()?.attributes?.players||[]).find(p=>String(p.id)===String(x.dataset.newsPlayer));this.openPlayer(p,this._config.stats);}));
-    this.bindActivities(this.leagueState()?.attributes?.activity||[]);\n    this.shadowRoot.querySelectorAll("button[data-matchup]").forEach(x=>x.addEventListener("click",()=>this.setMatchupView(x.dataset.matchup)));
+    this.bindActivities(this.leagueState()?.attributes?.activity||[]);
+    this.shadowRoot.querySelectorAll("button[data-matchup]").forEach(x=>x.addEventListener("click",()=>this.setMatchupView(x.dataset.matchup)));
     this.shadowRoot.querySelectorAll("button[data-roster]").forEach(x=>x.addEventListener("click",()=>this.setRosterView(x.dataset.roster)));
     const feed=this.shadowRoot.querySelector(".news-feed");if(feed){feed.scrollTop=this._newsScrollTop;feed.addEventListener("scroll",()=>{this._newsScrollTop=feed.scrollTop;},{passive:true});}\n    const activity=this.shadowRoot.querySelector(".activity-feed");if(activity){activity.scrollTop=this._activityScrollTop;activity.addEventListener("scroll",()=>{this._activityScrollTop=activity.scrollTop;},{passive:true});}
   }
