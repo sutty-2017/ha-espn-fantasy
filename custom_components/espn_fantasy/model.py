@@ -945,11 +945,13 @@ def _league_model(
     bracket = _playoff_bracket_model(schedule, standings, settings, matchup_period)
     acquisition = settings.get("acquisitionSettings") or {}
     budget = _float(acquisition.get("acquisitionBudget"))
+    acquisition_type = str(acquisition.get("acquisitionType") or "").upper()
     uses_budget = bool(
         acquisition.get("isUsingAcquisitionBudget")
         or acquisition.get("isUsingAcquisitionBudgetEnabled")
-        or budget
+        or any(token in acquisition_type for token in ("BUDGET", "FAAB", "FAB"))
     )
+    no_waivers = any(token in acquisition_type for token in ("FREE_AGENT", "NO_WAIVER", "NONE"))
     waiver_order = [
         {
             "rank": team.get("waiver_rank"),
@@ -963,10 +965,10 @@ def _league_model(
             ),
         }
         for team in standings
-        if team.get("waiver_rank") is not None
+        if team.get("waiver_rank") is not None and not no_waivers
     ]
     waiver_order.sort(key=lambda item: item["rank"])
-    waiver_system = "fab_tiebreaker" if uses_budget else ("waiver_order" if waiver_order else "none")
+    waiver_system = "none" if no_waivers else ("fab_tiebreaker" if uses_budget else ("waiver_order" if waiver_order else "unknown"))
     activity = _league_activity(
         data,
         teams,
@@ -988,7 +990,8 @@ def _league_model(
             "available": bool(waiver_order),
             "system": waiver_system,
             "label": "FAB Tiebreaker" if uses_budget else "Waiver Order",
-            "acquisition_budget": budget,
+            "acquisition_type": acquisition_type or None,
+            "acquisition_budget": budget if uses_budget else None,
             "last_execution": _int((data.get("status") or {}).get("waiverLastExecutionDate")),
             "order": waiver_order,
         },
