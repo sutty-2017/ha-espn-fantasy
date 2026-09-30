@@ -2,14 +2,16 @@
 
 ## Release state
 
-- Published stable release: **v0.1.31**
-- Current release candidate: **v0.1.32**
-- Development branch: `dev/post-v0.1.31-fixes`
-- Do not merge or publish until the v0.1.32 validation checks are green and real Home Assistant testing is acceptable.
+- Published stable release: **v0.1.32**
+- Published tag: **v0.1.32**
+- Exact release/main commit: **602659a88316e6bdff189ffa3b820b7793c27cd3**
+- Release PR: **#8**
+- Release validation: **Frontend validation, Hassfest, and HACS validation all passed**
+- Next work should begin from this published checkpoint. Do not treat the old `dev/post-v0.1.31-fixes` branch as the new development base.
 
 This file is intended to be sufficient context for a new maintainer or AI coding agent to resume work without access to the development chat.
 
-## v0.1.32 scope completed on the branch
+## v0.1.32 published scope
 
 ### Historical stats and injury normalization
 
@@ -64,33 +66,11 @@ A full new-user data map was added at **`docs/ENTITIES.md`**, listing every prov
 
 README is updated for v0.1.32 and preserves the personal-use/at-your-own-risk and ChatGPT/OpenAI AI-assisted-development disclosure already added to main.
 
-## Validation / release gate
+## Published validation and live-test focus
 
-Still required before publishing v0.1.32:
+The exact v0.1.32 release candidate passed Frontend validation, Hassfest, and HACS validation. The release tag points to the exact merged main commit listed above.
 
-1. Frontend validation:
-   - JavaScript syntax;
-   - Python compile;
-   - manifest/frontend version match;
-   - existing card registration checks.
-2. Regression smoke tests:
-   - league scoreboard;
-   - history and lineup advice;
-   - canonical roster enrichment;
-   - add/drop Activity normalization;
-   - trade side normalization;
-   - automation-facing sensor markers.
-3. Hassfest.
-4. HACS validation.
-5. Real Home Assistant / ESPN testing after the candidate is available:
-   - Weeks 1–3 history appears again;
-   - injury badges appear wherever shared player rendering is used;
-   - Activity free-agent names/photos/position/NFL team resolve;
-   - fantasy team logos display;
-   - simple add/drop popup layout is correct;
-   - trade popup layout is correct when a real trade payload is available;
-   - ticker Activity width works at compact/standard/large/XL;
-   - new League Activity, Lineup Recommendations, and Injured Players sensors appear and expose expected attributes.
+Real Home Assistant / ESPN testing after publication should focus on historical Weeks 1–3, injury badges, Activity player/team identity, add/drop and trade popups, ticker Activity sizing, and the new automation-facing sensors.
 
 ## Known caveats
 
@@ -99,12 +79,10 @@ Still required before publishing v0.1.32:
 - Existing Player and Game Active entities are created from the roster present during integration setup/reload; dynamic roster entity lifecycle deserves a future audit but is not part of the v0.1.32 release gate.
 - The development branch was created before the README disclosure commit on main. The branch README was rebuilt from the current main README so the disclosure text is preserved, but Git history is currently one commit behind main until the release branch is reconciled/merged.
 
-## Release workflow
+## Next-session workflow
 
-Once checks are green:
-1. Resolve any branch/main merge issue if GitHub reports one.
-2. Review the PR diff and workflow results.
-3. Squash merge the release PR.
-4. Verify `manifest.json` and frontend `CARD_VERSION` are both 0.1.32 on main.
-5. Publish tag/release `v0.1.32`.
-6. After publication, update this handoff for the published release checkpoint so another maintainer/agent can start from the exact stable state.
+1. Start from main at the v0.1.32 published checkpoint above.
+2. Collect real-world v0.1.32 feedback before choosing the next version scope.
+3. Preserve `docs/ENTITIES.md` as sensors or attributes are added.
+4. Keep ESPN payload handling defensive because the fantasy endpoints are unofficial.
+5. Use the established release flow: concentrated implementation → regression checks → Frontend/Hassfest/HACS → PR/merge → publish → update this handoff again.
