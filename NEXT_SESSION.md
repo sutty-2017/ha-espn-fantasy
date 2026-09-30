@@ -2,15 +2,24 @@
 
 ## Release state
 
-- Published stable release: **v0.1.37**
-- Published tag: **v0.1.37**
-- Exact merged release commit: **452c2531d6f3e1e2513b28eed81eb27a16c26d40**
-- Release PR: **#13** (squash-merged)
-- Development branch: **dev/resilience-compatibility**
+- Published stable release: **v0.1.38**
+- Published tag: **v0.1.38**
+- Exact merged release commit: **71f91e009ac9d8808b25bd6646cd509fcc1d393f**
+- Release PR: **#14** (squash-merged)
+- Release branch: **dev/v0.1.38-fixes**
 - Pre-merge release gates passed: **Frontend validation, Hassfest, HACS validation**.
-- Manifest and frontend card version are both **0.1.37**.
-- The maintainer confirmed v0.1.37 was posted after the merge.
-- This handoff update is post-release housekeeping on main; do not move the v0.1.37 tag to include it.
+- Manifest and frontend card version are both **0.1.38**.
+- The maintainer confirmed v0.1.38 was posted after the merge.
+- This handoff update is post-release housekeeping on main; do not move the v0.1.38 tag to include it.
+
+## v0.1.38 hotfix
+
+- Fixes the v0.1.37 setup regression: ESPN may return HTTP 200 but omit `schedule` for the optional whole-season `mSchedule` enrichment request.
+- That sparse optional response now degrades to an empty `season_schedule` rather than failing integration setup.
+- Core league, roster, and current-matchup structural validation remains strict.
+- Added an explicit regression check for the sparse optional season-schedule path.
+- The full existing frontend, Python, normalization, fixture, polling, sensor, Hassfest, and HACS validation suite passed before merge.
+- Treat **v0.1.38** as the new stable baseline.
 
 ## v0.1.37 published scope
 
@@ -70,7 +79,7 @@
 
 ## Current phase: real Home Assistant testing
 
-Treat v0.1.37 as the new stable baseline. Collect additional findings for the next concentrated release rather than modifying this published release.
+Treat v0.1.38 as the new stable baseline. Collect additional findings for the next concentrated release rather than modifying this published release.
 
 Useful real-world checks:
 - Confirm Championship → Winners Consolation → Consolation ordering and TBD behavior before ESPN publishes real postseason matchups.
