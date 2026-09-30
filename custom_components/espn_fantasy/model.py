@@ -953,12 +953,16 @@ def _playoff_bracket_model(
             for game in playoff_games
             if isinstance(game.get("matchup_period"), int)
         })
+        # The winners consolation game is played only in the final postseason
+        # matchup period. Do not manufacture a first-round TBD matchup merely
+        # to align it with the championship bracket.
+        winners_consolation_periods = periods[-1:] or [None]
         sections.append({
             "tier": "LOSERS_BRACKET",
             "label": "Winners Consolation Ladder",
             "rounds": [{
                 "index": index + 1,
-                "label": f"Round {index + 1}" if len(periods) > 1 else "Winners Consolation",
+                "label": "Winners Consolation",
                 "matchup_period": period,
                 "matches": [{
                     "id": f"projected-winners-consolation-r{index + 1}",
@@ -979,7 +983,7 @@ def _playoff_bracket_model(
                     "away_score": None,
                     "away_projected_score": None,
                 }],
-            } for index, period in enumerate(periods or [None])],
+            } for index, period in enumerate(winners_consolation_periods)],
         })
         sections.sort(key=lambda section: (
             tier_order.get(section["tier"], 99), section["tier"]
@@ -1019,10 +1023,12 @@ def _playoff_bracket_model(
                 and _int(period) > (_int(schedule_settings.get("matchupPeriodCount")) or 0)
             )
             winners_consolation_rounds = []
-            for index, period in enumerate(postseason_periods or [None]):
+            # Winners consolation is a single game in the second/final
+            # postseason round; horizontal alignment is handled by the card.
+            for index, period in enumerate(postseason_periods[-1:] or [None]):
                 winners_consolation_rounds.append({
                     "index": index + 1,
-                    "label": f"Round {index + 1}" if len(postseason_periods) > 1 else "Winners Consolation",
+                    "label": "Winners Consolation",
                     "matchup_period": period,
                     "matches": [{
                         "id": f"projected-winners-consolation-r{index + 1}-{match_index}",
