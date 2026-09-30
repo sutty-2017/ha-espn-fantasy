@@ -2,74 +2,66 @@
 
 ## Release state
 
-- Published stable release: **v0.1.35**
-- Published tag: **v0.1.35**
-- Exact published release commit: **e1d828f19cef55e29177e4f94cfa87d7a738717d**
-- Release PR: **#11** (squash-merged)
-- Release branch: **dev/v0.1.35-waivers-bio-activity-brackets**
-- The published tag was verified **identical** to the exact merged release commit.
+- Published stable release: **v0.1.36**
+- Published tag: **v0.1.36**
+- Exact published release commit: **cc8b6888fd20b135fc19f95552fea25b747c83f6**
+- Release PR: **#12** (squash-merged)
+- Release branch: **dev/v0.1.36-bugfixes**
+- The published tag was verified **identical** to the exact merged release commit (ahead 0 / behind 0).
 - Pre-merge release gates passed: **Frontend validation, Hassfest, HACS validation**.
-- Tagged manifest and frontend card version are both **0.1.35**.
+- Tagged manifest and frontend card version are both **0.1.36**.
+- This handoff update is post-release housekeeping on main; do not move the v0.1.36 tag to include it.
 
-## v0.1.35 published scope
+## v0.1.36 published scope
 
-### Postseason completeness
-- Whole-season schedule remains the baseline.
-- ESPN postseason segment schedules are fetched defensively and merged into it.
-- Segment-specific metadata can enrich an existing matchup rather than being discarded solely because the matchup ID already exists.
-- This specifically targets missing consolation/placement/ladder tiers while preserving the existing multi-section bracket model.
+### Traditional waiver budget fix
+- Real v0.1.35 diagnostics showed ESPN can expose `acquisitionBudget: 100` even when the league is `WAIVERS_TRADITIONAL` and `isUsingAcquisitionBudget: false`.
+- Per-team `budget_spent` / `budget_remaining` are now populated only when the league is positively identified as using FAB/FAAB/acquisition budget.
+- Traditional waiver-order leagues therefore no longer display the bogus **100 left** value.
+- Regression coverage reproduces the diagnostic combination explicitly.
 
-### Waivers
-- League / All-in-One card adds an optional **Waivers** section.
-- Backend exposes normalized waiver order and league acquisition context.
-- Traditional leagues use **Waiver Order**.
-- FAB/FAAB-style leagues use **FAB Tiebreaker** when ESPN settings identify budget-based acquisition.
-- No-waiver leagues do not present a misleading waiver order.
-- Configured team is highlighted; available budget context is shown when applicable.
+### Pre-playoff Consolation Ladder projection
+- v0.1.35 fetched postseason segment data defensively, but before ESPN publishes actual postseason matchup rows the standings fallback projected only the Championship Bracket.
+- When ESPN settings say the consolation ladder is enabled, the standings fallback now adds a **Consolation Ladder** section directly below the projected Championship Bracket.
+- Actual ESPN postseason tier data continues to take precedence once available.
+- Regression coverage verifies an enabled consolation ladder is exposed by the pre-playoff projection.
 
-### Player biography
-- Relevant roster players receive cached ESPN NFL profile/biography enrichment on a long (24-hour) interval.
-- Normalized biography can include height, weight, age/date of birth, birthplace, jersey, position, experience, college, draft details and team history when ESPN supplies them.
-- Player popup has its own collapsible **Biography** section.
-- Player card collapsed state remains unchanged; biography appears only inside the card's existing expanded area.
-- Player sensor attributes expose biography data.
+### All-in-One Playoffs navigation fix
+- The bracket scroll-state variable was initialized as a number while Playoffs later treated it as a per-section object.
+- Leaving Playoffs could therefore throw before another All-in-One section rendered, making the card appear stuck until a browser refresh.
+- Bracket scroll state is now initialized consistently as an object so normal section navigation continues after viewing Playoffs.
 
-### NFL-team watermark
-- Player tiles can render the player's current NFL team logo as a subtle background watermark.
-- Watermarking is independently configurable and is available in player popup/card behavior and ticker Players presentation.
-- Normalized player attributes expose the NFL team logo URL.
-
-### Activity semantics
-- ESPN LINEUP items are normalized as **Started**, **Benched**, or **Roster move** using from/to lineup slots.
-- Slot transitions are retained in normalized Activity data.
-- Add, drop and trade actions remain distinct.
-- Existing grouped trade presentation is retained and enriched rather than replaced.
+### NFL-team watermark visibility
+- Player NFL-team background watermark opacity increased from **0.075** to **0.12**.
+- The watermark remains deliberately subtle and behind player content.
+- Existing watermark toggles/default behavior are unchanged.
 
 ## Validation completed
 
-1. Frontend validation passed.
-2. Hassfest passed.
-3. HACS validation passed.
-4. Manifest/frontend versions are both **0.1.35**.
-5. PR #11 was squash-merged to main at **e1d828f19cef55e29177e4f94cfa87d7a738717d**.
-6. Published tag **v0.1.35** was verified identical to that exact release commit.
-7. Real-world Home Assistant testing is the next phase.
+1. Frontend validation passed on the final release branch, including JavaScript/Python syntax, version matching and all smoke tests.
+2. Added regression tests for the exact traditional-waiver dormant-budget case and enabled pre-playoff Consolation Ladder projection; both passed.
+3. Hassfest passed.
+4. HACS validation passed.
+5. Manifest/frontend versions are both **0.1.36**.
+6. PR #12 was squash-merged to main at **cc8b6888fd20b135fc19f95552fea25b747c83f6**.
+7. Published tag **v0.1.36** was verified identical to that exact release commit.
 
 ## Current phase: real Home Assistant testing
 
 Focus testing on:
-- Consolation/ladder postseason sections that were missing in v0.1.34.
-- Waiver order correctness and configured-team highlighting.
-- Standard-vs-FAB labeling and budget context.
-- Biography population, popup collapse behavior and Player-card expanded placement.
-- NFL-team watermark appearance and independent toggles, especially ticker Players.
+- Waivers: confirm traditional waiver order shows ranks/teams with no budget or **100 left** text.
+- Playoffs: confirm Championship Bracket and projected Consolation Ladder both appear before ESPN publishes real postseason rows.
+- All-in-One navigation: enter Playoffs, move to several other sections, return to Playoffs, and verify no refresh is required.
+- Watermark: judge the new 0.12 opacity in player popup and ticker Players on actual dashboard themes/displays.
 - Activity wording for real lineup changes: Started, Benched and slot-to-slot roster moves.
 - First real trade payload available for validating grouped trade rendering.
-- Existing v0.1.34 Schedule and adaptive live-polling behavior for regressions.
+- Biography population/collapse behavior.
+- Existing Schedule and adaptive 60-second live-polling behavior for regressions.
 
 ## Known caveats
 
 - ESPN Fantasy endpoints, postseason segments/tier names, transaction payloads and athlete profile endpoints are unofficial/undocumented; normalization remains defensive.
+- The Consolation Ladder is a standings-based projection until ESPN supplies actual postseason tier matchups.
 - Biography fields vary by player and ESPN may omit fields.
 - Real-world trade payload validation remains desirable because trades are comparatively infrequent.
 - The 60-second live path from v0.1.34 still requires continued real-game observation.
