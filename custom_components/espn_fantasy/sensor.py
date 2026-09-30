@@ -322,6 +322,7 @@ class LeagueSensor(ESPNBaseSensor):
             "current_week": data.get("status", {}).get("currentMatchupPeriod"),
             "scoring_type": settings.get("scoringSettings", {}).get("scoringType"),
             "standings": league.get("standings") or [],
+            "team_rosters": league.get("team_rosters") or [],
             "scoreboard": league.get("scoreboard") or [],
             "schedule": league.get("schedule") or [],
             "schedule_periods": league.get("schedule_periods") or [],
