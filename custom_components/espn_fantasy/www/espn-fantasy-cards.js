@@ -666,8 +666,8 @@ for(const [tag,cls] of [["espn-fantasy-player-card",ESPNFantasyPlayerCard],["esp
 window.customCards=window.customCards||[];
 for(const card of [
  {type:"espn-fantasy-player-card",name:"ESPN Fantasy Player",description:"Individual player card with stats, outlook, and news.",preview:true},
- {type:"espn-fantasy-league-card",name:"ESPN Fantasy League",description:"Roster, standings, scoreboard, matchup, and optional news in one card.",preview:true},
- {type:"espn-fantasy-ticker-card",name:"ESPN Fantasy Ticker",description:"Players, league scores, or both with customizable section headers.",preview:true},
+ {type:"espn-fantasy-league-card",name:"ESPN Fantasy League",description:"Section-based league card with roster, standings, scores, matchup, news, activity, schedule, and playoff bracket.",preview:true},
+ {type:"espn-fantasy-ticker-card",name:"ESPN Fantasy Ticker",description:"Section-based ticker for players, league scores, and activity with configurable order and scrolling.",preview:true},
  {type:"espn-fantasy-news-card",name:"ESPN Fantasy News",description:"Newest fantasy player stories with player portraits and names.",preview:true},
 ]) if(!window.customCards.some((x)=>x.type===card.type)) window.customCards.push({...card,documentationURL:"https://github.com/sutty-2017/ha-espn-fantasy"});
 console.info(`%c ESPN Fantasy cards ${CARD_VERSION} loaded`,"color:#e31837;font-weight:bold;");
