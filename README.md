@@ -1,4 +1,8 @@
-> **v0.1.33:** Adds section-based League and Ticker editors, full-season Schedule and playoff-bracket views, fixes portrait-anchored red injury badges, streamlines Fantasy Outlook, and polishes Activity ticker layout.\n\n> **v0.1.32:** Restores complete weekly history/injury normalization, expands League Activity with rich player/team identity and transaction popups, and adds automation-friendly Activity, Lineup Recommendations, and Injured Players sensors.\n\n
+> **v0.1.33:** Adds section-based League and Ticker editors, full-season Schedule and playoff-bracket views, fixes portrait-anchored red injury badges, streamlines Fantasy Outlook, and polishes Activity ticker layout.
+
+> **v0.1.32:** Restores complete weekly history/injury normalization, expands League Activity with rich player/team identity and transaction popups, and adds automation-friendly Activity, Lineup Recommendations, and Injured Players sensors.
+
+
 > **v0.1.31:** Adds normalized league transaction activity to Home Assistant, optional Activity in the All-in-One card and ticker, reliable per-week current-season history fetching, and shared roster injury-status enrichment.
 
 # ESPN Fantasy Football for Home Assistant
@@ -67,7 +71,9 @@ Treat these cookies like credentials. Do not commit them to GitHub, include them
 
 The integration creates a device for the configured fantasy league/team and exposes sensors for league information, **League Activity**, **Lineup Recommendations**, **Injured Players**, your team, record, points for/against, current week, roster, matchup, and each rostered player. Each player also receives a **Game Active** binary sensor.
 
-Player entities expose fantasy-relevant attributes including position, NFL team, lineup slot, injury status, ownership, actual/projected points, game status, opponent, detailed game statistics, weekly history/season summary, lineup recommendations, weekly/season outlooks, and cached player news. This makes the same normalized data used by the cards available for Home Assistant templates and automations.\n\nFor a complete map of every provided sensor, binary sensor, and the important attributes tucked inside them, see **[Home Assistant entities and attributes](docs/ENTITIES.md)**.
+Player entities expose fantasy-relevant attributes including position, NFL team, lineup slot, injury status, ownership, actual/projected points, game status, opponent, detailed game statistics, weekly history/season summary, lineup recommendations, weekly/season outlooks, and cached player news. This makes the same normalized data used by the cards available for Home Assistant templates and automations.
+
+For a complete map of every provided sensor, binary sensor, and the important attributes tucked inside them, see **[Home Assistant entities and attributes](docs/ENTITIES.md)**.
 
 ## Dashboard cards
 
