@@ -17,6 +17,7 @@ from .const import (
     CONF_SWID,
     CONF_TEAM_ID,
     DEFAULT_SCAN_INTERVAL,
+    LIVE_SCAN_INTERVAL,
     DOMAIN,
 )
 from .model import build_normalized_model
@@ -90,7 +91,7 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                                 player["news"] = self._player_news.get(int(player.get("id")), [])
                             except (TypeError, ValueError):
                                 player["news"] = []
-                    self.update_interval = timedelta(seconds=60)
+                    self.update_interval = timedelta(seconds=LIVE_SCAN_INTERVAL)
                     return data
 
             data = await self.client.get_league()
@@ -230,7 +231,7 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
             data["player_news"] = self._player_news
             data["normalized"] = build_normalized_model(data, team_id)
             self.update_interval = timedelta(
-                seconds=60 if self._matchup_has_live_players(data) else DEFAULT_SCAN_INTERVAL
+                seconds=LIVE_SCAN_INTERVAL if self._matchup_has_live_players(data) else DEFAULT_SCAN_INTERVAL
             )
 
             matchup = (data["normalized"] or {}).get("matchup") or {}
