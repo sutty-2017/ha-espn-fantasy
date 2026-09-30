@@ -697,7 +697,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     coordinator: ESPNDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     entities: list[SensorEntity] = [
-        LeagueSensor(coordinator), LeagueActivitySensor(coordinator),\n        LineupRecommendationsSensor(coordinator), InjuredPlayersSensor(coordinator),\n        TeamSensor(coordinator), RecordSensor(coordinator),
+        LeagueSensor(coordinator), LeagueActivitySensor(coordinator),
+        LineupRecommendationsSensor(coordinator), InjuredPlayersSensor(coordinator),
+        TeamSensor(coordinator), RecordSensor(coordinator),
         PointsForSensor(coordinator), PointsAgainstSensor(coordinator),
         CurrentWeekSensor(coordinator), RosterSensor(coordinator),
         MatchupSensor(coordinator),
