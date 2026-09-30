@@ -1,3 +1,5 @@
+> **v0.1.34:** Refines Schedule with League/My Team views and compact week arrows, exposes all ESPN postseason tiers with a cleaner expandable bracket, and adds focused 60-second live matchup polling while games are active.
+
 > **v0.1.33:** Adds section-based League and Ticker editors, full-season Schedule and playoff-bracket views, fixes portrait-anchored red injury badges, streamlines Fantasy Outlook, and polishes Activity ticker layout.
 
 > **v0.1.32:** Restores complete weekly history/injury normalization, expands League Activity with rich player/team identity and transaction popups, and adds automation-friendly Activity, Lineup Recommendations, and Injured Players sensors.
@@ -33,7 +35,7 @@ The integration connects directly to ESPN Fantasy data and exposes league standi
 - Projection-based starter/bench lineup alerts that respect ESPN slot eligibility
 - Player fantasy outlooks and ESPN fantasy news
 - Player **Game Active** binary sensors for live NFL games
-- Coordinated polling with separately throttled player-news updates
+- Coordinated 5-minute polling with focused 60-second current-matchup updates while either side has players actively playing
 - Data exposed as Home Assistant entity attributes for dashboards and automations
 - Four primary Lovelace cards with shared player popups and appearance controls; legacy card types remain registered for compatibility
 - Home Assistant theme inheritance plus **Glass**, **Solid**, and **Transparent** appearance presets
@@ -83,7 +85,7 @@ A focused player card with headshot, injury indicator, game status, fantasy scor
 ### ESPN Fantasy League
 The main dashboard card is section-based. New cards enable **Roster**, **Standings**, **Scoreboard**, **Matchup**, **News**, **Activity**, **Schedule**, and **Playoff Bracket** by default. Use the editor checkboxes to keep any combination down to a single section, and reorder only the sections that are enabled. Section-specific settings stay grouped with their section and are hidden when that section is disabled.
 
-Roster and Matchup each include **Starters / Bench & IR** views, and the Roster section can flag projection-based lineup alternatives. Schedule provides week navigation across the fantasy season. The Playoff Bracket is horizontally scrollable with round-jump controls and can expand into a wide popup; ESPN schedule playoff data is preferred when present, with a clearly labeled current-standings projection as a fallback before an ESPN bracket is available. News and Activity remain scrollable feeds, and selected card views are remembered.
+Roster and Matchup each include **Starters / Bench & IR** views, and the Roster section can flag projection-based lineup alternatives. Schedule provides a League view with compact previous/next week navigation and a My Team view that lists the full season using the same matchup styling. The Playoff Bracket exposes all postseason tiers ESPN supplies, including championship, consolation, and ladder paths, with horizontal scrolling and an icon-only wide-view control; ESPN schedule playoff data is preferred when present, with a clearly labeled current-standings championship projection as a fallback before ESPN postseason data is available. News and Activity remain scrollable feeds, and selected card views are remembered.
 
 ### ESPN Fantasy Ticker
 The ticker uses the same section model for **Players**, **Scoreboard**, and **Activity**, with all three enabled on new cards. Sections can be independently enabled, disabled, and reordered, while settings for disabled sections stay out of the editor. The pinned identity panel follows the active section. Choose **Step** or continuous **Smooth** scrolling, size the ticker for compact through wall-panel layouts, and customize identity/header presentation and appearance.
@@ -134,4 +136,4 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current development line is **v0.1.33**, focused on cohesive section-based card configuration, Schedule and Playoff Bracket views, shared injury-badge placement, and ticker/popup polish.
+The current development line is **v0.1.34**, focused on Schedule usability, complete postseason bracket coverage, and efficient adaptive live-matchup polling.
