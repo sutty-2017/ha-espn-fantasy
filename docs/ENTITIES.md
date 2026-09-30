@@ -205,3 +205,4 @@ For simple triggers, prefer the focused entities:
 - Individual-player behavior → that **Player** sensor.
 
 For advanced templates, use the rich attributes on League, Roster, Matchup, and Player entities. The cards consume the same normalized model, so data visible in a card should generally have an equivalent Home Assistant representation.
+\n\n## v0.1.35 additions\n\n- The **League** sensor exposes `waivers` and `waiver_order`, including ESPN waiver rank and available FAB budget context when supplied by the league.\n- Player sensors expose `biography` and `nfl_team_logo`. Biography is cached on a long interval and can include height, weight, age, birthplace, jersey, college, experience, draft details, and team history when ESPN supplies them.\n- League Activity item types distinguish `started`, `benched`, `roster_move`, `added`, `dropped`, and `traded`, with lineup slot transitions retained for roster moves.\n
