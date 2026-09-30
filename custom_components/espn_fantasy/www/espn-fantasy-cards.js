@@ -86,7 +86,7 @@ function outlookDetails(p, open = true) {
   if (!weekly && !season) return "";
   const updated = p.last_news_date ? `<div class="outlook-date">Updated ${esc(fmtKickoff(p.last_news_date))}</div>` : "";
   const body = `${updated}${weekly ? `<div class="outlook-title">This Week</div><div class="outlook-text">${esc(weekly)}</div>` : ""}${season ? `<div class="outlook-title">Season Outlook</div><div class="outlook-text">${esc(season)}</div>` : ""}`;
-  return popupSection("outlook", "Fantasy outlook", body, open);
+  return popupSection("outlook", "Fantasy Outlook", body, open);
 }
 
 function newsDetails(p) {
