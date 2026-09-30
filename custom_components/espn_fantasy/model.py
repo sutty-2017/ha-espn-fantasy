@@ -629,12 +629,213 @@ def _league_activity(
     events.sort(key=lambda event: event.get("timestamp") or 0, reverse=True)
     return events
 
+def _normalize_league_game(
+    matchup: dict[str, Any],
+    teams: dict[int, dict[str, Any]],
+    current_period: int | None,
+) -> dict[str, Any]:
+    """Normalize one fantasy matchup for schedule/scoreboard/bracket use."""
+    home = matchup.get("home") or {}
+    away = matchup.get("away") or {}
+    home_id, away_id = _int(home.get("teamId")), _int(away.get("teamId"))
+    home_team, away_team = teams.get(home_id, {}), teams.get(away_id, {})
+    period = _int(matchup.get("matchupPeriodId"))
+    winner = str(matchup.get("winner") or "").upper() or None
+    if winner in {"HOME", "AWAY", "TIE"}:
+        status = "final"
+    elif current_period is not None and period is not None:
+        status = "final" if period < current_period else ("current" if period == current_period else "scheduled")
+    else:
+        status = "scheduled"
+    return {
+        "id": matchup.get("id"),
+        "matchup_period": period,
+        "playoff_tier": matchup.get("playoffTierType"),
+        "winner": winner,
+        "status": status,
+        "home_team_id": home_id,
+        "home_team_name": _league_team(home_team).get("name") if home_team else None,
+        "home_logo": home_team.get("logo"),
+        "home_seed": _int(home_team.get("playoffSeed")) if home_team else None,
+        "home_score": _float(home.get("totalPointsLive", home.get("totalPoints"))),
+        "home_projected_score": _float(home.get("totalProjectedPointsLive", home.get("totalProjectedPoints"))),
+        "away_team_id": away_id,
+        "away_team_name": _league_team(away_team).get("name") if away_team else None,
+        "away_logo": away_team.get("logo"),
+        "away_seed": _int(away_team.get("playoffSeed")) if away_team else None,
+        "away_score": _float(away.get("totalPointsLive", away.get("totalPoints"))),
+        "away_projected_score": _float(away.get("totalProjectedPointsLive", away.get("totalProjectedPoints"))),
+    }
+
+
+def _round_labels(count: int) -> list[str]:
+    """Return readable labels for a league's number of playoff rounds."""
+    labels = []
+    for index in range(count):
+        remaining = count - index
+        if remaining == 1:
+            labels.append("Championship")
+        elif remaining == 2:
+            labels.append("Semifinals")
+        elif remaining == 3:
+            labels.append("Quarterfinals")
+        else:
+            labels.append(f"Round {index + 1}")
+    return labels
+
+
+def _projected_playoff_bracket(
+    standings: list[dict[str, Any]],
+    settings: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Build a clearly-labelled fallback projection from ESPN standings/seeds."""
+    schedule_settings = settings.get("scheduleSettings") or {}
+    playoff_count = _int(schedule_settings.get("playoffTeamCount"))
+    if not playoff_count or playoff_count < 2:
+        return None
+    seeded = sorted(
+        standings,
+        key=lambda team: (
+            team.get("playoff_seed") is None,
+            team.get("playoff_seed") or team.get("standing") or 999,
+        ),
+    )[:playoff_count]
+    if len(seeded) < 2:
+        return None
+
+    bracket_size = 1
+    while bracket_size < len(seeded):
+        bracket_size *= 2
+    rounds_count = 0
+    size = bracket_size
+    while size > 1:
+        rounds_count += 1
+        size //= 2
+    labels = _round_labels(rounds_count)
+    byes = bracket_size - len(seeded)
+    active = seeded[byes:]
+    first_matches: list[dict[str, Any]] = []
+    left, right = 0, len(active) - 1
+    while left < right:
+        home, away = active[left], active[right]
+        first_matches.append({
+            "id": f"projected-r1-{left}",
+            "matchup_period": None,
+            "playoff_tier": "WINNERS_BRACKET",
+            "winner": None,
+            "status": "projected",
+            "home_team_id": home.get("id"),
+            "home_team_name": home.get("name"),
+            "home_logo": home.get("logo"),
+            "home_seed": home.get("playoff_seed") or home.get("standing"),
+            "home_score": None,
+            "home_projected_score": None,
+            "away_team_id": away.get("id"),
+            "away_team_name": away.get("name"),
+            "away_logo": away.get("logo"),
+            "away_seed": away.get("playoff_seed") or away.get("standing"),
+            "away_score": None,
+            "away_projected_score": None,
+        })
+        left += 1
+        right -= 1
+
+    rounds = [{"index": 1, "label": labels[0], "matchup_period": None, "matches": first_matches}]
+    previous_match_count = max(1, bracket_size // 2)
+    for round_index in range(2, rounds_count + 1):
+        match_count = max(1, previous_match_count // 2)
+        matches = []
+        for match_index in range(match_count):
+            home = seeded[match_index] if round_index == 2 and match_index < byes else None
+            matches.append({
+                "id": f"projected-r{round_index}-{match_index}",
+                "matchup_period": None,
+                "playoff_tier": "WINNERS_BRACKET",
+                "winner": None,
+                "status": "projected",
+                "home_team_id": home.get("id") if home else None,
+                "home_team_name": home.get("name") if home else "TBD",
+                "home_logo": home.get("logo") if home else None,
+                "home_seed": (home.get("playoff_seed") or home.get("standing")) if home else None,
+                "home_score": None,
+                "home_projected_score": None,
+                "away_team_id": None,
+                "away_team_name": "TBD",
+                "away_logo": None,
+                "away_seed": None,
+                "away_score": None,
+                "away_projected_score": None,
+            })
+        rounds.append({"index": round_index, "label": labels[round_index - 1], "matchup_period": None, "matches": matches})
+        previous_match_count = match_count
+
+    return {
+        "available": True,
+        "projected": True,
+        "source": "standings_projection",
+        "playoff_team_count": playoff_count,
+        "rounds": rounds,
+    }
+
+
+def _playoff_bracket_model(
+    schedule: list[dict[str, Any]],
+    standings: list[dict[str, Any]],
+    settings: dict[str, Any],
+    current_period: int | None,
+) -> dict[str, Any]:
+    """Build playoff rounds from ESPN schedule, with a standings fallback."""
+    playoff_games = [
+        game for game in schedule
+        if str(game.get("playoff_tier") or "").upper() == "WINNERS_BRACKET"
+    ]
+    by_period: dict[int, list[dict[str, Any]]] = {}
+    for game in playoff_games:
+        period = game.get("matchup_period")
+        if isinstance(period, int):
+            by_period.setdefault(period, []).append(game)
+    if by_period:
+        periods = sorted(by_period)
+        labels = _round_labels(len(periods))
+        rounds = [
+            {
+                "index": index + 1,
+                "label": labels[index],
+                "matchup_period": period,
+                "matches": by_period[period],
+            }
+            for index, period in enumerate(periods)
+        ]
+        has_started = any(
+            game.get("status") in {"current", "final"}
+            for game in playoff_games
+        )
+        return {
+            "available": True,
+            "projected": not has_started,
+            "source": "espn_schedule",
+            "playoff_team_count": _int((settings.get("scheduleSettings") or {}).get("playoffTeamCount")),
+            "rounds": rounds,
+        }
+
+    projected = _projected_playoff_bracket(standings, settings)
+    if projected:
+        return projected
+    return {
+        "available": False,
+        "projected": True,
+        "source": None,
+        "playoff_team_count": _int((settings.get("scheduleSettings") or {}).get("playoffTeamCount")),
+        "rounds": [],
+    }
+
+
 def _league_model(
     data: dict[str, Any],
     teams: dict[int, dict[str, Any]],
     matchup_period: int | None,
 ) -> dict[str, Any]:
-    """Build compact standings and current league scoreboard data."""
+    """Build standings, schedule, scoreboard, bracket, and league activity."""
     normalized_teams = [_league_team(team) for team in teams.values()]
     normalized_teams.sort(
         key=lambda team: (
@@ -652,52 +853,56 @@ def _league_model(
         for index, team in enumerate(normalized_teams)
     ]
 
+    raw_schedule = data.get("season_schedule") or data.get("schedule") or []
+    schedule = [
+        _normalize_league_game(matchup, teams, matchup_period)
+        for matchup in raw_schedule
+        if isinstance(matchup, dict)
+    ]
+    schedule.sort(key=lambda game: ((game.get("matchup_period") or 999), str(game.get("id") or "")))
+
+    scoreboard_source = data.get("current_matchup") or raw_schedule
     scoreboard: list[dict[str, Any]] = []
-    for matchup in (data.get("current_matchup") or data.get("schedule") or []):
+    for matchup in scoreboard_source or []:
+        if not isinstance(matchup, dict):
+            continue
         if matchup_period is not None and _int(matchup.get("matchupPeriodId")) != matchup_period:
             continue
-        home = matchup.get("home") or {}
-        away = matchup.get("away") or {}
-        home_id, away_id = _int(home.get("teamId")), _int(away.get("teamId"))
-        if home_id is None and away_id is None:
+        game = _normalize_league_game(matchup, teams, matchup_period)
+        if game.get("home_team_id") is None and game.get("away_team_id") is None:
             continue
-        home_team, away_team = teams.get(home_id, {}), teams.get(away_id, {})
-        scoreboard.append(
-            {
-                "id": matchup.get("id"),
-                "matchup_period": _int(matchup.get("matchupPeriodId")),
-                "playoff_tier": matchup.get("playoffTierType"),
-                "winner": matchup.get("winner"),
-                "home_team_id": home_id,
-                "home_team_name": _league_team(home_team).get("name") if home_team else None,
-                "home_logo": home_team.get("logo"),
-                "home_score": _float(home.get("totalPointsLive", home.get("totalPoints"))),
-                "home_projected_score": _float(home.get("totalProjectedPointsLive", home.get("totalProjectedPoints"))),
-                "away_team_id": away_id,
-                "away_team_name": _league_team(away_team).get("name") if away_team else None,
-                "away_logo": away_team.get("logo"),
-                "away_score": _float(away.get("totalPointsLive", away.get("totalPoints"))),
-                "away_projected_score": _float(away.get("totalProjectedPointsLive", away.get("totalProjectedPoints"))),
-            }
-        )
+        scoreboard.append(game)
+
+    schedule_periods = sorted({
+        game["matchup_period"]
+        for game in schedule
+        if isinstance(game.get("matchup_period"), int)
+    })
+    settings = data.get("settings") or {}
+    bracket = _playoff_bracket_model(schedule, standings, settings, matchup_period)
+    activity = _league_activity(
+        data,
+        teams,
+        {
+            _int(team.get("id")): team
+            for team in data.get("pro_team_schedules") or []
+            if _int(team.get("id")) is not None
+        },
+        _int(data.get("scoringPeriodId"))
+        or _int((data.get("status") or {}).get("currentScoringPeriod")),
+    )
     return {
         "standings": standings,
         "scoreboard": scoreboard,
+        "schedule": schedule,
+        "schedule_periods": schedule_periods,
+        "playoff_bracket": bracket,
         "team_count": len(standings),
         "matchup_count": len(scoreboard),
         "matchup_period": matchup_period,
-        "activity": _league_activity(
-            data,
-            teams,
-            {
-                _int(team.get("id")): team
-                for team in data.get("pro_team_schedules") or []
-                if _int(team.get("id")) is not None
-            },
-            _int(data.get("scoringPeriodId"))
-            or _int((data.get("status") or {}).get("currentScoringPeriod")),
-        )
+        "activity": activity,
     }
+
 
 def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]:
     """Build a stable integration-owned model from ESPN response shapes."""
