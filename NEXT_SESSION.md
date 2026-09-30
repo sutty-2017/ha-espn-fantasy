@@ -2,14 +2,15 @@
 
 ## Release state
 
-- Published stable release: **v0.1.33**
-- Published tag: **v0.1.33**
-- Exact release/main commit: **26f7f1da3590a8a4185ee833a064bb4a7a2b6bf9**
-- Release PR: **#9**
-- v0.1.34 release candidate branch: **dev/v0.1.34-schedule-brackets-live**
-- v0.1.34 is **not published yet**. Publish only after its PR/CI is green and the maintainer approves the release.
+- Published stable release: **v0.1.34**
+- Published tag: **v0.1.34**
+- Exact published release commit: **211e830212c00361efd2bb35a09cdcb44200d34d**
+- Release PR: **#10** (squash-merged)
+- Release branch: **dev/v0.1.34-schedule-brackets-live**
+- The published tag was verified identical to the exact merged release commit.
+- Pre-merge release gates passed: **Frontend validation, Hassfest, HACS validation**.
 
-## v0.1.34 release-candidate scope
+## v0.1.34 published scope
 
 ### Schedule
 - Schedule has two remembered views: **League** and **My Team**.
@@ -39,16 +40,16 @@
 
 ## Validation expectations
 
-Before publication:
-1. Frontend validation must pass, including Schedule/Bracket regression checks.
-2. Hassfest must pass.
-3. HACS validation must pass.
-4. Confirm manifest/frontend versions are both **0.1.34**.
-5. Merge the release PR to main.
-6. Publish/tag **v0.1.34** from the exact merged main commit.
-7. Verify post-merge/tag workflow checks and then update this file again with the exact published commit/tag.
+Release validation completed:
+1. Frontend validation passed, including Schedule/Bracket regression checks.
+2. Hassfest passed.
+3. HACS validation passed.
+4. Manifest/frontend versions are both **0.1.34**.
+5. PR #10 was squash-merged to main at **211e830212c00361efd2bb35a09cdcb44200d34d**.
+6. Published tag **v0.1.34** was verified identical to that exact release commit.
+7. Real-world Home Assistant testing is the next phase.
 
-## Real Home Assistant test focus after publication
+## Current phase: real Home Assistant testing
 
 - League Schedule arrows and disabled first/last-week behavior.
 - League/My Team Schedule switch persistence.
