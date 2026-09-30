@@ -204,7 +204,8 @@ class ESPNBaseCard extends HTMLElement {
       const dropped=items.filter(x=>String(x.type||"").includes("drop"));
       const added=items.filter(x=>String(x.type||"").includes("add"));
       const ordered=[...dropped,...added,...items.filter(x=>!dropped.includes(x)&&!added.includes(x))];
-      const cols=ordered.map(item=>renderPlayer(item,String(item.type||"").includes("drop")?"DROPPED":String(item.type||"").includes("add")?"ADDED":"PLAYER")).join("");
+      const labels={started:"STARTED",benched:"BENCHED",roster_move:"ROSTER MOVE",added:"ADDED",dropped:"DROPPED",traded:"TRADED"};
+      const cols=ordered.map(item=>renderPlayer(item,labels[item.type]||"PLAYER")).join("");
       body=`<div class="transaction-head">${teamLogo(event.team_logo,event.team_name||"Team")}<div><strong>${esc(event.team_name||"League transaction")}</strong><div class="activity-meta">${meta}</div></div></div><div class="transaction-grid ${ordered.length===1?"single":""}">${cols||'<div class="empty">Player details unavailable for this transaction.</div>'}</div>`;
     }
     dialog.classList.add("transaction-dialog");
@@ -333,10 +334,12 @@ function leagueScoreboard(games) {
 }
 function activityIcon(type="") {
   const t=String(type).toLowerCase();
-  return t.includes("trade")?"↔":t.includes("waiver")?"W":t.includes("add")?"+":t.includes("drop")?"−":"•";
+  return t.includes("trade")?"↔":t.includes("waiver")?"W":t.includes("start")?"↑":t.includes("bench")?"↓":t.includes("roster")?"⇄":t.includes("add")?"+":t.includes("drop")?"−":"•";
 }
 function activityPlayer(item) {
-  const meta=[item.position,item.nfl_team].filter(Boolean).join(" · ");
+  const action={started:"Started",benched:"Benched",roster_move:"Roster move",added:"Added",dropped:"Dropped",traded:"Traded"}[item.type]||String(item.type||"").replaceAll("_"," ");
+  const slots=item.from_lineup_slot&&item.to_lineup_slot?item.from_lineup_slot+" → "+item.to_lineup_slot:"";
+  const meta=[action,slots,item.position,item.nfl_team].filter(Boolean).join(" · ");
   return `<div class="activity-player"><div class="activity-headshot">${item.headshot?`<img src="${esc(item.headshot)}" alt="" loading="lazy">`:""}</div><div><strong>${esc(item.player_name||"Player")}</strong><span>${esc(meta)}</span></div></div>`;
 }
 function activityItem(event, compact=false, index=0) {
