@@ -878,11 +878,92 @@ def _playoff_bracket_model(
 
     projected = _projected_playoff_bracket(standings, settings)
     if projected:
-        projected["sections"] = [{
+        sections = [{
             "tier": "WINNERS_BRACKET",
             "label": "Championship Bracket",
             "rounds": projected.get("rounds") or [],
         }]
+        schedule_settings = settings.get("scheduleSettings") or {}
+        if schedule_settings.get("consolationLadderDisabled") is not True:
+            playoff_count = _int(schedule_settings.get("playoffTeamCount")) or 0
+            consolation = sorted(
+                standings,
+                key=lambda team: (
+                    team.get("playoff_seed") is None,
+                    team.get("playoff_seed") or team.get("standing") or 999,
+                ),
+            )[playoff_count:]
+            if len(consolation) >= 2:
+                postseason_periods = sorted(
+                    _int(period)
+                    for period in (schedule_settings.get("matchupPeriods") or {})
+                    if _int(period) is not None
+                    and _int(period) > (_int(schedule_settings.get("matchupPeriodCount")) or 0)
+                )
+                round_count = max(1, len(postseason_periods))
+                rounds = []
+                first_matches = []
+                left, right = 0, len(consolation) - 1
+                while left < right:
+                    home, away = consolation[left], consolation[right]
+                    first_matches.append({
+                        "id": f"projected-consolation-r1-{left}",
+                        "matchup_period": postseason_periods[0] if postseason_periods else None,
+                        "playoff_tier": "CONSOLATION_LADDER",
+                        "winner": None,
+                        "status": "projected",
+                        "home_team_id": home.get("id"),
+                        "home_team_name": home.get("name"),
+                        "home_logo": home.get("logo"),
+                        "home_seed": home.get("playoff_seed") or home.get("standing"),
+                        "home_score": None,
+                        "home_projected_score": None,
+                        "away_team_id": away.get("id"),
+                        "away_team_name": away.get("name"),
+                        "away_logo": away.get("logo"),
+                        "away_seed": away.get("playoff_seed") or away.get("standing"),
+                        "away_score": None,
+                        "away_projected_score": None,
+                    })
+                    left += 1
+                    right -= 1
+                rounds.append({
+                    "index": 1,
+                    "label": "Round 1" if round_count > 1 else "Consolation",
+                    "matchup_period": postseason_periods[0] if postseason_periods else None,
+                    "matches": first_matches,
+                })
+                for index in range(1, round_count):
+                    rounds.append({
+                        "index": index + 1,
+                        "label": f"Round {index + 1}",
+                        "matchup_period": postseason_periods[index] if index < len(postseason_periods) else None,
+                        "matches": [{
+                            "id": f"projected-consolation-r{index + 1}-{match_index}",
+                            "matchup_period": postseason_periods[index] if index < len(postseason_periods) else None,
+                            "playoff_tier": "CONSOLATION_LADDER",
+                            "winner": None,
+                            "status": "projected",
+                            "home_team_id": None,
+                            "home_team_name": "TBD",
+                            "home_logo": None,
+                            "home_seed": None,
+                            "home_score": None,
+                            "home_projected_score": None,
+                            "away_team_id": None,
+                            "away_team_name": "TBD",
+                            "away_logo": None,
+                            "away_seed": None,
+                            "away_score": None,
+                            "away_projected_score": None,
+                        } for match_index in range(max(1, len(first_matches)))],
+                    })
+                sections.append({
+                    "tier": "CONSOLATION_LADDER",
+                    "label": "Consolation Ladder",
+                    "rounds": rounds,
+                })
+        projected["sections"] = sections
         return projected
     return {
         "available": False,
@@ -958,10 +1039,10 @@ def _league_model(
             "team_id": team.get("id"),
             "team_name": team.get("name"),
             "team_logo": team.get("logo"),
-            "budget_spent": team.get("acquisition_budget_spent"),
+            "budget_spent": team.get("acquisition_budget_spent") if uses_budget else None,
             "budget_remaining": (
                 round(budget - float(team.get("acquisition_budget_spent") or 0), 2)
-                if budget is not None else None
+                if uses_budget and budget is not None else None
             ),
         }
         for team in standings

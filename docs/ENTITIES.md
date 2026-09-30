@@ -206,3 +206,8 @@ For simple triggers, prefer the focused entities:
 
 For advanced templates, use the rich attributes on League, Roster, Matchup, and Player entities. The cards consume the same normalized model, so data visible in a card should generally have an equivalent Home Assistant representation.
 \n\n## v0.1.35 additions\n\n- The **League** sensor exposes `waivers` and `waiver_order`, including ESPN waiver rank and available FAB budget context when supplied by the league.\n- Player sensors expose `biography` and `nfl_team_logo`. Biography is cached on a long interval and can include height, weight, age, birthplace, jersey, college, experience, draft details, and team history when ESPN supplies them.\n- League Activity item types distinguish `started`, `benched`, `roster_move`, `added`, `dropped`, and `traded`, with lineup slot transitions retained for roster moves.\n
+
+## v0.1.36 additions
+
+- Traditional waiver leagues no longer expose dormant ESPN acquisition-budget values as remaining FAB budget; budget fields are populated only when the league is positively identified as using an acquisition budget.
+- Before ESPN supplies actual postseason matchup tiers, leagues with the consolation ladder enabled expose a projected **Consolation Ladder** section beneath the projected Championship Bracket. Actual ESPN postseason tier data continues to replace the projection when available.

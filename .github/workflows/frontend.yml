@@ -136,6 +136,39 @@ jobs:
           assert projected["source"] == "standings_projection"
           assert projected["projected"] is True
           assert projected["rounds"][0]["matches"][0]["home_seed"] == 1
+
+          # Reproduce a 10-team traditional-waiver league where ESPN carries a
+          # dormant acquisitionBudget=100 and the consolation ladder is enabled.
+          diagnostic = dict(data)
+          diagnostic["teams"] = [
+              {"id": i, "name": f"Team {i}", "playoffSeed": i, "waiverRank": i,
+               "transactionCounter": {"acquisitionBudgetSpent": 0},
+               "record": {"overall": {"wins": 10-i, "losses": i-1}}}
+              for i in range(1, 11)
+          ]
+          diagnostic["season_schedule"] = []
+          diagnostic["settings"] = {
+              "scheduleSettings": {
+                  "playoffTeamCount": 4,
+                  "consolationLadderDisabled": False,
+                  "matchupPeriodCount": 13,
+                  "matchupPeriods": {"14": [14, 15], "15": [16, 17]},
+              },
+              "acquisitionSettings": {
+                  "acquisitionType": "WAIVERS_TRADITIONAL",
+                  "isUsingAcquisitionBudget": False,
+                  "acquisitionBudget": 100,
+              },
+          }
+          normalized = model.build_normalized_model(diagnostic, 1)["league"]
+          assert [section["tier"] for section in normalized["playoff_bracket"]["sections"]] == [
+              "WINNERS_BRACKET", "CONSOLATION_LADDER"
+          ]
+          assert normalized["playoff_bracket"]["sections"][1]["rounds"][0]["matches"]
+          assert normalized["waivers"]["system"] == "waiver_order"
+          assert normalized["waivers"]["acquisition_budget"] is None
+          assert all(item["budget_remaining"] is None for item in normalized["waivers"]["order"])
+          assert all(item["budget_spent"] is None for item in normalized["waivers"]["order"])
           PY
       - name: Smoke-test history and lineup advice
         run: |
