@@ -36,6 +36,8 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
         self._player_history_updated = 0.0
         self._player_status: dict[int, dict] = {}
         self._player_status_updated = 0.0
+        self._player_biographies: dict[int, dict] = {}
+        self._player_biographies_updated = 0.0
         self._last_full_refresh = 0.0
         self.client = ESPNClient(
             async_get_clientsession(hass),
@@ -167,6 +169,70 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                             )
                             keyed[key] = stat
                         player["stats"] = list(keyed.values())
+
+            # Biography/profile data changes rarely. Cache it for a day and merge
+            # it into the same roster player objects consumed by normalization.
+            if player_ids and (
+                not self._player_biographies
+                or now - self._player_biographies_updated >= 86400
+            ):
+                fetched_bios = await self.client.get_player_biographies_many(player_ids)
+                for player_id, payload in fetched_bios.items():
+                    profile = payload.get("profile") or {}
+                    bio = payload.get("bio") or {}
+                    birth = profile.get("birthPlace") or {}
+                    college = profile.get("college") or {}
+                    position = profile.get("position") or {}
+                    draft = profile.get("draft") or {}
+                    experience = profile.get("experience") or {}
+                    team_history = [
+                        {
+                            "team_id": item.get("id"),
+                            "team_name": item.get("displayName"),
+                            "logo": item.get("logo"),
+                            "seasons": item.get("seasons"),
+                        }
+                        for item in (bio.get("teamHistory") or [])
+                        if isinstance(item, dict)
+                    ]
+                    normalized_bio = {
+                        "height": profile.get("displayHeight"),
+                        "weight": profile.get("displayWeight"),
+                        "age": profile.get("age"),
+                        "date_of_birth": profile.get("dateOfBirth"),
+                        "birthplace": ", ".join(
+                            str(birth.get(key)) for key in ("city", "state", "country")
+                            if birth.get(key)
+                        ) or None,
+                        "jersey": profile.get("jersey"),
+                        "position": position.get("displayName") or position.get("abbreviation"),
+                        "experience": experience.get("years") if isinstance(experience, dict) else experience,
+                        "debut_year": profile.get("debutYear"),
+                        "college": college.get("name") if isinstance(college, dict) else college,
+                        "draft": {
+                            "year": draft.get("year"),
+                            "round": draft.get("round"),
+                            "selection": draft.get("selection"),
+                            "team": (draft.get("team") or {}).get("displayName") if isinstance(draft.get("team"), dict) else None,
+                        } if isinstance(draft, dict) and draft else {},
+                        "team_history": team_history,
+                    }
+                    if any(value not in (None, "", [], {}) for value in normalized_bio.values()):
+                        self._player_biographies[player_id] = normalized_bio
+                self._player_biographies_updated = now
+            self._player_biographies = {
+                player_id: item for player_id, item in self._player_biographies.items()
+                if player_id in current_player_ids
+            }
+            for team in data.get("teams") or []:
+                for roster_entry in (team.get("roster") or {}).get("entries") or []:
+                    player = (roster_entry.get("playerPoolEntry") or {}).get("player") or {}
+                    try:
+                        player_id = int(player.get("id") or roster_entry.get("playerId"))
+                    except (TypeError, ValueError):
+                        continue
+                    if player_id in self._player_biographies:
+                        player["biography"] = self._player_biographies[player_id]
 
             # Injury fields are not consistently included in mRoster. Enrich the
             # same roster player objects used by normalization so every card sees
