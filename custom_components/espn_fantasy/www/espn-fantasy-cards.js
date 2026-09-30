@@ -454,7 +454,7 @@ class ESPNFantasyLeagueTickerCard extends ESPNBaseCard {
   static getStubConfig(){return {type:"custom:espn-fantasy-ticker-card",content:"both",include_activity:false,story_count:5,section_order:"players_first",scroll_style:"step",auto_scroll:true,scroll_speed:"normal",frame:false,team_header:"logo_name",league_header:"logo_name"};}
   static getConfigForm(){return {schema:[
     {name:"roster_entity",selector:{entity:{domain:"sensor"}}},{name:"league_entity",selector:{entity:{domain:"sensor"}}},
-    {name:"content",selector:{select:{options:[{value:"players",label:"Players"},{value:"scoreboard",label:"Scoreboard"},{value:"both",label:"Players + Scoreboard"}]}}},{name:"include_activity",selector:{boolean:{}}}{name:"story_count",selector:{number:{min:1,max:20,mode:"box"}}},
+    {name:"content",selector:{select:{options:[{value:"players",label:"Players"},{value:"scoreboard",label:"Scoreboard"},{value:"both",label:"Players + Scoreboard"}]}}},{name:"include_activity",selector:{boolean:{}}},{name:"story_count",selector:{number:{min:1,max:20,mode:"box"}}},
     {name:"section_order",selector:{select:{options:[{value:"players_first",label:"Players → Scoreboard"},{value:"scoreboard_first",label:"Scoreboard → Players"}]}}},
     {name:"scroll_style",selector:{select:{options:[{value:"step",label:"Step"},{value:"smooth",label:"Smooth / continuous"}]}}},
     {name:"team_header",selector:{select:{options:[{value:"logo_name",label:"Logo + name"},{value:"logo",label:"Logo only"},{value:"name",label:"Name only"},{value:"hidden",label:"Hidden"}]}}},
