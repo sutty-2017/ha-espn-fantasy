@@ -1180,16 +1180,6 @@ def _league_model(
         game = _normalize_league_game(matchup, teams, matchup_period)
         if game.get("home_team_id") is None and game.get("away_team_id") is None:
             continue
-        home_raw = matchup.get("home") or {}
-        away_raw = matchup.get("away") or {}
-        home_id = _int(home_raw.get("teamId"))
-        away_id = _int(away_raw.get("teamId"))
-        game["home_team"] = _side(
-            home_raw, teams.get(home_id, {}), scoring_period, pro_teams
-        ) if home_id is not None else None
-        game["away_team"] = _side(
-            away_raw, teams.get(away_id, {}), scoring_period, pro_teams
-        ) if away_id is not None else None
         scoreboard.append(game)
 
     schedule_periods = sorted({
