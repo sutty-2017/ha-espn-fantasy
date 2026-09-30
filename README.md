@@ -139,3 +139,21 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 ## Development status
 
 The current development line is **v0.1.36**, focused on real-world bug fixes and postseason presentation stability.
+
+
+## Help test another league format
+
+ESPN Fantasy leagues can differ substantially in roster slots, scoring, waivers,
+playoffs, divisions, keepers, and IDP usage. Compatibility reports from real
+leagues are especially useful for formats not represented by the maintainer's
+league.
+
+When reporting a league-format issue, attach the Home Assistant diagnostics for
+the ESPN Fantasy integration and describe the league format (for example:
+Superflex, IDP, FAB, keeper, divisions, or six-team playoffs). Diagnostics
+redact the ESPN authentication cookies and omit ESPN member profiles.
+
+The integration records a compact compatibility summary containing the observed
+league capabilities and unknown ESPN lineup/position IDs. Small sanitized
+response shapes can then be added under `tests/fixtures/` as permanent
+regression coverage. Never post `espn_s2` or `SWID` cookie values.
