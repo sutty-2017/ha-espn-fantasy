@@ -35,6 +35,7 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
         self._player_history_updated = 0.0
         self._player_status: dict[int, dict] = {}
         self._player_status_updated = 0.0
+        self._last_full_refresh = 0.0
         self.client = ESPNClient(
             async_get_clientsession(hass),
             season=int(entry.data[CONF_SEASON]),
@@ -49,9 +50,43 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
             update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
         )
 
+    def _matchup_has_live_players(self, data: dict | None) -> bool:
+        matchup = ((data or {}).get("normalized") or {}).get("matchup") or {}
+        for side_name in ("my_team", "opponent"):
+            side = matchup.get(side_name) or {}
+            if any(
+                player.get("game_status") == "in_progress"
+                for player in (side.get("roster") or [])
+            ):
+                return True
+        return False
+
     async def _async_update_data(self) -> dict:
         try:
+            now = time.monotonic()
+            if (
+                self.data
+                and self._matchup_has_live_players(self.data)
+                and now - self._last_full_refresh < DEFAULT_SCAN_INTERVAL
+            ):
+                scoring_period = (self.data.get("normalized") or {}).get("scoring_period")
+                matchup_period = (self.data.get("normalized") or {}).get("matchup_period")
+                if scoring_period:
+                    live = await self.client.get_live_matchup(
+                        int(scoring_period),
+                        int(matchup_period) if matchup_period is not None else None,
+                    )
+                    data = dict(self.data)
+                    data["live_scoring"] = live
+                    if live.get("schedule"):
+                        data["current_matchup"] = live["schedule"]
+                    team_id = int(self.entry.data[CONF_TEAM_ID])
+                    data["normalized"] = build_normalized_model(data, team_id)
+                    self.update_interval = timedelta(seconds=60)
+                    return data
+
             data = await self.client.get_league()
+            self._last_full_refresh = now
             team_id = int(self.entry.data[CONF_TEAM_ID])
             player_ids: list[int] = []
             for team in data.get("teams") or []:
@@ -186,6 +221,9 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
 
             data["player_news"] = self._player_news
             data["normalized"] = build_normalized_model(data, team_id)
+            self.update_interval = timedelta(
+                seconds=60 if self._matchup_has_live_players(data) else DEFAULT_SCAN_INTERVAL
+            )
 
             matchup = (data["normalized"] or {}).get("matchup") or {}
             my_team = matchup.get("my_team") or {}
