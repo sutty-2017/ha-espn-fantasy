@@ -116,6 +116,18 @@ jobs:
           assert bracket["projected"] is True
           assert [r["label"] for r in bracket["rounds"]] == ["Semifinals", "Championship"]
           assert bracket["rounds"][0]["matches"][0]["home_seed"] == 1
+          assert bracket["sections"][0]["tier"] == "WINNERS_BRACKET"
+
+          postseason = dict(data)
+          postseason["season_schedule"] = [
+              *data["season_schedule"],
+              {"id": 30, "matchupPeriodId": 15, "playoffTierType": "LOSERS_BRACKET", "home": {"teamId": 3}, "away": {"teamId": 4}},
+              {"id": 31, "matchupPeriodId": 16, "playoffTierType": "CONSOLATION_LADDER", "home": {"teamId": 3}, "away": {"teamId": 4}},
+          ]
+          full_bracket = model.build_normalized_model(postseason, 1)["league"]["playoff_bracket"]
+          assert [section["tier"] for section in full_bracket["sections"]] == [
+              "WINNERS_BRACKET", "LOSERS_BRACKET", "CONSOLATION_LADDER"
+          ]
 
           fallback = dict(data)
           fallback["season_schedule"] = []
@@ -276,6 +288,13 @@ jobs:
           assert {side["team_name"] for side in event["sides"]} == {"Alpha", "Beta"}
           assert all(side["sent"] and side["received"] for side in event["sides"])
           PY
+      - name: Check adaptive live polling path
+        run: |
+          grep -q 'LIVE_SCAN_INTERVAL = 60' custom_components/espn_fantasy/const.py
+          grep -q 'get_live_matchup' custom_components/espn_fantasy/api.py
+          grep -q '_matchup_has_live_players' custom_components/espn_fantasy/coordinator.py
+          grep -q 'now - self._last_full_refresh < DEFAULT_SCAN_INTERVAL' custom_components/espn_fantasy/coordinator.py
+
       - name: Check automation-facing sensors
         run: |
           FILE=custom_components/espn_fantasy/sensor.py
@@ -317,6 +336,12 @@ jobs:
           grep -q 'Playoff Bracket' "$FILE"
           grep -q 'data-expand-bracket' "$FILE"
           grep -q 'scheduleBody' "$FILE"
+          grep -q 'data-schedule-view="league"' "$FILE"
+          grep -q 'data-schedule-view="team"' "$FILE"
+          grep -q 'aria-label="Previous week"' "$FILE"
+          grep -q 'mdi:arrow-expand-all' "$FILE"
+          grep -q 'bracket.sections' "$FILE"
+          ! grep -q 'data-bracket-round' "$FILE"
           grep -q 'scroll_style' "$FILE"
           grep -q 'Smooth / continuous' "$FILE"
           grep -q 'ticker-identity' "$FILE"
