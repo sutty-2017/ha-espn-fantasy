@@ -184,12 +184,18 @@ class ESPNClient:
         except ESPNError:
             meta["live_scoring"] = {}
 
-        schedule = await self._get_json(
-            [("view", "mSchedule")],
-            expected_any=("schedule",),
-            context="ESPN season schedule",
-        )
-        season_schedule = list(schedule.get("schedule", []))
+        # Whole-season schedule is enrichment, not a setup requirement. ESPN can
+        # return HTTP 200 with a sparse league payload for mSchedule, so degrade
+        # to an empty schedule instead of failing the integration.
+        try:
+            schedule = await self._get_json(
+                [("view", "mSchedule")],
+                expected_any=("schedule",),
+                context="ESPN season schedule",
+            )
+            season_schedule = list(schedule.get("schedule") or [])
+        except ESPNError:
+            season_schedule = []
         # ESPN can expose consolation/placement paths only in postseason
         # segments. Merge those schedules without replacing richer segment-0 rows.
         schedule_by_id = {
