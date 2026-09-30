@@ -1,3 +1,5 @@
+> **v0.1.37:** Adds compatibility/resilience diagnostics and fixture testing, complete postseason presentation with Winners Consolation, Roster/Matchup lineup-advice badges, and interactive Scoreboard/Standings drill-down popups with single-modal Back navigation.
+
 > **v0.1.36:** Fixes traditional-waiver budget display, adds the enabled Consolation Ladder to pre-playoff standings projections, fixes All-in-One navigation after viewing Playoffs, and improves team-logo watermark visibility.
 
 > **v0.1.35:** Adds richer postseason schedule retrieval for consolation/ladder brackets, Waiver Order, player biographies, team-logo watermarks, and clearer Started/Benched/trade Activity semantics.\n\n> **v0.1.34:** Refines Schedule with League/My Team views and compact week arrows, exposes all ESPN postseason tiers with a cleaner expandable bracket, and adds focused 60-second live matchup polling while games are active.
@@ -87,7 +89,7 @@ A focused player card with headshot, injury indicator, game status, fantasy scor
 ### ESPN Fantasy League
 The main dashboard card is section-based. New cards enable **Roster**, **Standings**, **Scoreboard**, **Matchup**, **News**, **Activity**, **Waivers**, **Schedule**, and **Playoff Bracket** by default. Use the editor checkboxes to keep any combination down to a single section, and reorder only the sections that are enabled. Section-specific settings stay grouped with their section and are hidden when that section is disabled.
 
-Roster and Matchup each include **Starters / Bench & IR** views, and the Roster section can flag projection-based lineup alternatives. Schedule provides a League view with compact previous/next week navigation and a My Team view that lists the full season using the same matchup styling. The Playoff Bracket exposes all postseason tiers ESPN supplies, including championship, consolation, and ladder paths, with horizontal scrolling and an icon-only wide-view control; ESPN schedule playoff data is preferred when present, with a clearly labeled current-standings championship projection as a fallback before ESPN postseason data is available. News and Activity remain scrollable feeds, and selected card views are remembered.
+Roster and Matchup each include **Starters / Bench & IR** views. Projection-based lineup alternatives can be toggled independently for each section and appear as an orange **−** badge on the lower-projected starter and a green **+** badge on the qualifying bench player. Standings rows can open a roster-style team popup, while Scoreboard games can open a matchup-style popup; both drill down through team rosters and player details inside one modal with Back navigation. Schedule provides a League view with compact previous/next week navigation and a My Team view that lists the full season using the same matchup styling. The Playoff Bracket exposes all postseason tiers ESPN supplies, including championship, consolation, and ladder paths, with horizontal scrolling and an icon-only wide-view control; ESPN schedule playoff data is preferred when present, with a clearly labeled current-standings championship projection as a fallback before ESPN postseason data is available. News and Activity remain scrollable feeds, and selected card views are remembered.
 
 ### ESPN Fantasy Ticker
 The ticker uses the same section model for **Players**, **Scoreboard**, and **Activity**, with all three enabled on new cards. Sections can be independently enabled, disabled, and reordered, while settings for disabled sections stay out of the editor. The pinned identity panel follows the active section. Choose **Step** or continuous **Smooth** scrolling, size the ticker for compact through wall-panel layouts, and customize identity/header presentation and appearance.
@@ -138,7 +140,7 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current stable release is **v0.1.36**. Compatibility/resilience work is being developed separately and is not yet a release candidate.
+The current release candidate is **v0.1.37**. It combines the v0.1.36 testing fixes with the compatibility/resilience work developed on the dedicated branch.
 
 
 ## Help test another league format
