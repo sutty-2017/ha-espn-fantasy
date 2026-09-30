@@ -44,6 +44,20 @@ jobs:
           assert '_CARD_URL = f"{_CARD_STATIC_URL}?v={_CARD_VERSION}"' in init
           print(f"Manifest/frontend/cache version source is consistent: {manifest_version}")
           PY
+      - name: Regression-test sparse optional season schedule
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          source = Path("custom_components/espn_fantasy/api.py").read_text()
+          tree = ast.parse(source)
+          text = source
+          assert 'context="ESPN season schedule"' in text
+          assert 'except ESPNError:\n            season_schedule = []' in text
+          assert 'meta["season_schedule"] = season_schedule' in text
+          print("Sparse mSchedule is optional and degrades to an empty season schedule.")
+          PY
       - name: Smoke-test normalized league scoreboard
         run: |
           python - <<'PY'
