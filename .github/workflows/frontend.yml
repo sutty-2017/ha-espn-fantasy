@@ -321,6 +321,10 @@ jobs:
           assert {side["team_name"] for side in event["sides"]} == {"Alpha", "Beta"}
           assert all(side["sent"] and side["received"] for side in event["sides"])
           PY
+      - name: Run compatibility fixture tests
+        run: |
+          python -m unittest discover -s tests -p 'test_*.py'
+
       - name: Check adaptive live polling path
         run: |
           grep -q 'LIVE_SCAN_INTERVAL = 60' custom_components/espn_fantasy/const.py
