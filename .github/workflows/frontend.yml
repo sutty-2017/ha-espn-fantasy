@@ -134,7 +134,10 @@ jobs:
               "WINNERS_BRACKET", "LOSERS_BRACKET"
           ]
           assert bracket["sections"][1]["label"] == "Winners Consolation Ladder"
-          assert bracket["sections"][1]["rounds"][0]["matches"][0]["home_team_name"] == "TBD"
+          winners_consolation = bracket["sections"][1]["rounds"]
+          assert len(winners_consolation) == 1
+          assert winners_consolation[0]["matchup_period"] == 16
+          assert winners_consolation[0]["matches"][0]["home_team_name"] == "TBD"
 
           postseason = dict(data)
           postseason["season_schedule"] = [
@@ -183,6 +186,8 @@ jobs:
               "WINNERS_BRACKET", "LOSERS_BRACKET", "CONSOLATION_LADDER"
           ]
           assert normalized["playoff_bracket"]["sections"][1]["label"] == "Winners Consolation Ladder"
+          assert len(normalized["playoff_bracket"]["sections"][1]["rounds"]) == 1
+          assert normalized["playoff_bracket"]["sections"][1]["rounds"][0]["matchup_period"] == 15
           assert normalized["playoff_bracket"]["sections"][2]["rounds"][0]["matches"]
           assert normalized["waivers"]["system"] == "waiver_order"
           assert normalized["waivers"]["acquisition_budget"] is None
@@ -404,7 +409,10 @@ jobs:
           grep -q 'ESPN_FANTASY_ICON' "$FILE"
           grep -q 'header_background_color' "$FILE"
           grep -q 'class ESPNFantasyLeagueEditor' "$FILE"
-          grep -q 'news_height' "$FILE"
+          grep -q 'max_card_height' "$FILE"
+          ! grep -q 'news_height' "$FILE"
+          grep -q 'matchup-dialog' "$FILE"
+          grep -q 'bracket-round-empty' "$FILE"
           grep -q 'data-news-player' "$FILE"
           grep -q 'bindTickerPlayers' "$FILE"
           grep -q 'injuryBadge(p)' "$FILE"
