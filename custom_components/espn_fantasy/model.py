@@ -628,7 +628,7 @@ def _league_model(
         "team_count": len(standings),
         "matchup_count": len(scoreboard),
         "matchup_period": matchup_period,
-        "activity": _league_activity(data, teams, {\n            _int(team.get("id")): team for team in data.get("pro_team_schedules") or []\n            if _int(team.get("id")) is not None\n        }),
+        "activity": _league_activity(data, teams, {\n            _int(team.get("id")): team for team in data.get("pro_team_schedules") or []\n            if _int(team.get("id")) is not None\n        }, _int(data.get("scoringPeriodId")) or _int((data.get("status") or {}).get("currentScoringPeriod"))),
     }
 
 def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]:
