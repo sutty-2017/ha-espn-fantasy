@@ -95,6 +95,83 @@ def _float(value: Any) -> float | None:
         return None
 
 
+def _slot_name(slot_id: int | None) -> str | None:
+    """Return a stable label while preserving unknown ESPN slot IDs."""
+    if slot_id is None:
+        return None
+    return str(LINEUP_SLOT_NAMES.get(slot_id, f"Slot {slot_id}"))
+
+
+def _league_capabilities(data: dict[str, Any]) -> dict[str, Any]:
+    """Describe the ESPN league shape without assuming one roster/scoring format."""
+    settings = data.get("settings") or {}
+    roster = settings.get("rosterSettings") or {}
+    schedule = settings.get("scheduleSettings") or {}
+    scoring = settings.get("scoringSettings") or {}
+    acquisition = settings.get("acquisitionSettings") or {}
+
+    raw_slots = roster.get("lineupSlotCounts") or {}
+    slot_counts: dict[str, int] = {}
+    unknown_slots: list[int] = []
+    for raw_id, raw_count in raw_slots.items():
+        slot_id = _int(raw_id)
+        count = _int(raw_count)
+        if slot_id is None or count is None or count <= 0:
+            continue
+        slot_counts[_slot_name(slot_id) or f"Slot {slot_id}"] = count
+        if slot_id not in LINEUP_SLOT_NAMES:
+            unknown_slots.append(slot_id)
+
+    acquisition_type = str(acquisition.get("acquisitionType") or "").upper()
+    uses_budget = bool(
+        acquisition.get("isUsingAcquisitionBudget")
+        or acquisition.get("isUsingAcquisitionBudgetEnabled")
+        or any(token in acquisition_type for token in ("BUDGET", "FAAB", "FAB"))
+    )
+    scoring_type = scoring.get("scoringType")
+    playoff_count = _int(schedule.get("playoffTeamCount"))
+    team_count = len(data.get("teams") or [])
+
+    observed_slots: set[int] = set()
+    observed_positions: set[int] = set()
+    for team in data.get("teams") or []:
+        for entry in (team.get("roster") or {}).get("entries") or []:
+            slot_id = _int(entry.get("lineupSlotId"))
+            if slot_id is not None:
+                observed_slots.add(slot_id)
+            player = (entry.get("playerPoolEntry") or {}).get("player") or {}
+            position_id = _int(player.get("defaultPositionId"))
+            if position_id is not None:
+                observed_positions.add(position_id)
+            for eligible in player.get("eligibleSlots") or []:
+                eligible_id = _int(eligible)
+                if eligible_id is not None:
+                    observed_slots.add(eligible_id)
+
+    unknown_slots = sorted(set(unknown_slots) | {slot for slot in observed_slots if slot not in LINEUP_SLOT_NAMES})
+    unknown_positions = sorted(position for position in observed_positions if position not in POSITION_NAMES)
+
+    return {
+        "team_count": team_count,
+        "scoring_type": scoring_type,
+        "lineup_slot_counts": slot_counts,
+        "lineup_slot_ids": sorted(set(observed_slots) | {_int(k) for k in raw_slots if _int(k) is not None}),
+        "has_ir": any(slot_counts.get(name, 0) for name in ("IR",)),
+        "has_idp": any(position in observed_positions for position in range(8, 16)),
+        "has_unknown_lineup_slots": bool(unknown_slots),
+        "unknown_lineup_slot_ids": unknown_slots,
+        "unknown_position_ids": unknown_positions,
+        "acquisition_type": acquisition_type or None,
+        "uses_acquisition_budget": uses_budget,
+        "has_waivers": not any(token in acquisition_type for token in ("FREE_AGENT", "NO_WAIVER", "NONE")),
+        "playoff_team_count": playoff_count,
+        "playoff_reseed": schedule.get("playoffReseed"),
+        "consolation_ladder_enabled": schedule.get("consolationLadderDisabled") is not True,
+        "has_divisions": bool((settings.get("scheduleSettings") or {}).get("divisions")),
+        "keeper_count": _int((settings.get("draftSettings") or {}).get("keeperCount")),
+    }
+
+
 def _team_name(team: dict[str, Any]) -> str:
     return (
         team.get("name")
@@ -231,9 +308,9 @@ def _player(
         "position_id": position_id,
         "position": POSITION_NAMES.get(position_id, position_id),
         "lineup_slot_id": slot_id,
-        "lineup_slot": LINEUP_SLOT_NAMES.get(slot_id, slot_id),
+        "lineup_slot": _slot_name(slot_id),
         "eligible_slot_ids": [_int(slot) for slot in (player.get("eligibleSlots") or []) if _int(slot) is not None],
-        "eligible_slots": [LINEUP_SLOT_NAMES.get(_int(slot), _int(slot)) for slot in (player.get("eligibleSlots") or []) if _int(slot) is not None],
+        "eligible_slots": [_slot_name(_int(slot)) for slot in (player.get("eligibleSlots") or []) if _int(slot) is not None],
         "starter": slot_id not in BENCH_SLOTS if slot_id is not None else None,
         "pro_team_id": pro_team_id,
         "nfl_team": _team_abbrev(pro_team),
@@ -1123,6 +1200,7 @@ def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]
         "scoring_period": scoring_period,
         "matchup_period": matchup_period,
         "team_id": team_id,
+        "capabilities": _league_capabilities(data),
         "league": league,
         "matchup": {
             "id": matchup.get("id"),
