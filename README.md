@@ -1,4 +1,4 @@
-> **v0.1.34:** Refines Schedule with League/My Team views and compact week arrows, exposes all ESPN postseason tiers with a cleaner expandable bracket, and adds focused 60-second live matchup polling while games are active.
+> **v0.1.35:** Adds richer postseason schedule retrieval for consolation/ladder brackets, Waiver Order, player biographies, team-logo watermarks, and clearer Started/Benched/trade Activity semantics.\n\n> **v0.1.34:** Refines Schedule with League/My Team views and compact week arrows, exposes all ESPN postseason tiers with a cleaner expandable bracket, and adds focused 60-second live matchup polling while games are active.
 
 > **v0.1.33:** Adds section-based League and Ticker editors, full-season Schedule and playoff-bracket views, fixes portrait-anchored red injury badges, streamlines Fantasy Outlook, and polishes Activity ticker layout.
 
@@ -83,7 +83,7 @@ For a complete map of every provided sensor, binary sensor, and the important at
 A focused player card with headshot, injury indicator, game status, fantasy score/projection, configurable detailed statistics, fantasy outlook, and latest player news.
 
 ### ESPN Fantasy League
-The main dashboard card is section-based. New cards enable **Roster**, **Standings**, **Scoreboard**, **Matchup**, **News**, **Activity**, **Schedule**, and **Playoff Bracket** by default. Use the editor checkboxes to keep any combination down to a single section, and reorder only the sections that are enabled. Section-specific settings stay grouped with their section and are hidden when that section is disabled.
+The main dashboard card is section-based. New cards enable **Roster**, **Standings**, **Scoreboard**, **Matchup**, **News**, **Activity**, **Waivers**, **Schedule**, and **Playoff Bracket** by default. Use the editor checkboxes to keep any combination down to a single section, and reorder only the sections that are enabled. Section-specific settings stay grouped with their section and are hidden when that section is disabled.
 
 Roster and Matchup each include **Starters / Bench & IR** views, and the Roster section can flag projection-based lineup alternatives. Schedule provides a League view with compact previous/next week navigation and a My Team view that lists the full season using the same matchup styling. The Playoff Bracket exposes all postseason tiers ESPN supplies, including championship, consolation, and ladder paths, with horizontal scrolling and an icon-only wide-view control; ESPN schedule playoff data is preferred when present, with a clearly labeled current-standings championship projection as a fallback before ESPN postseason data is available. News and Activity remain scrollable feeds, and selected card views are remembered.
 
@@ -136,4 +136,4 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current development line is **v0.1.34**, focused on Schedule usability, complete postseason bracket coverage, and efficient adaptive live-matchup polling.
+The current development line is **v0.1.35**, focused on postseason completeness, waiver visibility, richer player details, and clearer league activity.

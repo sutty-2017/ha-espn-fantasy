@@ -237,7 +237,12 @@ def _player(
         "starter": slot_id not in BENCH_SLOTS if slot_id is not None else None,
         "pro_team_id": pro_team_id,
         "nfl_team": _team_abbrev(pro_team),
+        "nfl_team_logo": (
+            f"https://a.espncdn.com/i/teamlogos/nfl/500/{_team_abbrev(pro_team).lower()}.png"
+            if _team_abbrev(pro_team) else None
+        ),
         "headshot": _player_image(player_id, position_id, pro_team_id, pro_teams),
+        "biography": player.get("biography") or {},
         "injury_status": injury_status,
         "injured": player.get("injured"),
         "last_news_date": _int(player.get("lastNewsDate")),
@@ -489,6 +494,8 @@ def _league_team(team: dict[str, Any]) -> dict[str, Any]:
         "points_against": _float(team.get("pointsAgainst")),
         "playoff_seed": _int(team.get("playoffSeed")),
         "rank": _int(team.get("rankCalculatedFinal") or team.get("rankFinal")),
+        "waiver_rank": _int(team.get("waiverRank")),
+        "acquisition_budget_spent": _float((team.get("transactionCounter") or {}).get("acquisitionBudgetSpent")),
         "streak_length": _int((team.get("record") or {}).get("overall", {}).get("streakLength")),
         "streak_type": (team.get("record") or {}).get("overall", {}).get("streakType"),
     }
@@ -543,10 +550,30 @@ def _league_activity(
                 side_ids.add(to_id)
             from_name = _team_name(teams[from_id]) if from_id in teams else None
             to_name = _team_name(teams[to_id]) if to_id in teams else None
-            if "ADD" in item_type:
+            from_slot = _int(item.get("fromLineupSlotId"))
+            to_slot = _int(item.get("toLineupSlotId"))
+            action = item_type.lower() or None
+            if "LINEUP" in item_type:
+                from_bench = from_slot in BENCH_SLOTS
+                to_bench = to_slot in BENCH_SLOTS
+                if from_bench and not to_bench:
+                    action = "started"
+                    phrase = f"{name} started"
+                elif not from_bench and to_bench:
+                    action = "benched"
+                    phrase = f"{name} benched"
+                else:
+                    action = "roster_move"
+                    phrase = f"{name}: {LINEUP_SLOT_NAMES.get(from_slot, from_slot)} → {LINEUP_SLOT_NAMES.get(to_slot, to_slot)}"
+            elif "ADD" in item_type:
+                action = "added"
                 phrase = f"{to_name or 'Team'} added {name}"
             elif "DROP" in item_type:
+                action = "dropped"
                 phrase = f"{from_name or 'Team'} dropped {name}"
+            elif "TRADE" in item_type:
+                action = "traded"
+                phrase = f"{name}: {from_name or 'Team'} → {to_name or 'Team'}"
             elif from_name and to_name:
                 phrase = f"{name}: {from_name} → {to_name}"
             else:
@@ -568,7 +595,12 @@ def _league_activity(
                 else None
             )
             normalized_items.append({
-                "type": item_type.lower() or None,
+                "type": action,
+                "raw_type": item_type.lower() or None,
+                "from_lineup_slot_id": from_slot,
+                "from_lineup_slot": LINEUP_SLOT_NAMES.get(from_slot, from_slot),
+                "to_lineup_slot_id": to_slot,
+                "to_lineup_slot": LINEUP_SLOT_NAMES.get(to_slot, to_slot),
                 "player_id": player_id,
                 "player_name": name,
                 "position": POSITION_NAMES.get(position_id, position_id),
@@ -911,6 +943,32 @@ def _league_model(
     })
     settings = data.get("settings") or {}
     bracket = _playoff_bracket_model(schedule, standings, settings, matchup_period)
+    acquisition = settings.get("acquisitionSettings") or {}
+    budget = _float(acquisition.get("acquisitionBudget"))
+    acquisition_type = str(acquisition.get("acquisitionType") or "").upper()
+    uses_budget = bool(
+        acquisition.get("isUsingAcquisitionBudget")
+        or acquisition.get("isUsingAcquisitionBudgetEnabled")
+        or any(token in acquisition_type for token in ("BUDGET", "FAAB", "FAB"))
+    )
+    no_waivers = any(token in acquisition_type for token in ("FREE_AGENT", "NO_WAIVER", "NONE"))
+    waiver_order = [
+        {
+            "rank": team.get("waiver_rank"),
+            "team_id": team.get("id"),
+            "team_name": team.get("name"),
+            "team_logo": team.get("logo"),
+            "budget_spent": team.get("acquisition_budget_spent"),
+            "budget_remaining": (
+                round(budget - float(team.get("acquisition_budget_spent") or 0), 2)
+                if budget is not None else None
+            ),
+        }
+        for team in standings
+        if team.get("waiver_rank") is not None and not no_waivers
+    ]
+    waiver_order.sort(key=lambda item: item["rank"])
+    waiver_system = "none" if no_waivers else ("fab_tiebreaker" if uses_budget else ("waiver_order" if waiver_order else "unknown"))
     activity = _league_activity(
         data,
         teams,
@@ -928,6 +986,15 @@ def _league_model(
         "schedule": schedule,
         "schedule_periods": schedule_periods,
         "playoff_bracket": bracket,
+        "waivers": {
+            "available": bool(waiver_order),
+            "system": waiver_system,
+            "label": "FAB Tiebreaker" if uses_budget else "Waiver Order",
+            "acquisition_type": acquisition_type or None,
+            "acquisition_budget": budget if uses_budget else None,
+            "last_execution": _int((data.get("status") or {}).get("waiverLastExecutionDate")),
+            "order": waiver_order,
+        },
         "team_count": len(standings),
         "matchup_count": len(scoreboard),
         "matchup_period": matchup_period,
