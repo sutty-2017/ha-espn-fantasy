@@ -495,7 +495,7 @@ def _league_team(team: dict[str, Any]) -> dict[str, Any]:
 
 
 def _league_activity(
-    data: dict[str, Any], teams: dict[int, dict[str, Any]]
+    data: dict[str, Any], teams: dict[int, dict[str, Any]], pro_teams: dict[int, dict[str, Any]]
 ) -> list[dict[str, Any]]:
     """Normalize ESPN transaction records into coherent league activity events."""
     player_names: dict[int, str] = {}
@@ -507,6 +507,7 @@ def _league_activity(
             if player_id is not None and player.get("fullName"):
                 player_names[player_id] = player["fullName"]
 
+    transaction_players = {int(key): value for key, value in (data.get("transaction_players") or {}).items() if str(key).isdigit()}
     events: list[dict[str, Any]] = []
     for tx in data.get("transactions") or []:
         if not isinstance(tx, dict):
@@ -519,7 +520,7 @@ def _league_activity(
                 continue
             player_id = _int(item.get("playerId"))
             pool = item.get("playerPoolEntry") or {}
-            raw_player = pool.get("player") or {}
+            raw_player = pool.get("player") or transaction_players.get(player_id) or {}
             name = raw_player.get("fullName") or player_names.get(player_id) or (
                 f"Player {player_id}" if player_id is not None else "Player"
             )
@@ -537,10 +538,15 @@ def _league_activity(
             else:
                 phrase = name
             phrases.append(phrase)
+            position_id = _int(raw_player.get("defaultPositionId"))
+            pro_team_id = _int(raw_player.get("proTeamId"))
             normalized_items.append({
                 "type": item_type.lower() or None,
                 "player_id": player_id,
                 "player_name": name,
+                "position": POSITION_NAMES.get(position_id, position_id),
+                "nfl_team": _team_abbrev(pro_teams.get(pro_team_id) or {}),
+                "headshot": _player_image(player_id, position_id, pro_team_id, pro_teams),
                 "from_team_id": from_id,
                 "from_team_name": from_name,
                 "to_team_id": to_id,
@@ -556,6 +562,7 @@ def _league_activity(
             "timestamp": _int(tx.get("processDate") or tx.get("proposedDate") or tx.get("date")),
             "team_id": team_id,
             "team_name": _team_name(teams[team_id]) if team_id in teams else None,
+            "team_logo": teams[team_id].get("logo") if team_id in teams else None,
             "bid_amount": _float(tx.get("bidAmount")),
             "items": normalized_items,
             "description": description,
@@ -621,7 +628,7 @@ def _league_model(
         "team_count": len(standings),
         "matchup_count": len(scoreboard),
         "matchup_period": matchup_period,
-        "activity": _league_activity(data, teams),
+        "activity": _league_activity(data, teams, {\n            _int(team.get("id")): team for team in data.get("pro_team_schedules") or []\n            if _int(team.get("id")) is not None\n        }),
     }
 
 def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]:
