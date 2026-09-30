@@ -34,6 +34,9 @@ class ESPNClient:
     def season_url(self) -> str:
         return f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{self.season}"
 
+    def segment_url(self, segment: int) -> str:
+        return f"{self.season_url}/segments/{segment}/leagues/{self.league_id}"
+
     def _cookies(self) -> dict[str, str] | None:
         cookies: dict[str, str] = {}
         if self.espn_s2:
@@ -160,10 +163,43 @@ class ESPNClient:
             meta["live_scoring"] = {}
 
         schedule = await self._get_json([("view", "mSchedule")])
-        meta["season_schedule"] = schedule.get("schedule", [])
+        season_schedule = list(schedule.get("schedule", []))
+        # ESPN can expose consolation/placement paths only in postseason
+        # segments. Merge those schedules without replacing richer segment-0 rows.
+        seen_schedule = {
+            str(game.get("id"))
+            for game in season_schedule
+            if isinstance(game, dict) and game.get("id") is not None
+        }
+        for segment in (1, 2, 3):
+            try:
+                async with self.session.get(
+                    self.segment_url(segment),
+                    params=[("view", "mSchedule")],
+                    cookies=self._cookies(),
+                    timeout=30,
+                ) as response:
+                    if response.status != 200:
+                        continue
+                    payload = await response.json()
+            except Exception:  # noqa: BLE001
+                continue
+            for game in payload.get("schedule") or []:
+                if not isinstance(game, dict):
+                    continue
+                game_id = str(game.get("id")) if game.get("id") is not None else None
+                if game_id and game_id in seen_schedule:
+                    continue
+                season_schedule.append(game)
+                if game_id:
+                    seen_schedule.add(game_id)
+        meta["season_schedule"] = season_schedule
 
         try:
-            transactions = await self._get_json([("view", "mTransactions2")])
+            transactions = await self._get_json([
+                ("view", "mTransactions2"),
+                ("scoringPeriodId", scoring_period),
+            ])
             meta["transactions"] = transactions.get("transactions", [])
         except ESPNError:
             meta["transactions"] = []
@@ -269,6 +305,37 @@ class ESPNClient:
             if player_id is not None:
                 result[player_id] = player
         return result
+
+    async def get_player_biographies_many(
+        self, player_ids: list[int]
+    ) -> dict[int, dict[str, Any]]:
+        """Fetch relatively static NFL profile + bio data for roster players."""
+        ids = list(dict.fromkeys(int(player_id) for player_id in player_ids if player_id))
+        if not ids:
+            return {}
+        semaphore = asyncio.Semaphore(5)
+
+        async def _fetch(player_id: int) -> tuple[int, dict[str, Any]]:
+            base = f"https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes/{player_id}"
+            profile: dict[str, Any] = {}
+            bio: dict[str, Any] = {}
+            async with semaphore:
+                try:
+                    async with self.session.get(base, timeout=20) as response:
+                        if response.status == 200:
+                            payload = await response.json()
+                            profile = payload.get("athlete") or payload
+                except Exception:  # noqa: BLE001
+                    pass
+                try:
+                    async with self.session.get(f"{base}/bio", timeout=20) as response:
+                        if response.status == 200:
+                            bio = await response.json()
+                except Exception:  # noqa: BLE001
+                    pass
+            return player_id, {"profile": profile, "bio": bio}
+
+        return dict(await asyncio.gather(*(_fetch(player_id) for player_id in ids)))
 
     async def get_player_status_many(
         self, player_ids: list[int]
