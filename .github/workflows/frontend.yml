@@ -76,6 +76,55 @@ jobs:
           assert scoreboard[0]["home_team_name"] == "Alpha"
           assert scoreboard[0]["away_team_name"] == "Beta"
           PY
+      - name: Smoke-test schedule and playoff bracket normalization
+        run: |
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+
+          path = Path("custom_components/espn_fantasy/model.py")
+          spec = importlib.util.spec_from_file_location("espn_fantasy_model", path)
+          model = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(model)
+
+          teams = [
+              {"id": 1, "name": "Alpha", "playoffSeed": 1, "record": {"overall": {"wins": 4, "losses": 0}}},
+              {"id": 2, "name": "Beta", "playoffSeed": 2, "record": {"overall": {"wins": 3, "losses": 1}}},
+              {"id": 3, "name": "Gamma", "playoffSeed": 3, "record": {"overall": {"wins": 2, "losses": 2}}},
+              {"id": 4, "name": "Delta", "playoffSeed": 4, "record": {"overall": {"wins": 1, "losses": 3}}},
+          ]
+          data = {
+              "scoringPeriodId": 4,
+              "status": {"currentScoringPeriod": 4, "currentMatchupPeriod": 4},
+              "settings": {"scheduleSettings": {"playoffTeamCount": 4}},
+              "teams": teams,
+              "season_schedule": [
+                  {"id": 1, "matchupPeriodId": 4, "home": {"teamId": 1, "totalPoints": 99}, "away": {"teamId": 2, "totalPoints": 95}},
+                  {"id": 20, "matchupPeriodId": 15, "playoffTierType": "WINNERS_BRACKET", "home": {"teamId": 1}, "away": {"teamId": 4}},
+                  {"id": 21, "matchupPeriodId": 15, "playoffTierType": "WINNERS_BRACKET", "home": {"teamId": 2}, "away": {"teamId": 3}},
+                  {"id": 22, "matchupPeriodId": 16, "playoffTierType": "WINNERS_BRACKET", "home": {}, "away": {}},
+              ],
+              "current_matchup": [{"id": 1, "matchupPeriodId": 4, "home": {"teamId": 1, "rosterForCurrentScoringPeriod": {"entries": []}}, "away": {"teamId": 2, "rosterForCurrentScoringPeriod": {"entries": []}}}],
+              "pro_team_schedules": [],
+          }
+          league = model.build_normalized_model(data, 1)["league"]
+          assert league["schedule_periods"] == [4, 15, 16]
+          assert len(league["schedule"]) == 4
+          bracket = league["playoff_bracket"]
+          assert bracket["available"] is True
+          assert bracket["source"] == "espn_schedule"
+          assert bracket["projected"] is True
+          assert [r["label"] for r in bracket["rounds"]] == ["Semifinals", "Championship"]
+          assert bracket["rounds"][0]["matches"][0]["home_seed"] == 1
+
+          fallback = dict(data)
+          fallback["season_schedule"] = []
+          projected = model.build_normalized_model(fallback, 1)["league"]["playoff_bracket"]
+          assert projected["available"] is True
+          assert projected["source"] == "standings_projection"
+          assert projected["projected"] is True
+          assert projected["rounds"][0]["matches"][0]["home_seed"] == 1
+          PY
       - name: Smoke-test history and lineup advice
         run: |
           python - <<'PY'
@@ -254,11 +303,20 @@ jobs:
           grep -q '"espn-fantasy-league-ticker-card",ESPNFantasyLeagueTickerCard' "$FILE"
           grep -q 'class ESPNFantasyUnifiedTickerCard' "$FILE"
           grep -q '"espn-fantasy-ticker-card",ESPNFantasyUnifiedTickerCard' "$FILE"
-          grep -q 'display_mode:"all"' "$FILE"
-          grep -q 'Players + Scoreboard' "$FILE"
+          grep -q 'section_roster:true' "$FILE"
+          grep -q 'section_schedule:true' "$FILE"
+          grep -q 'section_bracket:true' "$FILE"
+          grep -q 'ticker_players:true' "$FILE"
+          grep -q 'ticker_scoreboard:true' "$FILE"
+          grep -q 'ticker_activity:true' "$FILE"
           grep -q 'Bench / IR' "$FILE"
           grep -q 'data-roster="starters"' "$FILE"
-          grep -q 'section_order' "$FILE"
+          grep -q 'ticker_section_1' "$FILE"
+          grep -q 'Sections & Order' "$FILE"
+          grep -q 'class ESPNFantasyTickerEditor' "$FILE"
+          grep -q 'Playoff Bracket' "$FILE"
+          grep -q 'data-expand-bracket' "$FILE"
+          grep -q 'scheduleBody' "$FILE"
           grep -q 'scroll_style' "$FILE"
           grep -q 'Smooth / continuous' "$FILE"
           grep -q 'ticker-identity' "$FILE"
