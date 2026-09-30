@@ -938,6 +938,53 @@ def _playoff_bracket_model(
             "rounds": rounds,
         })
 
+    schedule_settings = settings.get("scheduleSettings") or {}
+    has_winners_consolation = any(
+        section["tier"] in {"WINNERS_CONSOLATION_LADDER", "LOSERS_BRACKET"}
+        for section in sections
+    )
+    if (
+        sections
+        and schedule_settings.get("consolationLadderDisabled") is not True
+        and not has_winners_consolation
+    ):
+        periods = sorted({
+            game.get("matchup_period")
+            for game in playoff_games
+            if isinstance(game.get("matchup_period"), int)
+        })
+        sections.append({
+            "tier": "LOSERS_BRACKET",
+            "label": "Winners Consolation Ladder",
+            "rounds": [{
+                "index": index + 1,
+                "label": f"Round {index + 1}" if len(periods) > 1 else "Winners Consolation",
+                "matchup_period": period,
+                "matches": [{
+                    "id": f"projected-winners-consolation-r{index + 1}",
+                    "matchup_period": period,
+                    "playoff_tier": "LOSERS_BRACKET",
+                    "winner": None,
+                    "status": "projected",
+                    "home_team_id": None,
+                    "home_team_name": "TBD",
+                    "home_logo": None,
+                    "home_seed": None,
+                    "home_score": None,
+                    "home_projected_score": None,
+                    "away_team_id": None,
+                    "away_team_name": "TBD",
+                    "away_logo": None,
+                    "away_seed": None,
+                    "away_score": None,
+                    "away_projected_score": None,
+                }],
+            } for index, period in enumerate(periods or [None])],
+        })
+        sections.sort(key=lambda section: (
+            tier_order.get(section["tier"], 99), section["tier"]
+        ))
+
     if sections:
         winners = next(
             (section for section in sections if section["tier"] == "WINNERS_BRACKET"),
