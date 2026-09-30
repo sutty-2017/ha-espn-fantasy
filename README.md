@@ -1,4 +1,8 @@
-> **v0.1.32:** Restores complete weekly history/injury normalization, expands League Activity with rich player/team identity and transaction popups, and adds automation-friendly Activity, Lineup Recommendations, and Injured Players sensors.\n\n
+> **v0.1.33:** Adds section-based League and Ticker editors, full-season Schedule and playoff-bracket views, fixes portrait-anchored red injury badges, streamlines Fantasy Outlook, and polishes Activity ticker layout.
+
+> **v0.1.32:** Restores complete weekly history/injury normalization, expands League Activity with rich player/team identity and transaction popups, and adds automation-friendly Activity, Lineup Recommendations, and Injured Players sensors.
+
+
 > **v0.1.31:** Adds normalized league transaction activity to Home Assistant, optional Activity in the All-in-One card and ticker, reliable per-week current-season history fetching, and shared roster injury-status enrichment.
 
 # ESPN Fantasy Football for Home Assistant
@@ -67,7 +71,9 @@ Treat these cookies like credentials. Do not commit them to GitHub, include them
 
 The integration creates a device for the configured fantasy league/team and exposes sensors for league information, **League Activity**, **Lineup Recommendations**, **Injured Players**, your team, record, points for/against, current week, roster, matchup, and each rostered player. Each player also receives a **Game Active** binary sensor.
 
-Player entities expose fantasy-relevant attributes including position, NFL team, lineup slot, injury status, ownership, actual/projected points, game status, opponent, detailed game statistics, weekly history/season summary, lineup recommendations, weekly/season outlooks, and cached player news. This makes the same normalized data used by the cards available for Home Assistant templates and automations.\n\nFor a complete map of every provided sensor, binary sensor, and the important attributes tucked inside them, see **[Home Assistant entities and attributes](docs/ENTITIES.md)**.
+Player entities expose fantasy-relevant attributes including position, NFL team, lineup slot, injury status, ownership, actual/projected points, game status, opponent, detailed game statistics, weekly history/season summary, lineup recommendations, weekly/season outlooks, and cached player news. This makes the same normalized data used by the cards available for Home Assistant templates and automations.
+
+For a complete map of every provided sensor, binary sensor, and the important attributes tucked inside them, see **[Home Assistant entities and attributes](docs/ENTITIES.md)**.
 
 ## Dashboard cards
 
@@ -75,10 +81,14 @@ Player entities expose fantasy-relevant attributes including position, NFL team,
 A focused player card with headshot, injury indicator, game status, fantasy score/projection, configurable detailed statistics, fantasy outlook, and latest player news.
 
 ### ESPN Fantasy League
-The main dashboard card. It can run as a standalone **Roster**, **Standings**, **Scoreboard**, or **Matchup** view, or as an **All-in-one** card that switches between those views and optional **News** and **Activity**. Roster and Matchup each include their own **Starters / Bench & IR** switch. The Roster view flags a starter with a red down arrow and an eligible higher-projected bench option with a green up arrow; the minimum projection difference is configurable. All-in-one navigation sections can be reordered with compact arrow controls. News has a configurable story count and scrollable height, news stories open the shared player-details popup, navigation labels and the card title are customizable, and selected views are remembered. The header can optionally show the bundled ESPN Fantasy mark.
+The main dashboard card is section-based. New cards enable **Roster**, **Standings**, **Scoreboard**, **Matchup**, **News**, **Activity**, **Schedule**, and **Playoff Bracket** by default. Use the editor checkboxes to keep any combination down to a single section, and reorder only the sections that are enabled. Section-specific settings stay grouped with their section and are hidden when that section is disabled.
+
+Roster and Matchup each include **Starters / Bench & IR** views, and the Roster section can flag projection-based lineup alternatives. Schedule provides week navigation across the fantasy season. The Playoff Bracket is horizontally scrollable with round-jump controls and can expand into a wide popup; ESPN schedule playoff data is preferred when present, with a clearly labeled current-standings projection as a fallback before an ESPN bracket is available. News and Activity remain scrollable feeds, and selected card views are remembered.
 
 ### ESPN Fantasy Ticker
-One ticker for **Players**, **Scoreboard**, or **Players + Scoreboard**. The identity panel stays pinned on the left while content scrolls and switches between your team and league identity in combined mode. Choose **Step** or continuous **Smooth** scrolling, flip Players/Scoreboard order, and customize logo + name, logo only, name only, or hidden identity modes. When ESPN does not provide a league logo, the ticker uses bundled ESPN Fantasy branding. The pinned identity background is opaque with a soft fade edge and can be color-customized in the card editor. Player tiles in the ticker open the same shared player-details popup used elsewhere. Activity can also be included in the ticker; transaction tiles are wider for readability and open the shared transaction-details popup.
+The ticker uses the same section model for **Players**, **Scoreboard**, and **Activity**, with all three enabled on new cards. Sections can be independently enabled, disabled, and reordered, while settings for disabled sections stay out of the editor. The pinned identity panel follows the active section. Choose **Step** or continuous **Smooth** scrolling, size the ticker for compact through wall-panel layouts, and customize identity/header presentation and appearance.
+
+Player tiles open the shared player-details popup. Activity transactions open the shared transaction popup; ticker Activity uses a compact team block with date/time under the team name and vertically stacked players to avoid unnecessary width.
 
 ### ESPN Fantasy News
 A newest-first feed of fantasy news for players on your roster. Each story includes the player's name and portrait, with a configurable story count, and selecting a story opens that player's shared details popup.
@@ -98,7 +108,7 @@ Cards also expose accent-color and border controls. The normal Home Assistant th
 
 ## Player details and news
 
-Player tiles across the suite share a common detailed view. Where player details are available, expanded content includes game statistics, current-season historical stats, ESPN fantasy outlook information, and the latest cached news. Stats, Historical stats, and Latest news are independently collapsible to keep larger popups manageable.
+Player tiles across the suite share a common detailed view. Where player details are available, expanded content includes game statistics, current-season historical stats, ESPN fantasy outlook information, and the latest cached news. Stats, Historical stats, Fantasy Outlook, and Latest news are independently collapsible to keep larger popups manageable. Fantasy Outlook shows the complete available outlook when expanded rather than using a separate preview/read-more flow.
 
 News is fetched by the integration rather than by individual cards. This keeps ESPN requests coordinated, allows the information to be exposed on player entities for automations, and lets multiple cards reuse the same data.
 
@@ -124,4 +134,4 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current development line is **v0.1.31**, adding current-season player history and season summaries, automation-friendly lineup advice, collapsible player-popup sections, and matched player/scoreboard ticker heights.
+The current development line is **v0.1.33**, focused on cohesive section-based card configuration, Schedule and Playoff Bracket views, shared injury-badge placement, and ticker/popup polish.

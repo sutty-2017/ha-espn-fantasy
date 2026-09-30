@@ -25,6 +25,9 @@ Attributes:
 - `scoring_type` — ESPN scoring type.
 - `standings` — normalized full league standings, including team identity, record, rank/seed, points and logo data.
 - `scoreboard` — normalized current league matchups with team IDs/names/logos, scores and projections.
+- `schedule` — normalized full-season fantasy matchups with period, team identity, scores/projections, winner/status, playoff tier, and seeds where available.
+- `schedule_periods` — sorted matchup periods present in the normalized full-season schedule.
+- `playoff_bracket` — normalized winners-bracket model used by the card. Includes availability/projected flags, data source, playoff-team count, rounds, round labels, matchup periods, and normalized matchups.
 - `activity` — normalized recent league transactions. This is the complete Activity feed used by the cards.
 - `activity_count` — number of normalized Activity events currently available.
 - `matchup_count` — number of current scoreboard matchups.
