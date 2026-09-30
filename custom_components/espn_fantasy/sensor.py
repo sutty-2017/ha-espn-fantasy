@@ -330,6 +330,119 @@ class LeagueSensor(ESPNBaseSensor):
         }
 
 
+class LeagueActivitySensor(ESPNBaseSensor):
+    """Latest normalized league transaction, with rich details for automations."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator, "league_activity", "League Activity")
+
+    @property
+    def _activity(self) -> list[dict[str, Any]]:
+        league = (self.coordinator.data.get("normalized") or {}).get("league") or {}
+        return league.get("activity") or []
+
+    @property
+    def native_value(self):
+        if not self._activity:
+            return "No activity"
+        return str(self._activity[0].get("description") or "League transaction")[:255]
+
+    @property
+    def extra_state_attributes(self):
+        latest = self._activity[0] if self._activity else {}
+        return {
+            "activity_count": len(self._activity),
+            "transaction_id": latest.get("id"),
+            "transaction_type": latest.get("type"),
+            "status": latest.get("status"),
+            "timestamp": latest.get("timestamp"),
+            "team_id": latest.get("team_id"),
+            "team_name": latest.get("team_name"),
+            "team_logo": latest.get("team_logo"),
+            "is_trade": latest.get("is_trade"),
+            "bid_amount": latest.get("bid_amount"),
+            "items": latest.get("items") or [],
+            "sides": latest.get("sides") or [],
+            "recent_activity": self._activity[:10],
+        }
+
+
+class LineupRecommendationsSensor(ESPNBaseSensor):
+    """Count and describe projection-based lineup recommendations."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator, "lineup_recommendations", "Lineup Recommendations")
+
+    @property
+    def _recommendations(self) -> list[dict[str, Any]]:
+        matchup = (self.coordinator.data.get("normalized") or {}).get("matchup") or {}
+        roster = (matchup.get("my_team") or {}).get("roster") or []
+        result = []
+        for player in roster:
+            if player.get("lineup_alert") != "lower_than_bench":
+                continue
+            result.append({
+                "starter_id": player.get("id"),
+                "starter_name": player.get("name"),
+                "starter_position": player.get("position"),
+                "starter_projected_points": player.get("projected_points"),
+                "replacement_id": player.get("lineup_alert_player_id"),
+                "replacement_name": player.get("lineup_alert_player_name"),
+                "projected_improvement": player.get("lineup_alert_difference"),
+            })
+        return result
+
+    @property
+    def native_value(self):
+        return len(self._recommendations)
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "recommendations": self._recommendations,
+            "has_recommendations": bool(self._recommendations),
+            "current_week": _current_scoring_period(self.coordinator),
+        }
+
+
+class InjuredPlayersSensor(ESPNBaseSensor):
+    """Count roster players with a meaningful ESPN injury designation."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator, "injured_players", "Injured Players")
+
+    @property
+    def _players(self) -> list[dict[str, Any]]:
+        matchup = (self.coordinator.data.get("normalized") or {}).get("matchup") or {}
+        roster = (matchup.get("my_team") or {}).get("roster") or []
+        healthy = {"", "ACTIVE", "NORMAL", "HEALTHY"}
+        return [
+            {
+                "player_id": player.get("id"),
+                "player_name": player.get("name"),
+                "position": player.get("position"),
+                "nfl_team": player.get("nfl_team"),
+                "roster_slot": player.get("lineup_slot"),
+                "injury_status": player.get("injury_status"),
+                "injured": player.get("injured"),
+            }
+            for player in roster
+            if str(player.get("injury_status") or "").upper() not in healthy
+        ]
+
+    @property
+    def native_value(self):
+        return len(self._players)
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "players": self._players,
+            "has_injuries": bool(self._players),
+            "current_week": _current_scoring_period(self.coordinator),
+        }
+
+
 class TeamSensor(ESPNBaseSensor):
     def __init__(self, coordinator):
         super().__init__(coordinator, "team", "My Team")
@@ -584,7 +697,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     coordinator: ESPNDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     entities: list[SensorEntity] = [
-        LeagueSensor(coordinator), TeamSensor(coordinator), RecordSensor(coordinator),
+        LeagueSensor(coordinator), LeagueActivitySensor(coordinator),\n        LineupRecommendationsSensor(coordinator), InjuredPlayersSensor(coordinator),\n        TeamSensor(coordinator), RecordSensor(coordinator),
         PointsForSensor(coordinator), PointsAgainstSensor(coordinator),
         CurrentWeekSensor(coordinator), RosterSensor(coordinator),
         MatchupSensor(coordinator),
