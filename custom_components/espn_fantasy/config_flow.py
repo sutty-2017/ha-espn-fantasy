@@ -16,7 +16,24 @@ from .const import (
 )
 
 
-class ESPNOptionsFlow(config_entries.OptionsFlow):\n    """Configure experimental diagnostics probes."""\n\n    async def async_step_init(self, user_input=None):\n        if user_input is not None:\n            return self.async_create_entry(title="", data=user_input)\n        return self.async_show_form(\n            step_id="init",\n            data_schema=vol.Schema({\n                vol.Optional(\n                    "pickem_entry_id",\n                    default=self.config_entry.options.get("pickem_entry_id", ""),\n                ): str,\n            }),\n        )\n\n\nclass ESPNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class ESPNOptionsFlow(config_entries.OptionsFlow):
+    """Configure experimental diagnostics probes."""
+
+    async def async_step_init(self, user_input=None):
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema({
+                vol.Optional(
+                    "pickem_entry_id",
+                    default=self.config_entry.options.get("pickem_entry_id", ""),
+                ): str,
+            }),
+        )
+
+
+class ESPNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle ESPN Fantasy setup."""
 
     VERSION = 1
