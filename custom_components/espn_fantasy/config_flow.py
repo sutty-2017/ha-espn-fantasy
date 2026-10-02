@@ -27,7 +27,7 @@ class ESPNOptionsFlow(config_entries.OptionsFlow):
             data_schema=vol.Schema({
                 vol.Optional(
                     "pickem_entry_id",
-                    default=self.config_entry.options.get("pickem_entry_id", ""),
+                    default=self._config_entry.options.get("pickem_entry_id", ""),
                 ): str,
             }),
         )
