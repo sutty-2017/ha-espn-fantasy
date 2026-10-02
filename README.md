@@ -1,6 +1,4 @@
-> **v0.1.47:** Removes the experimental ESPN Pick’em work and restores the integration runtime to the stable v0.1.41 Fantasy-only implementation. Pick’em client/probe code, options-flow additions, experimental tests, and research documentation have been removed.
-
-# ESPN Fantasy Football for Home Assistant
+> **v0.1.48:** Reworks Home Assistant diagnostics into a bounded Fantasy-focused payload instead of exporting the entire multi-megabyte coordinator. Keeps league settings, team structure, matchup/schedule summaries, recent transactions, normalized standings/scoreboard/schedule/playoffs/waivers/activity, and the normalized current matchup while omitting duplicated raw roster/news/history blobs.\n\n# ESPN Fantasy Football for Home Assistant
 
 > [!CAUTION]
 > **Personal-use / early-development project.** This integration is currently built and tested primarily for the maintainer's own Home Assistant and ESPN Fantasy setup. Other leagues, scoring systems, roster formats, ESPN response changes, and Home Assistant environments may behave differently. If you install or use it, you do so **at your own risk**. Keep backups and review changes before relying on it for dashboards or automations.
