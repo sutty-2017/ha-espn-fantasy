@@ -44,6 +44,8 @@ jobs:
           assert '_CARD_URL = f"{_CARD_STATIC_URL}?v={_CARD_VERSION}"' in init
           print(f"Manifest/frontend/cache version source is consistent: {manifest_version}")
           PY
+      - name: Regression-test bounded diagnostics payload
+        run: python -m unittest tests.test_diagnostics -v
       - name: Regression-test sparse optional season schedule
         run: |
           python - <<'PY'
