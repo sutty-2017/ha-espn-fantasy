@@ -1,9 +1,4 @@
-from __future__ import annotations
-
-from        "pickem_probe": pickem_probe,
- typing import Any
-
-from homeassistant.components.diagnostics import async_redact_data
+from __future__ import annotations\n\nfrom typing import Any\n\nfrom homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
