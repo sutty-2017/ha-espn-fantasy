@@ -1,15 +1,4 @@
-> **v0.1.45:** Completes the opt-in Pick’em diagnostics bridge: downloaded config-entry diagnostics now actually execute and include the authenticated Pick’em probe. The output remains structural/privacy-safe and no longer echoes the configured Pick’em entry ID. CI now guards both the current Home Assistant OptionsFlow contract and the diagnostics invocation path.\n\n> **v0.1.44:** Corrects the Pick’em Configure flow to the current Home Assistant OptionsFlow API: Home Assistant injects the config entry into the flow, so the handler is created without constructor arguments and reads `self.config_entry.options`. Adds a CI regression guard for this API contract.\n\n> **v0.1.43:** Fixes the Configure/options flow used by the opt-in Pick’em diagnostics probe introduced in v0.1.42. Existing Fantasy polling, entities, and cards remain unchanged. The probe remains disabled unless a Pick’em entry ID is configured and runs only when diagnostics are generated.\n>\n> **v0.1.42:** Introduced the diagnostics-only authenticated ESPN Pick’em probe.\n\n> **v0.1.41:** Polishes the League card by restoring readable Waiver Order team names, keeping editor text fields focused while typing, and optionally combining Standings + Scoreboard into one reorderable Overview section.\n\n> **v0.1.40:** Fixes a v0.1.39 Playoff Bracket regression that could hide the Championship Bracket while aligning Winners Consolation to the final postseason round, adds Waiver Order team-to-roster drill-down parity, makes every Schedule matchup open the matchup drill-down, and normalizes popup/UI headings to title case.\n\n> **v0.1.39:** Adds a League-card-wide maximum height with internal scrolling, widens Scoreboard matchup drill-downs, and aligns the single Winners Consolation matchup with the second postseason round.\n\n> **v0.1.38:** Fixes a setup regression where ESPN can return HTTP 200 without a `schedule` key for optional whole-season schedule enrichment; the integration now degrades gracefully instead of failing setup.\n\n> **v0.1.37:** Adds compatibility/resilience diagnostics and fixture testing, complete postseason presentation with Winners Consolation, Roster/Matchup lineup-advice badges, and interactive Scoreboard/Standings drill-down popups with single-modal Back navigation.
-
-> **v0.1.36:** Fixes traditional-waiver budget display, adds the enabled Consolation Ladder to pre-playoff standings projections, fixes All-in-One navigation after viewing Playoffs, and improves team-logo watermark visibility.
-
-> **v0.1.35:** Adds richer postseason schedule retrieval for consolation/ladder brackets, Waiver Order, player biographies, team-logo watermarks, and clearer Started/Benched/trade Activity semantics.\n\n> **v0.1.34:** Refines Schedule with League/My Team views and compact week arrows, exposes all ESPN postseason tiers with a cleaner expandable bracket, and adds focused 60-second live matchup polling while games are active.
-
-> **v0.1.33:** Adds section-based League and Ticker editors, full-season Schedule and playoff-bracket views, fixes portrait-anchored red injury badges, streamlines Fantasy Outlook, and polishes Activity ticker layout.
-
-> **v0.1.32:** Restores complete weekly history/injury normalization, expands League Activity with rich player/team identity and transaction popups, and adds automation-friendly Activity, Lineup Recommendations, and Injured Players sensors.
-
-
-> **v0.1.31:** Adds normalized league transaction activity to Home Assistant, optional Activity in the All-in-One card and ticker, reliable per-week current-season history fetching, and shared roster injury-status enrichment.
+> **v0.1.46:** Makes the experimental Pick’em diagnostics probe fail-safe: the live Gambit request has a short overall timeout, so ESPN cannot hold the Home Assistant diagnostics download open. Timeout/error status is recorded inside the downloaded diagnostics while the normal Fantasy diagnostics are still returned. Adds lifecycle regression coverage for timeout, success, and JSON serialization.
 
 # ESPN Fantasy Football for Home Assistant
 
@@ -140,7 +129,7 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current release candidate is **v0.1.40**, a focused Playoff Bracket rendering hotfix on top of v0.1.39.
+The current release is **v0.1.46**. Pick’em remains an experimental, opt-in diagnostics-only bridge while its authenticated ESPN response shape is being validated.
 
 
 ## Help test another league format
@@ -159,3 +148,19 @@ The integration records a compact compatibility summary containing the observed
 league capabilities and unknown ESPN lineup/position IDs. Small sanitized
 response shapes can then be added under `tests/fixtures/` as permanent
 regression coverage. Never post `espn_s2` or `SWID` cookie values.
+
+## Release history
+
+> **v0.1.45:** Completes the opt-in Pick’em diagnostics bridge: downloaded config-entry diagnostics now actually execute and include the authenticated Pick’em probe. The output remains structural/privacy-safe and no longer echoes the configured Pick’em entry ID. CI now guards both the current Home Assistant OptionsFlow contract and the diagnostics invocation path.\n\n> **v0.1.44:** Corrects the Pick’em Configure flow to the current Home Assistant OptionsFlow API: Home Assistant injects the config entry into the flow, so the handler is created without constructor arguments and reads `self.config_entry.options`. Adds a CI regression guard for this API contract.\n\n> **v0.1.43:** Fixes the Configure/options flow used by the opt-in Pick’em diagnostics probe introduced in v0.1.42. Existing Fantasy polling, entities, and cards remain unchanged. The probe remains disabled unless a Pick’em entry ID is configured and runs only when diagnostics are generated.\n>\n> **v0.1.42:** Introduced the diagnostics-only authenticated ESPN Pick’em probe.\n\n> **v0.1.41:** Polishes the League card by restoring readable Waiver Order team names, keeping editor text fields focused while typing, and optionally combining Standings + Scoreboard into one reorderable Overview section.\n\n> **v0.1.40:** Fixes a v0.1.39 Playoff Bracket regression that could hide the Championship Bracket while aligning Winners Consolation to the final postseason round, adds Waiver Order team-to-roster drill-down parity, makes every Schedule matchup open the matchup drill-down, and normalizes popup/UI headings to title case.\n\n> **v0.1.39:** Adds a League-card-wide maximum height with internal scrolling, widens Scoreboard matchup drill-downs, and aligns the single Winners Consolation matchup with the second postseason round.\n\n> **v0.1.38:** Fixes a setup regression where ESPN can return HTTP 200 without a `schedule` key for optional whole-season schedule enrichment; the integration now degrades gracefully instead of failing setup.\n\n> **v0.1.37:** Adds compatibility/resilience diagnostics and fixture testing, complete postseason presentation with Winners Consolation, Roster/Matchup lineup-advice badges, and interactive Scoreboard/Standings drill-down popups with single-modal Back navigation.
+
+> **v0.1.36:** Fixes traditional-waiver budget display, adds the enabled Consolation Ladder to pre-playoff standings projections, fixes All-in-One navigation after viewing Playoffs, and improves team-logo watermark visibility.
+
+> **v0.1.35:** Adds richer postseason schedule retrieval for consolation/ladder brackets, Waiver Order, player biographies, team-logo watermarks, and clearer Started/Benched/trade Activity semantics.\n\n> **v0.1.34:** Refines Schedule with League/My Team views and compact week arrows, exposes all ESPN postseason tiers with a cleaner expandable bracket, and adds focused 60-second live matchup polling while games are active.
+
+> **v0.1.33:** Adds section-based League and Ticker editors, full-season Schedule and playoff-bracket views, fixes portrait-anchored red injury badges, streamlines Fantasy Outlook, and polishes Activity ticker layout.
+
+> **v0.1.32:** Restores complete weekly history/injury normalization, expands League Activity with rich player/team identity and transaction popups, and adds automation-friendly Activity, Lineup Recommendations, and Injured Players sensors.
+
+
+> **v0.1.31:** Adds normalized league transaction activity to Home Assistant, optional Activity in the All-in-One card and ticker, reliable per-week current-season history fetching, and shared roster injury-status enrichment.
+
