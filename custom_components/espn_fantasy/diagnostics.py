@@ -30,7 +30,7 @@ async def _async_pickem_diagnostic_probe(
         payload = await client.get_entry(entry_id)
     except Exception as err:  # noqa: BLE001
         return {"status": "error", "error_type": type(err).__name__, "message": str(err)}
-    return {"status": "ok", "entry_id": entry_id, **pickem_entry_summary(payload)}
+    return {"status": "ok", **pickem_entry_summary(payload)}
 
 
 async def async_get_config_entry_diagnostics(
@@ -65,8 +65,11 @@ async def async_get_config_entry_diagnostics(
         },
     }
 
+    pickem_probe = await _async_pickem_diagnostic_probe(hass, entry)
+
     return {
         "compatibility": compatibility,
+        "pickem_probe": pickem_probe,
         "entry": {
             "title": entry.title,
             "data": async_redact_data(dict(entry.data), TO_REDACT),
