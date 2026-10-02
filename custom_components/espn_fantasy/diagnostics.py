@@ -1,44 +1,14 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import CONF_ESPN_S2, CONF_SWID, DOMAIN
-from .pickem import pickem_entry_summary
-from .pickem_api import ESPNPickemClient
 
 TO_REDACT = {CONF_ESPN_S2, CONF_SWID}
-PICKEM_DIAGNOSTIC_TIMEOUT = 8
-
-
-async def _async_pickem_diagnostic_probe(
-    hass: HomeAssistant, entry: ConfigEntry
-) -> dict[str, Any]:
-    entry_id = str(entry.options.get("pickem_entry_id") or "").strip()
-    if not entry_id:
-        return {"status": "disabled"}
-    client = ESPNPickemClient(
-        async_get_clientsession(hass),
-        season=int(entry.data.get("season") or 0),
-        espn_s2=entry.data.get(CONF_ESPN_S2) or None,
-        swid=entry.data.get(CONF_SWID) or None,
-    )
-    try:
-        async with asyncio.timeout(PICKEM_DIAGNOSTIC_TIMEOUT):
-            payload = await client.get_entry(entry_id)
-    except TimeoutError:
-        return {
-            "status": "timeout",
-            "message": "Pick'em probe timed out; base diagnostics were still generated.",
-        }
-    except Exception as err:  # noqa: BLE001
-        return {"status": "error", "error_type": type(err).__name__, "message": str(err)}
-    return {"status": "ok", **pickem_entry_summary(payload)}
 
 
 async def async_get_config_entry_diagnostics(
@@ -73,11 +43,8 @@ async def async_get_config_entry_diagnostics(
         },
     }
 
-    pickem_probe = await _async_pickem_diagnostic_probe(hass, entry)
-
     return {
         "compatibility": compatibility,
-        "pickem_probe": pickem_probe,
         "entry": {
             "title": entry.title,
             "data": async_redact_data(dict(entry.data), TO_REDACT),
