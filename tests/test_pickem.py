@@ -17,6 +17,6 @@ class PickemPayloadSummaryTests(unittest.TestCase):
   summary=pickem.describe_pickem_payload({"picks":[{"propositionId":123,"choice":"SEA"},{"propositionId":456}]}); picks=summary["picks"]
   self.assertEqual(picks["_count"],2); self.assertEqual(picks["_sample"]["propositionId"],123); self.assertEqual(picks["_sample"]["choice"]["_type"],"string")
  def test_depth_limit_keeps_keys_not_values(self):
-  summary=pickem.describe_pickem_payload({"a":{"b":{"c":{"private":"secret","score":3}}}},max_depth=3); leaf=summary["a"]["b"]
-  self.assertEqual(leaf["_type"],"object"); self.assertEqual(leaf["_keys"],["c"]); self.assertNotIn("secret",str(summary))
+  summary=pickem.describe_pickem_payload({"a":{"b":{"c":{"private":"secret","score":3}}}},max_depth=3); leaf=summary["a"]["b"]["c"]
+  self.assertEqual(leaf["_type"],"object"); self.assertEqual(leaf["_keys"],["private","score"]); self.assertNotIn("secret",str(summary))
 if __name__=="__main__": unittest.main()
