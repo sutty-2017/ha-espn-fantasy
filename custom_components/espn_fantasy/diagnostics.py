@@ -66,7 +66,7 @@ async def async_get_config_entry_diagnostics(
     }
 
     pickem_probe = await _async_pickem_diagnostic_probe(hass, entry)\n\n    return {
-        "compatibility": compatibility,
+        "compatibility": compatibility,\n        "pickem_probe": pickem_probe,
         "entry": {
             "title": entry.title,
             "data": async_redact_data(dict(entry.data), TO_REDACT),
