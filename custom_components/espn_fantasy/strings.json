@@ -19,5 +19,16 @@
       "team_not_found": "The team ID was not found in this league.",
       "invalid_input": "Enter valid numeric league, team, and season values."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ESPN experimental diagnostics",
+        "description": "Optional development probes. Pick'em requests run only when Home Assistant diagnostics are generated. Leave blank to disable.",
+        "data": {
+          "pickem_entry_id": "Pick'em entry ID"
+        }
+      }
+    }
   }
 }
