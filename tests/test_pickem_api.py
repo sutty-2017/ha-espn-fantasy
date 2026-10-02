@@ -2,8 +2,11 @@ from __future__ import annotations
 import importlib.util, json, sys, types, unittest
 from pathlib import Path
 package=types.ModuleType("espn_fantasy_test"); package.__path__=[]; sys.modules[package.__name__]=package
-api_spec=importlib.util.spec_from_file_location("espn_fantasy_test.api",Path("custom_components/espn_fantasy/api.py"))
-api=importlib.util.module_from_spec(api_spec); sys.modules[api_spec.name]=api; api_spec.loader.exec_module(api)
+aiohttp=types.ModuleType("aiohttp"); aiohttp.ClientSession=object; sys.modules["aiohttp"]=aiohttp
+api=types.ModuleType("espn_fantasy_test.api")
+class ESPNError(Exception): pass
+class ESPNAuthError(ESPNError): pass
+api.ESPNError=ESPNError; api.ESPNAuthError=ESPNAuthError; sys.modules["espn_fantasy_test.api"]=api
 pickem_spec=importlib.util.spec_from_file_location("espn_fantasy_test.pickem_api",Path("custom_components/espn_fantasy/pickem_api.py"))
 pickem_api=importlib.util.module_from_spec(pickem_spec); sys.modules[pickem_spec.name]=pickem_api; pickem_spec.loader.exec_module(pickem_api)
 ESPNPickemClient=pickem_api.ESPNPickemClient
