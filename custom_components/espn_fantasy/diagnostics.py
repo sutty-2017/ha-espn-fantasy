@@ -14,6 +14,25 @@ from .pickem_api import ESPNPickemClient
 TO_REDACT = {CONF_ESPN_S2, CONF_SWID}
 
 
+async def _async_pickem_diagnostic_probe(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> dict[str, Any]:
+    entry_id = str(entry.options.get("pickem_entry_id") or "").strip()
+    if not entry_id:
+        return {"status": "disabled"}
+    client = ESPNPickemClient(
+        async_get_clientsession(hass),
+        season=int(entry.data.get("season") or 0),
+        espn_s2=entry.data.get(CONF_ESPN_S2) or None,
+        swid=entry.data.get(CONF_SWID) or None,
+    )
+    try:
+        payload = await client.get_entry(entry_id)
+    except Exception as err:  # noqa: BLE001
+        return {"status": "error", "error_type": type(err).__name__, "message": str(err)}
+    return {"status": "ok", "entry_id": entry_id, **pickem_entry_summary(payload)}
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
