@@ -21,6 +21,10 @@ class ESPNOptionsFlow(config_entries.OptionsFlow):\n    """Configure experimenta
 
     VERSION = 1
 
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        return ESPNOptionsFlow(config_entry)
+
     async def async_step_user(self, user_input=None):
         errors = {}
         if user_input is not None:
