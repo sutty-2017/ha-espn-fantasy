@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -12,6 +13,7 @@ from .pickem import pickem_entry_summary
 from .pickem_api import ESPNPickemClient
 
 TO_REDACT = {CONF_ESPN_S2, CONF_SWID}
+PICKEM_DIAGNOSTIC_TIMEOUT = 8
 
 
 async def _async_pickem_diagnostic_probe(
@@ -27,7 +29,13 @@ async def _async_pickem_diagnostic_probe(
         swid=entry.data.get(CONF_SWID) or None,
     )
     try:
-        payload = await client.get_entry(entry_id)
+        async with asyncio.timeout(PICKEM_DIAGNOSTIC_TIMEOUT):
+            payload = await client.get_entry(entry_id)
+    except TimeoutError:
+        return {
+            "status": "timeout",
+            "message": "Pick'em probe timed out; base diagnostics were still generated.",
+        }
     except Exception as err:  # noqa: BLE001
         return {"status": "error", "error_type": type(err).__name__, "message": str(err)}
     return {"status": "ok", **pickem_entry_summary(payload)}
