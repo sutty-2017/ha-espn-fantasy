@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from        "pickem_probe": pickem_probe,\n typing import Any
+from        "pickem_probe": pickem_probe,
+ typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
@@ -65,8 +66,11 @@ async def async_get_config_entry_diagnostics(
         },
     }
 
-    pickem_probe = await _async_pickem_diagnostic_probe(hass, entry)\n\n    return {
-        "compatibility": compatibility,\n        "pickem_probe": pickem_probe,
+    pickem_probe = await _async_pickem_diagnostic_probe(hass, entry)
+
+    return {
+        "compatibility": compatibility,
+        "pickem_probe": pickem_probe,
         "entry": {
             "title": entry.title,
             "data": async_redact_data(dict(entry.data), TO_REDACT),
