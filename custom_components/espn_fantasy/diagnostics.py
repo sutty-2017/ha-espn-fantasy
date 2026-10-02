@@ -116,7 +116,11 @@ async def async_get_config_entry_diagnostics(
                     for team in (data.get("teams") or [])
                     if isinstance(team, dict)
                 ],
-                "current_matchup": data.get("current_matchup") or [],
+                "current_matchup": [
+                    _schedule_summary(item)
+                    for item in (data.get("current_matchup") or [])
+                    if isinstance(item, dict)
+                ],
                 "season_schedule": [
                     _schedule_summary(item)
                     for item in (data.get("season_schedule") or [])
