@@ -22,24 +22,44 @@ class _Response:
 
 
 class _Session:
-    def __init__(self, payload):
+    def __init__(self, payload, statuses=None):
         self.payload = payload
+        self.statuses = list(statuses or [])
         self.calls = []
 
     def get(self, url, **kwargs):
         self.calls.append((url, kwargs))
-        return _Response(self.payload)
+        status = self.statuses.pop(0) if self.statuses else 200
+        return _Response(self.payload, status)
 
 
 class PickemClientTests(unittest.IsolatedAsyncioTestCase):
-    async def test_challenge_name_and_cookies(self):
+    async def test_current_challenge_name_and_cookies(self):
         session = _Session({"id": 999})
         client = ESPNPickemClient(session, 2026, "secret", "{ABC}")
         await client.get_challenge(5)
         url, kwargs = session.calls[0]
-        self.assertTrue(url.endswith("/challenges/nfl-pigskin-pickem-2026"))
+        self.assertTrue(url.endswith("/challenges/nfl-pickem-2026"))
         self.assertIn(("scoringPeriodId", 5), kwargs["params"])
         self.assertEqual(kwargs["cookies"], {"espn_s2": "secret", "SWID": "{ABC}"})
+
+    async def test_legacy_challenge_slug_is_fallback(self):
+        session = _Session({"id": 999}, statuses=[404, 200])
+        client = ESPNPickemClient(session, 2026)
+        await client.get_entry("entry-id")
+        self.assertTrue(session.calls[0][0].endswith("/nfl-pickem-2026/entries/entry-id"))
+        self.assertTrue(
+            session.calls[1][0].endswith("/nfl-pigskin-pickem-2026/entries/entry-id")
+        )
+
+    async def test_explicit_challenge_slug(self):
+        session = _Session({"id": 999})
+        client = ESPNPickemClient(session, 2026, challenge_slug="custom-pickem-2026")
+        await client.get_entry("entry-id")
+        self.assertTrue(
+            session.calls[0][0].endswith("/custom-pickem-2026/entries/entry-id")
+        )
+        self.assertEqual(len(session.calls), 1)
 
     async def test_group_uses_gambit_paging_filter(self):
         session = _Session({"group": {}})
