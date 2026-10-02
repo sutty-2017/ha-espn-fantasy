@@ -4,9 +4,12 @@ from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant\nfrom homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_ESPN_S2, CONF_SWID, DOMAIN\nfrom .pickem import pickem_entry_summary\nfrom .pickem_api import ESPNPickemClient
+from .const import CONF_ESPN_S2, CONF_SWID, DOMAIN
+from .pickem import pickem_entry_summary
+from .pickem_api import ESPNPickemClient
 
 TO_REDACT = {CONF_ESPN_S2, CONF_SWID}
 
