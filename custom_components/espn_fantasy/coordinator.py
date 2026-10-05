@@ -339,10 +339,11 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                     surname = name_parts[-1] if len(name_parts) >= 2 else ""
                     strong_surname = bool(surname and surname in f"{haystack} {keywords}")
                     if exact_name or strong_surname:
-                        matched.append({**highlight, "player_id": player.get("id"), "player_name": player_name})
-                    if key and key not in seen_highlights:
-                        seen_highlights.add(key)
-                        team_highlights.append({**highlight})
+                        player_highlight = {**highlight, "player_id": player.get("id"), "player_name": player_name}
+                        matched.append(player_highlight)
+                        if key and key not in seen_highlights:
+                            seen_highlights.add(key)
+                            team_highlights.append(player_highlight)
                 player["highlights"] = matched
             data["team_highlights"] = team_highlights
             data["normalized"] = pre_normalized
