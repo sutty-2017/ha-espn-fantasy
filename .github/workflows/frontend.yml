@@ -347,7 +347,7 @@ jobs:
           assert {side["team_name"] for side in event["sides"]} == {"Alpha", "Beta"}
           assert all(side["sent"] and side["received"] for side in event["sides"])
           PY
-      - name: Run compatibility fixture tests
+      - name: Run compatibility and v0.1.49 regression tests
         run: |
           python -m unittest discover -s tests -p 'test_*.py' -v
 
