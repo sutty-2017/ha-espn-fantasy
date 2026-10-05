@@ -333,6 +333,7 @@ class LeagueSensor(ESPNBaseSensor):
             "activity_count": len(league.get("activity") or []),
             "matchup_count": league.get("matchup_count") or 0,
             "matchup_period": league.get("matchup_period"),
+            "highlights": data.get("team_highlights") or [],
         }
 
 
