@@ -5,6 +5,7 @@ import importlib.util
 import sys
 import types
 import unittest
+from unittest.mock import AsyncMock, patch
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -95,6 +96,30 @@ class CoordinatorResilienceTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(result, coordinator.data)
         self.assertEqual(result["marker"], "last-good")
         self.assertTrue(coordinator._serving_stale_data)
+        second = await coordinator._async_update_data()
+        self.assertIs(second, coordinator.data)
+        self.assertTrue(coordinator._serving_stale_data)
+
+    async def test_focused_live_recovery_clears_stale_state(self):
+        module = _load_coordinator_module()
+        coordinator = object.__new__(module.ESPNDataUpdateCoordinator)
+        coordinator.data = {
+            "normalized": {
+                "scoring_period": 5, "matchup_period": 5,
+                "matchup": {"my_team": {"roster": [{"game_status": "in_progress"}]}, "opponent": {}},
+            }
+        }
+        coordinator._last_full_refresh = 100.0
+        coordinator._serving_stale_data = True
+        coordinator._player_news = {}
+        coordinator.entry = SimpleNamespace(data={"team_id": 1})
+        coordinator.client = SimpleNamespace(
+            get_live_matchup=AsyncMock(return_value={"schedule": []})
+        )
+        with patch.object(module.time, "monotonic", return_value=101.0):
+            result = await coordinator._async_update_data()
+        self.assertEqual(result["live_scoring"], {"schedule": []})
+        self.assertFalse(coordinator._serving_stale_data)
 
     async def test_initial_espn_failure_still_marks_update_failed(self):
         module = _load_coordinator_module()
