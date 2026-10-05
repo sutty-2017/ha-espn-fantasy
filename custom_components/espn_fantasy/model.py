@@ -821,8 +821,20 @@ def _normalize_league_game(
         status = "scheduled"
 
     pro_teams = pro_teams or {}
-    home_detail = _side(home, home_team, scoring_period, pro_teams) if home_team else {}
-    away_detail = _side(away, away_team, scoring_period, pro_teams) if away_team else {}
+    def enriched_side(raw_side: dict[str, Any], team: dict[str, Any]) -> dict[str, Any]:
+        if not team:
+            return {}
+        detail = _side(raw_side, team, scoring_period, pro_teams)
+        return {
+            **detail,
+            "score": _float(raw_side.get("totalPointsLive", raw_side.get("totalPoints"))),
+            "projected_score": _float(raw_side.get("totalProjectedPoints")),
+            "live_projected_score": _float(raw_side.get("totalProjectedPointsLive", raw_side.get("totalProjectedPoints"))),
+            "win_probability": _float(raw_side.get("winProbability")),
+        }
+
+    home_detail = enriched_side(home, home_team)
+    away_detail = enriched_side(away, away_team)
     return {
         "id": matchup.get("id"),
         "matchup_period": period,
