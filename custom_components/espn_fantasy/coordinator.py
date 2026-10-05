@@ -95,6 +95,9 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                             except (TypeError, ValueError):
                                 player["news"] = []
                     self.update_interval = timedelta(seconds=LIVE_SCAN_INTERVAL)
+                    if self._serving_stale_data:
+                        _LOGGER.info("ESPN Fantasy live refresh recovered after a transient API failure.")
+                        self._serving_stale_data = False
                     return data
 
             data = await self.client.get_league()
