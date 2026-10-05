@@ -299,13 +299,17 @@ def _game_info(
     )
     home_score = _float(
         game.get("homeScore")
-        or game.get("homeTeamScore")
-        or (game.get("score") or {}).get("home")
+        if game.get("homeScore") is not None
+        else game.get("homeTeamScore")
+        if game.get("homeTeamScore") is not None
+        else (game.get("score") or {}).get("home")
     )
     away_score = _float(
         game.get("awayScore")
-        or game.get("awayTeamScore")
-        or (game.get("score") or {}).get("away")
+        if game.get("awayScore") is not None
+        else game.get("awayTeamScore")
+        if game.get("awayTeamScore") is not None
+        else (game.get("score") or {}).get("away")
     )
     opponent = pro_teams.get(opponent_id) or {}
     possession_team = pro_teams.get(possession_id) or {}
