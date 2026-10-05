@@ -682,9 +682,9 @@ class ESPNFantasyTickerEditor extends HTMLElement {
     this.shadowRoot.querySelectorAll("button[data-i]").forEach(x=>x.addEventListener("click",()=>this.move(Number(x.dataset.i),Number(x.dataset.d))));
     this.bindForm("sources",[{name:"roster_entity",selector:{entity:{domain:"sensor"}}},{name:"league_entity",selector:{entity:{domain:"sensor"}}}],{roster_entity:"Roster entity",league_entity:"League entity"});
     if(enabled.players)this.bindForm("players",[
-      {name:"show_bench",selector:{boolean:{}}},{name:"show_live_halo",selector:{boolean:{}}},{name:"show_team_logo_background",selector:{boolean:{}}},{name:"live_halo_color",selector:{color_rgb:{}}},
+      {name:"show_bench",selector:{boolean:{}}},{name:"show_live_halo",selector:{boolean:{}}},{name:"show_team_logo_background",selector:{boolean:{}}},{name:"player_popup_height",selector:{number:{min:0,max:1600,step:25,mode:"box",unit_of_measurement:"px"}}},{name:"live_halo_color",selector:{color_rgb:{}}},
       {name:"team_header",selector:{select:{options:[{value:"logo_name",label:"Logo + name"},{value:"logo",label:"Logo only"},{value:"name",label:"Name only"},{value:"hidden",label:"Hidden"}]}}},{name:"team_label",selector:{text:{}}}
-    ],{show_bench:"Include bench / IR",show_live_halo:"Show live-player halo",show_team_logo_background:"Show team logo background",live_halo_color:"Live halo color",team_header:"Players header",team_label:"Players header title"});
+    ],{show_bench:"Include bench / IR",show_live_halo:"Show live-player halo",show_team_logo_background:"Show team logo background",player_popup_height:"Player popup height (0 = automatic)",live_halo_color:"Live halo color",team_header:"Players header",team_label:"Players header title"});
     if(enabled.scoreboard)this.bindForm("scoreboard",[
       {name:"league_header",selector:{select:{options:[{value:"logo_name",label:"Logo + name"},{value:"logo",label:"Logo only"},{value:"name",label:"Name only"},{value:"hidden",label:"Hidden"}]}}},{name:"league_label",selector:{text:{}}}
     ],{league_header:"Scoreboard header",league_label:"Scoreboard header title"});
