@@ -39,6 +39,7 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
         self._player_biographies: dict[int, dict] = {}
         self._player_biographies_updated = 0.0
         self._last_full_refresh = 0.0
+        self._serving_stale_data = False
         self.client = ESPNClient(
             async_get_clientsession(hass),
             season=int(entry.data[CONF_SEASON]),
@@ -308,6 +309,22 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                         player["news"] = self._player_news.get(int(player.get("id")), [])
                     except (TypeError, ValueError):
                         player["news"] = []
+            if self._serving_stale_data:
+                _LOGGER.info("ESPN Fantasy refresh recovered after a transient API failure.")
+                self._serving_stale_data = False
             return data
         except ESPNError as err:
+            if self.data:
+                if not self._serving_stale_data:
+                    _LOGGER.warning(
+                        "ESPN Fantasy refresh failed; keeping last known-good data: %s",
+                        err,
+                    )
+                else:
+                    _LOGGER.debug(
+                        "ESPN Fantasy refresh still failing; keeping last known-good data: %s",
+                        err,
+                    )
+                self._serving_stale_data = True
+                return self.data
             raise UpdateFailed(str(err)) from err
