@@ -407,6 +407,71 @@ class ESPNClient:
                 result[player_id] = {"injuryStatus": player.get("injuryStatus"), "injured": player.get("injured")}
         return result
 
+    async def get_nfl_highlights_many(self, game_ids: list[int]) -> dict[int, list[dict[str, Any]]]:
+        """Fetch playable ESPN NFL videos for the supplied game IDs."""
+        ids = list(dict.fromkeys(int(game_id) for game_id in game_ids if game_id))
+        if not ids:
+            return {}
+        semaphore = asyncio.Semaphore(4)
+
+        def _video_source(video: dict[str, Any]) -> str | None:
+            links = video.get("links") or {}
+            source = links.get("source") or {}
+            if isinstance(source, dict):
+                hd = source.get("HD") or {}
+                mezzanine = source.get("mezzanine") or {}
+                return (
+                    (hd.get("href") if isinstance(hd, dict) else None)
+                    or source.get("href")
+                    or (mezzanine.get("href") if isinstance(mezzanine, dict) else None)
+                )
+            return None
+
+        def _normalize(video: dict[str, Any], game_id: int) -> dict[str, Any] | None:
+            source = _video_source(video)
+            if not source:
+                return None
+            links = video.get("links") or {}
+            web = links.get("web") or {}
+            return {
+                "id": str(video.get("id") or video.get("guid") or source),
+                "game_id": game_id,
+                "headline": video.get("headline") or video.get("description") or "NFL Highlight",
+                "description": video.get("description"),
+                "thumbnail": video.get("thumbnail"),
+                "duration": video.get("duration"),
+                "source": source,
+                "espn_url": web.get("href") if isinstance(web, dict) else None,
+                "keywords": video.get("keywords") or [],
+            }
+
+        async def _fetch(game_id: int) -> tuple[int, list[dict[str, Any]]]:
+            url = f"https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event={game_id}"
+            try:
+                async with semaphore:
+                    async with self.session.get(url, timeout=20) as response:
+                        if response.status != 200:
+                            return game_id, []
+                        payload = await response.json()
+            except Exception:  # noqa: BLE001
+                return game_id, []
+            candidates: list[dict[str, Any]] = []
+            candidates.extend(item for item in (payload.get("videos") or []) if isinstance(item, dict))
+            for headline in payload.get("headlines") or []:
+                if isinstance(headline, dict):
+                    candidates.extend(item for item in (headline.get("video") or []) if isinstance(item, dict))
+            seen: set[str] = set()
+            videos: list[dict[str, Any]] = []
+            for video in candidates:
+                item = _normalize(video, game_id)
+                if not item or item["id"] in seen:
+                    continue
+                seen.add(item["id"])
+                videos.append(item)
+            return game_id, videos
+
+        return dict(await asyncio.gather(*(_fetch(game_id) for game_id in ids)))
+
     async def get_player_news(self, player_id: int, limit: int = 5) -> list[dict[str, Any]]:
         """Fetch and normalize ESPN fantasy news for one player."""
         url = "https://site.api.espn.com/apis/fantasy/v2/games/ffl/news/players"
