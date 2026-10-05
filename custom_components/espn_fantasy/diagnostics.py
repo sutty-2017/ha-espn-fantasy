@@ -109,7 +109,6 @@ async def async_get_config_entry_diagnostics(
         "coordinator": {
             "last_update_success": coordinator.last_update_success,
             "serving_stale_data": bool(getattr(coordinator, "_serving_stale_data", False)),
-            "consecutive_update_failures": int(getattr(coordinator, "_consecutive_update_failures", 0) or 0),
             "raw": {
                 "status": data.get("status") or {},
                 "settings": data.get("settings") or {},
