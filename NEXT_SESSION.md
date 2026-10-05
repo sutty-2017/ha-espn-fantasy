@@ -2,39 +2,33 @@
 
 ## Release state
 
-- Release candidate: **v0.1.47**
-- Purpose: remove the abandoned ESPN Pick'em experiment and restore the stable Fantasy-only runtime.
-- Stable Fantasy baseline restored from **v0.1.41** commit `90c836c98e6da77e065366bf095100218abaffa8`.
-- v0.1.42 through v0.1.46 were experimental Pick'em diagnostics/configuration attempts and are intentionally superseded by v0.1.47.
-- Do not resume Pick'em work unless the maintainer explicitly reopens the idea.
+- Release candidate: **v0.1.49**
+- Base: published/tested **v0.1.48** Fantasy-only release with bounded diagnostics.
+- Pick'em remains removed and out of scope unless the maintainer explicitly reopens it.
+- Working branch: `work/v0.1.49-live-game-state`.
 
-## v0.1.47 scope
+## v0.1.49 scope
 
-- Removed `pickem.py`, `pickem_api.py`, Pick'em research documentation, and Pick'em-specific tests.
-- Removed the experimental Pick'em OptionsFlow/configuration field.
-- Restored Home Assistant diagnostics to the v0.1.41 Fantasy-only implementation.
-- Restored CI workflow content to the v0.1.41 Fantasy regression suite, removing Pick'em-specific guards.
-- Fantasy cards, sensors, coordinator behavior, ESPN Fantasy API behavior, schedule/playoff handling, activity, waivers, news, biographies, and lineup advice remain at the proven v0.1.41 baseline.
-- Version is advanced to v0.1.47 so HACS can upgrade cleanly from the published experimental releases without rewriting Git history.
+- Preserve the coordinator's last known-good Fantasy data when a later ESPN request fails transiently, preventing entities/cards from becoming unavailable during temporary ESPN outages.
+- Initial setup failures still raise `UpdateFailed`; stale data is served only after a successful dataset already exists.
+- Normalize richer NFL game state for players when ESPN supplies it: quarter/period, clock, game detail, possession, home/away abbreviations and score.
+- Expose the richer game-state fields on player entities for Home Assistant automations.
+- Keep the compact LIVE badge, with live game context alongside it on player tiles.
+- Add a dedicated Live Game section to the shared player popup with score, period/clock, and possession.
+- Enrich every current league matchup with normalized home/away team detail so Scoreboard/Schedule matchup drill-downs can show the same useful context as the configured team's matchup.
+- Matchup views show actual score, projected final score, starters done/live/left, and ESPN-provided win probability.
+- Win probability is rendered as a compact ESPN-style horizontal probability line/bar; it is omitted when ESPN does not provide probability.
+- Added permanent coordinator regression coverage for last-good-data behavior.
 
-## Stable Fantasy feature baseline
+## Stable baseline retained
 
-v0.1.41 includes:
-- readable Waiver Order team names and roster drill-down
-- editor free-text focus fix
-- optional combined Standings + Scoreboard Overview with internal ordering
-- Schedule League/My Team views and matchup drill-downs
-- complete postseason presentation with Championship, Winners Consolation, and Consolation paths
-- roster/matchup lineup-advice badges
-- league Activity and transaction popups
-- player biographies, historical stats, outlooks, injury badges, and news
-- adaptive focused live polling
-- compatibility/resilience diagnostics and fixture coverage
-- automation-facing Activity, Lineup Recommendations, and Injured Players sensors.
+v0.1.48 fixed diagnostics downloads by replacing the multi-megabyte coordinator dump with bounded Fantasy-focused diagnostics. Keep that diagnostics design intact.
+
+Existing Fantasy features remain: League/All-in-One sections, roster, standings, scoreboard, matchup, news, activity, waivers, schedule, playoff bracket, player/team/matchup popups, unified ticker, News card, historical stats, biographies, injury badges, lineup advice, adaptive live polling, and automation-facing sensors.
 
 ## Direction
 
-Keep the project focused on ESPN Fantasy Football for the remainder of the 2026 season. Favor stability, real-world league compatibility, and existing feature polish over new ESPN competition types. Larger multi-competition/Pick'em architecture is no longer active scope.
+Keep the project focused on ESPN Fantasy Football for the remainder of the 2026 season. Favor stability, real-world league compatibility, and existing feature polish over new ESPN competition types. Larger Game Day/intelligence ideas remain tabled for next year.
 
 ## Workflow
 
