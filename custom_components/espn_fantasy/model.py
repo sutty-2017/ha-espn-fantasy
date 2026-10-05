@@ -255,13 +255,60 @@ def _game_info(
     kickoff = None
     if date_ms is not None:
         kickoff = datetime.fromtimestamp(date_ms / 1000, tz=timezone.utc)
-    if game.get("statsOfficial"):
+
+    raw_status = game.get("status") or {}
+    status_type = raw_status.get("type") or {}
+    state = str(
+        status_type.get("state")
+        or raw_status.get("state")
+        or game.get("gameStatus")
+        or ""
+    ).lower()
+    completed = bool(status_type.get("completed") or raw_status.get("completed"))
+    if game.get("statsOfficial") or completed or state in {"post", "final"}:
         status = "final"
+    elif state in {"in", "in_progress", "live"}:
+        status = "in_progress"
     elif kickoff is not None and datetime.now(timezone.utc) >= kickoff:
         status = "in_progress"
     else:
         status = "scheduled"
+
+    period_number = _int(
+        game.get("period")
+        or raw_status.get("period")
+        or (game.get("situation") or {}).get("period")
+    )
+    clock = (
+        game.get("displayClock")
+        or raw_status.get("displayClock")
+        or (game.get("situation") or {}).get("displayClock")
+        or (game.get("situation") or {}).get("clock")
+    )
+    detail = (
+        status_type.get("shortDetail")
+        or status_type.get("detail")
+        or raw_status.get("shortDetail")
+        or raw_status.get("detail")
+    )
+    possession_id = _int(
+        game.get("possessionProTeamId")
+        or game.get("possessionTeamId")
+        or (game.get("situation") or {}).get("possessionProTeamId")
+        or (game.get("situation") or {}).get("possessionTeamId")
+    )
+    home_score = _float(
+        game.get("homeScore")
+        or game.get("homeTeamScore")
+        or (game.get("score") or {}).get("home")
+    )
+    away_score = _float(
+        game.get("awayScore")
+        or game.get("awayTeamScore")
+        or (game.get("score") or {}).get("away")
+    )
     opponent = pro_teams.get(opponent_id) or {}
+    possession_team = pro_teams.get(possession_id) or {}
     return {
         "game_id": _int(game.get("id")),
         "game_status": status,
@@ -274,8 +321,18 @@ def _game_info(
             f"{opponent.get('location', '')} {opponent.get('name', '')}".strip()
             or None
         ),
+        "game_period": period_number,
+        "game_clock": str(clock) if clock not in (None, "") else None,
+        "game_detail": detail,
+        "possession_pro_team_id": possession_id,
+        "possession_abbrev": _team_abbrev(possession_team),
+        "home_pro_team_id": home_id,
+        "away_pro_team_id": away_id,
+        "home_abbrev": _team_abbrev(pro_teams.get(home_id) or {}),
+        "away_abbrev": _team_abbrev(pro_teams.get(away_id) or {}),
+        "home_score": home_score,
+        "away_score": away_score,
     }
-
 
 def _player(
     entry: dict[str, Any],
