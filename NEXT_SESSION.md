@@ -7,7 +7,7 @@
 - Pick'em remains intentionally removed.
 - v0.1.51 adds ESPN NFL highlights plus popup usability improvements on top of the published v0.1.50 baseline.
 
-## v0.1.52 scope\n\n- Fix Highlights previous/next navigation and automatic playlist advancement by keeping the embedded playlist JSON parseable.\n\n## v0.1.51 scope
+## v0.1.52 scope\n\n- Fix Highlights previous/next navigation and automatic playlist advancement by keeping the embedded playlist JSON parseable.\n- Keep highlights player-specific only and integrate the playlist into News instead of a standalone All-in-One section. News editor controls show/hide Highlights and place Week N Highlights above or below news.\n\n## v0.1.51 scope
 
 - Add configurable Player Popup Height in card editors; popup content scrolls internally when capped.
 - Add score, projected score, and starter done/live/left progress to team roster popups.
