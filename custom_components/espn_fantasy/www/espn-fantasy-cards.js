@@ -1,4 +1,4 @@
-const CARD_VERSION = "0.1.51";
+const CARD_VERSION = "0.1.52";
 const ESPN_FANTASY_ICON = `/espn_fantasy/icon.png?v=${CARD_VERSION}`;
 
 const esc = (value) => String(value ?? "").replace(/[&<>\"']/g, (char) => ({
@@ -138,7 +138,7 @@ function highlightsMarkup(items,{compact=false}={}){
   const videos=(Array.isArray(items)?items:[]).filter(item=>highlightSource(item));
   if(!videos.length)return "";
   const first=videos[0],duration=Number(first.duration||0),durationText=duration>0?Math.floor(duration/60)+":"+String(Math.floor(duration%60)).padStart(2,"0"):"";
-  return '<div class="highlight-player" data-highlight-player><div class="highlight-video-shell"><video controls playsinline preload="metadata" '+(first.thumbnail?'poster="'+esc(first.thumbnail)+'"':"")+'><source src="'+esc(highlightSource(first))+'" type="video/mp4"></video></div><div class="highlight-now"><div><strong data-highlight-title>'+esc(first.headline||"NFL Highlight")+'</strong><span data-highlight-count>1 of '+videos.length+'</span></div>'+(durationText?'<span>'+esc(durationText)+'</span>':"")+'</div>'+(videos.length>1?'<div class="highlight-controls"><button type="button" data-highlight-prev aria-label="Previous highlight">‹</button><button type="button" data-highlight-next aria-label="Next highlight">›</button></div>':"")+'<script type="application/json" data-highlight-data>'+esc(JSON.stringify(videos))+'</script></div>';
+  return '<div class="highlight-player" data-highlight-player><div class="highlight-video-shell"><video controls playsinline preload="metadata" '+(first.thumbnail?'poster="'+esc(first.thumbnail)+'"':"")+'><source src="'+esc(highlightSource(first))+'" type="video/mp4"></video></div><div class="highlight-now"><div><strong data-highlight-title>'+esc(first.headline||"NFL Highlight")+'</strong><span data-highlight-count>1 of '+videos.length+'</span></div>'+(durationText?'<span>'+esc(durationText)+'</span>':"")+'</div>'+(videos.length>1?'<div class="highlight-controls"><button type="button" data-highlight-prev aria-label="Previous highlight">‹</button><button type="button" data-highlight-next aria-label="Next highlight">›</button></div>':"")+'<script type="application/json" data-highlight-data>'+JSON.stringify(videos).replaceAll("<","\\u003c")+'</script></div>';
 }
 function playerHighlightDetails(p,open=false){
   const body=highlightsMarkup(p?.highlights||[]);
