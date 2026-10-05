@@ -799,6 +799,8 @@ def _normalize_league_game(
     matchup: dict[str, Any],
     teams: dict[int, dict[str, Any]],
     current_period: int | None,
+    scoring_period: int | None = None,
+    pro_teams: dict[int, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Normalize one fantasy matchup for schedule/scoreboard/bracket use."""
     home = matchup.get("home") or {}
@@ -813,6 +815,10 @@ def _normalize_league_game(
         status = "final" if period < current_period else ("current" if period == current_period else "scheduled")
     else:
         status = "scheduled"
+
+    pro_teams = pro_teams or {}
+    home_detail = _side(home, home_team, scoring_period, pro_teams) if home_team else {}
+    away_detail = _side(away, away_team, scoring_period, pro_teams) if away_team else {}
     return {
         "id": matchup.get("id"),
         "matchup_period": period,
@@ -825,14 +831,23 @@ def _normalize_league_game(
         "home_seed": _int(home_team.get("playoffSeed")) if home_team else None,
         "home_score": _float(home.get("totalPointsLive", home.get("totalPoints"))),
         "home_projected_score": _float(home.get("totalProjectedPointsLive", home.get("totalProjectedPoints"))),
+        "home_win_probability": _float(home.get("winProbability")),
+        "home_starters_remaining": home_detail.get("starters_remaining"),
+        "home_starters_playing": home_detail.get("starters_playing"),
+        "home_starters_completed": home_detail.get("starters_completed"),
+        "home_team": home_detail or None,
         "away_team_id": away_id,
         "away_team_name": _league_team(away_team).get("name") if away_team else None,
         "away_logo": away_team.get("logo"),
         "away_seed": _int(away_team.get("playoffSeed")) if away_team else None,
         "away_score": _float(away.get("totalPointsLive", away.get("totalPoints"))),
         "away_projected_score": _float(away.get("totalProjectedPointsLive", away.get("totalProjectedPoints"))),
+        "away_win_probability": _float(away.get("winProbability")),
+        "away_starters_remaining": away_detail.get("starters_remaining"),
+        "away_starters_playing": away_detail.get("starters_playing"),
+        "away_starters_completed": away_detail.get("starters_completed"),
+        "away_team": away_detail or None,
     }
-
 
 def _round_labels(count: int) -> list[str]:
     """Return readable labels for a league's number of playoff rounds."""
@@ -1227,7 +1242,7 @@ def _league_model(
 
     raw_schedule = data.get("season_schedule") or data.get("schedule") or []
     schedule = [
-        _normalize_league_game(matchup, teams, matchup_period)
+        _normalize_league_game(matchup, teams, matchup_period, scoring_period, pro_teams)
         for matchup in raw_schedule
         if isinstance(matchup, dict)
     ]
@@ -1240,7 +1255,7 @@ def _league_model(
             continue
         if matchup_period is not None and _int(matchup.get("matchupPeriodId")) != matchup_period:
             continue
-        game = _normalize_league_game(matchup, teams, matchup_period)
+        game = _normalize_league_game(matchup, teams, matchup_period, scoring_period, pro_teams)
         if game.get("home_team_id") is None and game.get("away_team_id") is None:
             continue
         scoreboard.append(game)
