@@ -1,4 +1,4 @@
-> **v0.1.52:** Fixes Highlights navigation and limits My Team Highlights to videos confidently associated with players on your fantasy roster; unattributed team/game clips are excluded.\n\n> **v0.1.51:** Adds ESPN NFL video highlights to player popups and a My Team Highlights playlist in the All-in-One card, adds configurable player-popup height, and enriches roster popups with score/projection/starter progress. Highlights are optional and degrade cleanly when ESPN has no playable video.\n\n> **v0.1.50:** Fresh-review patch restoring the Playoff Bracket Round jump controls in both compact and expanded views, exposing stale/degraded coordinator state in diagnostics, and tightening regression validation around those paths.
+> **v0.1.52:** Fixes Highlights navigation and moves player-only Highlights into the News section with UI controls to show/hide them and place them above or below news; unattributed team/game clips remain excluded.\n\n> **v0.1.51:** Adds ESPN NFL video highlights to player popups and a My Team Highlights playlist in the All-in-One card, adds configurable player-popup height, and enriches roster popups with score/projection/starter progress. Highlights are optional and degrade cleanly when ESPN has no playable video.\n\n> **v0.1.50:** Fresh-review patch restoring the Playoff Bracket Round jump controls in both compact and expanded views, exposing stale/degraded coordinator state in diagnostics, and tightening regression validation around those paths.
 
 > **v0.1.49:** Keeps the last known-good Fantasy data available through transient ESPN refresh failures, enriches live player status with quarter/clock/score/possession plus a dedicated Live Game popup section, and upgrades every league matchup drill-down with projections, starter progress, full rosters, and an ESPN-style win-probability bar.
 
@@ -29,7 +29,7 @@ The integration connects directly to ESPN Fantasy data and exposes league standi
 - Offensive, kicker, D/ST, and IDP player support
 - Current-season weekly player history with season totals/averages
 - Projection-based starter/bench lineup alerts that respect ESPN slot eligibility
-- Player fantasy outlooks, ESPN fantasy news, and confidently matched NFL video highlights\n- Optional **My Team Highlights** All-in-One section with an on-dashboard playlist that advances through playable ESPN clips
+- Player fantasy outlooks, ESPN fantasy news, and confidently matched NFL video highlights\n- Optional player-only **Week N Highlights** playlist inside the News section, positionable above or below player news
 - Player **Game Active** binary sensors for live NFL games
 - Coordinated 5-minute polling with focused 60-second current-matchup updates while either side has players actively playing
 - Data exposed as Home Assistant entity attributes for dashboards and automations
