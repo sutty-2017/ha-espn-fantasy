@@ -127,7 +127,7 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current release is **v0.1.47**, which restores the stable v0.1.41 Fantasy-only implementation and removes the experimental Pick’em work.
+The current release candidate is **v0.1.49**, focused on richer live-game/matchup context and resilience through transient ESPN API failures. Pick’em remains intentionally removed.
 
 
 ## Help test another league format
