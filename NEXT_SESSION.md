@@ -3,31 +3,31 @@
 ## Release state
 
 - Release candidate: **v0.1.49**
-- Base: published **v0.1.48** Fantasy-only release with bounded diagnostics.
-- Pick'em remains intentionally removed.
-- v0.1.49 is the current concentrated Fantasy polish/reliability release.
+- Working branch: `work/v0.1.49-live-game-state`
+- Published baseline: **v0.1.48**
+- Keep the project Fantasy Football-only; do not resume Pick'em unless the maintainer explicitly reopens it.
 
 ## v0.1.49 scope
 
-- Preserve the coordinator's last known-good Fantasy payload through transient ESPN API failures instead of making entities/cards unavailable after a successful startup.
-- Rich live NFL player game state: quarter/period, clock, NFL score, possession, and team abbreviations normalized into the shared player model and exposed on player entities.
-- Compact live status remains available on player tiles; player detail popups gain a dedicated Live Game scoreboard section when a game is in progress.
-- League-wide matchup normalization now includes both teams' complete normalized roster context, projected totals, ESPN win probability, and starter done/live/left counts.
-- Scoreboard and Schedule matchup drill-downs use that enriched data for every fantasy team, not only the configured user's matchup.
-- Matchup presentation includes an ESPN-style horizontal win-probability line with numeric percentages.
-- Regression coverage added for league-wide matchup enrichment and live NFL game-state normalization.
+- Rich live NFL game context is normalized onto players: quarter/period, clock, score, possession, and home/away identity when ESPN supplies it.
+- Compact player surfaces keep a condensed live status; the player popup adds a dedicated Live Game mini-scoreboard only while a meaningful live game is available.
+- League scoreboard matchup drill-downs now carry complete normalized home/away team context for every league matchup, including rosters, current score, projected final score, starters done/live/remaining, and ESPN win probability.
+- Matchup presentation uses an ESPN-style horizontal win-probability line with numeric percentages.
+- The configured-team Matchup card uses the same probability-bar treatment.
+- Coordinator keeps serving the exact last known-good Fantasy data through transient ESPN API failures and clears degraded state after recovery, including focused live refresh recovery.
+- v0.1.48 bounded diagnostics remain intact.
 
-## Stable Fantasy baseline retained
+## Validation expectations before publish
 
-v0.1.49 retains v0.1.48 compact diagnostics and the v0.1.41-era Fantasy card/data feature baseline: League/All-in-One, Ticker, Player, Team, Matchup, News, standings, scoreboard, roster, schedule, playoff brackets, waivers, activity, biographies, history, outlooks, injury/lineup advice, adaptive live polling, and automation-facing sensors.
-
-## Direction
-
-Keep the project focused on ESPN Fantasy Football for the remainder of the 2026 season. Favor stability, real-world league compatibility, and existing feature polish over new ESPN competition types. Pick'em stays out unless explicitly reopened.
+- Run JS syntax validation and Python compilation.
+- Run the full unittest suite, including v0.1.49 live-game/all-team-matchup regression coverage and bounded diagnostics.
+- Verify coordinator transient-failure/recovery behavior with permanent regression coverage.
+- Run Hassfest and HACS validation.
+- Confirm manifest/frontend versions match 0.1.49.
 
 ## Workflow
 
 Use the established release flow:
 **stable release → real-world HA testing → collect feedback → design/discuss → concentrated implementation/validation → release candidate → CI → PR/merge → maintainer publishes → verify release checkpoint → post-release handoff update**.
 
-For meaningful Home Assistant framework/API changes, add targeted lifecycle/behavior regression tests rather than relying only on syntax or AST checks.
+For meaningful Home Assistant framework/API changes, keep targeted lifecycle/behavior regression tests rather than relying only on syntax or AST checks.
