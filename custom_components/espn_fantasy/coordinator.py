@@ -38,6 +38,8 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
         self._player_status_updated = 0.0
         self._player_biographies: dict[int, dict] = {}
         self._player_biographies_updated = 0.0
+        self._nfl_highlights: dict[int, list[dict]] = {}
+        self._nfl_highlights_updated = 0.0
         self._last_full_refresh = 0.0
         self._serving_stale_data = False
         self.client = ESPNClient(
@@ -296,7 +298,61 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                 self._player_news_updated = now
 
             data["player_news"] = self._player_news
-            data["normalized"] = build_normalized_model(data, team_id)
+            # Highlights are public NFL game media. Fetch once per game and refresh
+            # periodically so newly published clips appear without hammering ESPN.
+            pre_normalized = build_normalized_model(data, team_id)
+            my_team_preview = ((pre_normalized.get("matchup") or {}).get("my_team") or {})
+            roster_preview = my_team_preview.get("roster") or []
+            game_ids = sorted({
+                int(player.get("game_id"))
+                for player in roster_preview
+                if player.get("game_id")
+            })
+            if game_ids and (
+                not self._nfl_highlights
+                or now - self._nfl_highlights_updated >= 900
+            ):
+                fetched_highlights = await self.client.get_nfl_highlights_many(game_ids)
+                for game_id in game_ids:
+                    if fetched_highlights.get(game_id) or game_id not in self._nfl_highlights:
+                        self._nfl_highlights[game_id] = fetched_highlights.get(game_id, [])
+                self._nfl_highlights_updated = now
+            self._nfl_highlights = {
+                game_id: items for game_id, items in self._nfl_highlights.items()
+                if game_id in set(game_ids)
+            }
+            team_highlights: list[dict] = []
+            seen_highlights: set[str] = set()
+            for player in roster_preview:
+                game_id = player.get("game_id")
+                player_name = str(player.get("name") or "").strip()
+                if not game_id:
+                    player["highlights"] = []
+                    continue
+                matched: list[dict] = []
+                name_parts = [part.lower() for part in player_name.split() if len(part) > 2]
+                for highlight in self._nfl_highlights.get(int(game_id), []):
+                    key = str(highlight.get("id") or highlight.get("source") or "")
+                    haystack = " ".join(str(highlight.get(field) or "") for field in ("headline", "description")).lower()
+                    keywords = " ".join(str(item) for item in (highlight.get("keywords") or [])).lower()
+                    exact_name = bool(player_name and player_name.lower() in f"{haystack} {keywords}")
+                    surname = name_parts[-1] if len(name_parts) >= 2 else ""
+                    strong_surname = bool(surname and surname in f"{haystack} {keywords}")
+                    if exact_name or strong_surname:
+                        matched.append({**highlight, "player_id": player.get("id"), "player_name": player_name})
+                    if key and key not in seen_highlights:
+                        seen_highlights.add(key)
+                        team_highlights.append({**highlight})
+                player["highlights"] = matched
+            data["team_highlights"] = team_highlights
+            data["normalized"] = pre_normalized
+            normalized_my_team = ((data["normalized"].get("matchup") or {}).get("my_team") or {})
+            by_id = {int(item.get("id")): item for item in roster_preview if item.get("id")}
+            for player in normalized_my_team.get("roster") or []:
+                try:
+                    player["highlights"] = by_id.get(int(player.get("id")), {}).get("highlights", [])
+                except (TypeError, ValueError):
+                    player["highlights"] = []
             self.update_interval = timedelta(
                 seconds=LIVE_SCAN_INTERVAL if self._matchup_has_live_players(data) else DEFAULT_SCAN_INTERVAL
             )

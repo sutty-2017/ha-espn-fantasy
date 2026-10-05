@@ -333,6 +333,7 @@ class LeagueSensor(ESPNBaseSensor):
             "activity_count": len(league.get("activity") or []),
             "matchup_count": league.get("matchup_count") or 0,
             "matchup_period": league.get("matchup_period"),
+            "highlights": data.get("team_highlights") or [],
         }
 
 
@@ -563,6 +564,7 @@ class RosterSensor(ESPNBaseSensor):
             "starters_completed": current.get("starters_completed"),
             "starters_on_bye": current.get("starters_on_bye"),
             "starters_unknown": current.get("starters_unknown"),
+            "highlights": self.coordinator.data.get("team_highlights") or [],
         }
 
 
@@ -706,6 +708,7 @@ class PlayerSensor(ESPNBaseSensor):
             ),
             "weekly_outlook": normalized_player.get("weekly_outlook"),
             "season_outlook": normalized_player.get("season_outlook"),
+            "highlights": normalized_player.get("highlights") or [],
         }
         attrs.update(_decode_stats(actual))
         return attrs
