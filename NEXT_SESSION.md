@@ -2,12 +2,12 @@
 
 ## Release state
 
-- Release candidate: **v0.1.51**
+- Release candidate: **v0.1.52**
 - Base: **v0.1.49** live-game/matchup release on top of the v0.1.48 bounded-diagnostics Fantasy baseline.
 - Pick'em remains intentionally removed.
 - v0.1.51 adds ESPN NFL highlights plus popup usability improvements on top of the published v0.1.50 baseline.
 
-## v0.1.51 scope
+## v0.1.52 scope\n\n- Fix Highlights previous/next navigation and automatic playlist advancement by keeping the embedded playlist JSON parseable.\n\n## v0.1.51 scope
 
 - Add configurable Player Popup Height in card editors; popup content scrolls internally when capped.
 - Add score, projected score, and starter done/live/left progress to team roster popups.
