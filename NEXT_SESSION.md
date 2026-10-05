@@ -10,7 +10,7 @@
 ## v0.1.50 scope
 
 - Restore Playoff Bracket Round 1/2/3 jump controls in compact and expanded bracket views while keeping postseason tiers aligned during horizontal navigation.
-- Expose whether the coordinator is serving stale last-known-good data plus its consecutive update-failure count in diagnostics.
+- Expose whether the coordinator is serving stale last-known-good data in diagnostics.
 - Keep the full v0.1.49 live-game, matchup enrichment, win-probability, and transient-ESPN resilience work unchanged.
 - Keep frontend/Python validation, HACS, and Hassfest green before merge.
 
