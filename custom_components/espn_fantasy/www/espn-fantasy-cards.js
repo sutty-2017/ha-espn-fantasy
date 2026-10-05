@@ -398,13 +398,13 @@ class ESPNFantasyLeagueEditor extends HTMLElement {
   constructor(){super();this.attachShadow({mode:"open"});this._config={};}
   set hass(v){this._hass=v;this.shadowRoot.querySelectorAll("ha-form").forEach(form=>form.hass=v);if(!this.shadowRoot.hasChildNodes())this.render();} get hass(){return this._hass;}
   setConfig(v){this._config=v||{};this.render();}
-  defaults(){return ["roster","standings","scoreboard","matchup","highlights","news","activity","waivers","schedule","bracket"];}
+  defaults(){return ["roster","standings","scoreboard","matchup","news","activity","waivers","schedule","bracket"];}
   enabled(){
     const d=this.defaults(),hasNew=d.some(v=>Object.prototype.hasOwnProperty.call(this._config,"section_"+v));
     if(hasNew)return Object.fromEntries(d.map(v=>[v,this._config["section_"+v]!==false]));
     const mode=this._config.display_mode||"all";
     if(mode!=="all")return Object.fromEntries(d.map(v=>[v,v===mode]));
-    return {roster:true,standings:true,scoreboard:true,matchup:true,highlights:true,news:this._config.include_news!==false,activity:this._config.include_activity===true,waivers:false,schedule:false,bracket:false};
+    return {roster:true,standings:true,scoreboard:true,matchup:true,news:this._config.include_news!==false,activity:this._config.include_activity===true,waivers:false,schedule:false,bracket:false};
   }
   order(){const d=this.defaults(),configured=d.map((_,i)=>this._config["section_"+(i+1)]).filter(v=>d.includes(v));return [...new Set([...configured,...d])];}
   visibleOrder(){const enabled=this.enabled();return this.order().filter(v=>enabled[v]);}
@@ -420,7 +420,7 @@ class ESPNFantasyLeagueEditor extends HTMLElement {
   render(){
     if(!this.hass)return;
     const enabled=this.enabled(),visible=this.visibleOrder();
-    const labels={roster:"Roster",standings:"Standings",scoreboard:"Scoreboard",matchup:"My Matchup",highlights:"Highlights",news:"News",activity:"Activity",waivers:"Waivers",schedule:"Schedule",bracket:"Playoff Bracket"};
+    const labels={roster:"Roster",standings:"Standings",scoreboard:"Scoreboard",matchup:"My Matchup",news:"News",activity:"Activity",waivers:"Waivers",schedule:"Schedule",bracket:"Playoff Bracket"};
     const checkboxRows=this.defaults().map(v=>'<label class="section-check"><input type="checkbox" data-section="'+v+'" '+(enabled[v]?"checked":"")+'><span>'+esc(labels[v])+'</span></label>').join("");
     const orderRows=visible.map((v,i,a)=>'<div class="order-row"><span>'+esc(labels[v])+'</span><button type="button" data-i="'+i+'" data-d="-1" '+(i===0?"disabled":"")+'>↑</button><button type="button" data-i="'+i+'" data-d="1" '+(i===a.length-1?"disabled":"")+'>↓</button></div>').join("");
     const groups=[];
@@ -432,7 +432,6 @@ class ESPNFantasyLeagueEditor extends HTMLElement {
     if(enabled.standings&&enabled.scoreboard)groups.push('<section class="editor-group"><div class="group-title">Overview</div><div class="hint">Optionally combine Standings and Scoreboard into one shortcut and choose which appears first.</div><ha-form data-form="overview"></ha-form></section>');
     if(enabled.matchup)groups.push('<section class="editor-group"><div class="group-title">Matchup</div><ha-form data-form="matchup"></ha-form></section>');
     if(enabled.roster||enabled.matchup)groups.push('<section class="editor-group"><div class="group-title">Roster & Matchup</div><ha-form data-form="lineup"></ha-form></section>');
-    if(enabled.highlights)groups.push('<section class="editor-group"><div class="group-title">Highlights</div><ha-form data-form="highlights"></ha-form></section>');
     if(enabled.news)groups.push('<section class="editor-group"><div class="group-title">News</div><ha-form data-form="news"></ha-form></section>');
     if(enabled.activity)groups.push('<section class="editor-group"><div class="group-title">Activity</div><ha-form data-form="activity"></ha-form></section>');
     if(enabled.waivers)groups.push('<section class="editor-group"><div class="group-title">Waivers</div><ha-form data-form="waivers"></ha-form></section>');
@@ -454,8 +453,11 @@ class ESPNFantasyLeagueEditor extends HTMLElement {
     if(enabled.standings&&enabled.scoreboard)this.bindForm("overview",[{name:"combine_standings_scoreboard",selector:{boolean:{}}},{name:"label_overview",selector:{text:{}}},{name:"overview_order",selector:{select:{options:[{value:"standings_first",label:"Standings → Scoreboard"},{value:"scoreboard_first",label:"Scoreboard → Standings"}]}}}],{combine_standings_scoreboard:"Combine Standings & Scoreboard",label_overview:"Combined shortcut title",overview_order:"Section order"},{combine_standings_scoreboard:false,label_overview:"Overview",overview_order:"standings_first"});
     if(enabled.matchup)this.bindForm("matchup",[{name:"label_matchup",selector:{text:{}}},{name:"matchup_lineup_advice",selector:{boolean:{}}}],{label_matchup:"Shortcut title",matchup_lineup_advice:"Show lineup advice badges"},{matchup_lineup_advice:true});
     if(enabled.roster||enabled.matchup)this.bindForm("lineup",[{name:"label_starters",selector:{text:{}}},{name:"label_bench_ir",selector:{text:{}}}],{label_starters:"Starters title",label_bench_ir:"Bench / IR title"});
-    if(enabled.highlights)this.bindForm("highlights",[{name:"label_highlights",selector:{text:{}}}],{label_highlights:"Shortcut title"});
-    if(enabled.news)this.bindForm("news",[{name:"label_news",selector:{text:{}}}],{label_news:"Shortcut title"});
+    if(enabled.news)this.bindForm("news",[
+      {name:"label_news",selector:{text:{}}},
+      {name:"news_highlights",selector:{boolean:{}}},
+      {name:"news_highlights_position",selector:{select:{options:[{value:"above",label:"Above news"},{value:"below",label:"Below news"}]}}}
+    ],{label_news:"Shortcut title",news_highlights:"Show player highlights",news_highlights_position:"Highlights position"},{news_highlights:true,news_highlights_position:"above"});
     if(enabled.activity)this.bindForm("activity",[{name:"label_activity",selector:{text:{}}}],{label_activity:"Shortcut title"});
     if(enabled.waivers)this.bindForm("waivers",[{name:"label_waivers",selector:{text:{}}}],{label_waivers:"Shortcut title"});
     if(enabled.news||enabled.activity)this.bindForm("feeds",[
@@ -480,10 +482,10 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
   constructor(){super();this._leagueView=null;this._matchupView=null;this._rosterView=null;this._schedulePeriod=null;this._newsScrollTop=0;this._activityScrollTop=0;this._bracketScrollLeft={};}
   set hass(v){const old=this._hass;this._hass=v;if(!old||!this.shadowRoot.hasChildNodes()){this.renderStable();return;}const ids=[findRoster(v,this._config.entity)?.entity_id,findLeague(v,this._config.entity)?.entity_id,findMatchup(v,this._config.entity)?.entity_id].filter(Boolean);if(!ids.length||ids.some(id=>old.states?.[id]!==v.states?.[id]))this.renderStable();}
   get hass(){return this._hass;}
-  static getStubConfig(){return {type:"custom:espn-fantasy-league-card",section_roster:true,section_standings:true,section_scoreboard:true,section_matchup:true,section_highlights:true,section_news:true,section_activity:true,section_waivers:true,section_schedule:true,section_bracket:true,story_count:5,max_card_height:0,lineup_alert_threshold:0,roster_lineup_advice:true,matchup_lineup_advice:true,standings_roster_popups:true,scoreboard_matchup_popups:true,combine_standings_scoreboard:false,overview_order:"standings_first",show_header_logo:true};}
+  static getStubConfig(){return {type:"custom:espn-fantasy-league-card",section_roster:true,section_standings:true,section_scoreboard:true,section_matchup:true,section_news:true,section_activity:true,section_waivers:true,section_schedule:true,section_bracket:true,story_count:5,max_card_height:0,lineup_alert_threshold:0,roster_lineup_advice:true,matchup_lineup_advice:true,standings_roster_popups:true,scoreboard_matchup_popups:true,combine_standings_scoreboard:false,overview_order:"standings_first",show_header_logo:true};}
   static async getConfigElement(){return document.createElement("espn-fantasy-league-editor");}
   getGridOptions(){return {rows:"auto",columns:12,min_rows:4,min_columns:4};}
-  defaults(){return ["roster","standings","scoreboard","matchup","highlights","news","activity","waivers","schedule","bracket"];}
+  defaults(){return ["roster","standings","scoreboard","matchup","news","activity","waivers","schedule","bracket"];}
   enabledSections(){
     const d=this.defaults(),hasNew=d.some(v=>Object.prototype.hasOwnProperty.call(this._config,"section_"+v));
     if(hasNew)return Object.fromEntries(d.map(v=>[v,this._config["section_"+v]!==false]));
@@ -522,13 +524,13 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
   newsBody(){
     const players=this.rosterState()?.attributes?.players||[],count=Math.min(20,Math.max(1,Number(this._config.story_count)||5));
     const stories=players.flatMap(p=>(Array.isArray(p.news)?p.news:[]).map(item=>({p,item}))).sort((x,y)=>(Date.parse(y.item.published)||0)-(Date.parse(x.item.published)||0)).slice(0,count);
-    if(!stories.length)return '<div class="empty">No player news available yet.</div>';
-    return '<div class="news-feed">'+stories.map(({p,item})=>'<article class="feed-story" data-news-player="'+esc(p.id)+'"><div class="feed-player"><div class="portrait">'+(p.headshot?'<img src="'+esc(p.headshot)+'" alt="" loading="lazy">':"")+injuryBadge(p)+'</div><div><div class="player-name">'+esc(p.name)+'</div><div class="player-meta">'+esc([p.position,p.nfl_team].filter(Boolean).join(" · "))+'</div></div></div><div class="news-meta">'+esc(item.published?fmtKickoff(item.published):"")+'</div><div class="news-headline">'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">'+esc(item.headline||"Player update")+"</a>":esc(item.headline||"Player update"))+'</div>'+(item.description?'<div class="news-description">'+esc(item.description)+"</div>":"")+(item.spin?'<div class="news-spin"><strong>Fantasy:</strong> '+esc(item.spin)+"</div>":"")+"</article>").join("")+"</div>";
-  }
-  highlightsBody(){
+    const news=stories.length?'<div class="news-feed">'+stories.map(({p,item})=>'<article class="feed-story" data-news-player="'+esc(p.id)+'"><div class="feed-player"><div class="portrait">'+(p.headshot?'<img src="'+esc(p.headshot)+'" alt="" loading="lazy">':"")+injuryBadge(p)+'</div><div><div class="player-name">'+esc(p.name)+'</div><div class="player-meta">'+esc([p.position,p.nfl_team].filter(Boolean).join(" · "))+'</div></div></div><div class="news-meta">'+esc(item.published?fmtKickoff(item.published):"")+'</div><div class="news-headline">'+(item.url?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">'+esc(item.headline||"Player update")+"</a>":esc(item.headline||"Player update"))+'</div>'+(item.description?'<div class="news-description">'+esc(item.description)+"</div>":"")+(item.spin?'<div class="news-spin"><strong>Fantasy:</strong> '+esc(item.spin)+"</div>":"")+"</article>").join("")+"</div>":'<div class="empty">No player news available yet.</div>';
+    if(this._config.news_highlights===false)return news;
     const items=this.leagueState()?.attributes?.highlights||[];
-    if(!items.length)return '<div class="empty">No playable highlights are available for your roster games yet.</div>';
-    return highlightsMarkup(items);
+    if(!items.length)return news;
+    const a=this.leagueState()?.attributes||{},week=Number(a.current_week||a.matchup_period||0);
+    const highlights='<section class="news-highlights"><div class="league-section-title">'+esc(week?'Week '+week+' Highlights':'Highlights')+'</div>'+highlightsMarkup(items)+'</section>';
+    return this._config.news_highlights_position==="below"?news+highlights:highlights+news;
   }
   activityBody(){
     const events=this.leagueState()?.attributes?.activity||[],count=Math.min(20,Math.max(1,Number(this._config.story_count)||5));
@@ -586,7 +588,6 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
     if(view==="scoreboard")return games.length?leagueScoreboard(games,this._config.scoreboard_matchup_popups!==false):'<div class="empty">No scoreboard data yet.</div>';
     if(view==="overview"){const standingsMarkup=standings.length?leagueStandings(standings,undefined,this._config.standings_roster_popups!==false):'<div class="empty">No standings data yet.</div>',scoreboardMarkup=games.length?leagueScoreboard(games,this._config.scoreboard_matchup_popups!==false):'<div class="empty">No scoreboard data yet.</div>',standingsBlock='<section class="overview-block"><div class="league-section-title">Standings</div>'+standingsMarkup+'</section>',scoreboardBlock='<section class="overview-block"><div class="league-section-title">Scoreboard</div>'+scoreboardMarkup+'</section>';return this._config.overview_order==="scoreboard_first"?scoreboardBlock+standingsBlock:standingsBlock+scoreboardBlock;}
     if(view==="matchup")return this.matchupBody();
-    if(view==="highlights")return this.highlightsBody();
     if(view==="activity")return this.activityBody();
     if(view==="waivers")return this.waiversBody();
     if(view==="schedule")return this.scheduleBody();
