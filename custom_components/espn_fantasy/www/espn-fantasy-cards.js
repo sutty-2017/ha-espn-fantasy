@@ -1,4 +1,4 @@
-const CARD_VERSION = "0.1.49";
+const CARD_VERSION = "0.1.50";
 const ESPN_FANTASY_ICON = `/espn_fantasy/icon.png?v=${CARD_VERSION}`;
 
 const esc = (value) => String(value ?? "").replace(/[&<>\"']/g, (char) => ({
