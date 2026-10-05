@@ -2,24 +2,21 @@
 
 ## Release state
 
-- Release candidate: **v0.1.49**
-- Base: published **v0.1.48** Fantasy-only release with bounded diagnostics.
+- Release candidate: **v0.1.50**
+- Base: **v0.1.49** live-game/matchup release on top of the v0.1.48 bounded-diagnostics Fantasy baseline.
 - Pick'em remains intentionally removed.
-- v0.1.49 is the current concentrated Fantasy polish/reliability release.
+- v0.1.50 is a focused cleanup patch from a fresh review of the v0.1.49 release state.
 
-## v0.1.49 scope
+## v0.1.50 scope
 
-- Preserve the coordinator's last known-good Fantasy payload through transient ESPN API failures instead of making entities/cards unavailable after a successful startup.
-- Rich live NFL player game state: quarter/period, clock, NFL score, possession, and team abbreviations normalized into the shared player model and exposed on player entities.
-- Compact live status remains available on player tiles; player detail popups gain a dedicated Live Game scoreboard section when a game is in progress.
-- League-wide matchup normalization now includes both teams' complete normalized roster context, projected totals, ESPN win probability, and starter done/live/left counts.
-- Scoreboard and Schedule matchup drill-downs use that enriched data for every fantasy team, not only the configured user's matchup.
-- Matchup presentation includes an ESPN-style horizontal win-probability line with numeric percentages.
-- Regression coverage added for league-wide matchup enrichment and live NFL game-state normalization.
+- Restore Playoff Bracket Round 1/2/3 jump controls in compact and expanded bracket views while keeping postseason tiers aligned during horizontal navigation.
+- Expose whether the coordinator is serving stale last-known-good data plus its consecutive update-failure count in diagnostics.
+- Keep the full v0.1.49 live-game, matchup enrichment, win-probability, and transient-ESPN resilience work unchanged.
+- Keep frontend/Python validation, HACS, and Hassfest green before merge.
 
 ## Stable Fantasy baseline retained
 
-v0.1.49 retains v0.1.48 compact diagnostics and the v0.1.41-era Fantasy card/data feature baseline: League/All-in-One, Ticker, Player, Team, Matchup, News, standings, scoreboard, roster, schedule, playoff brackets, waivers, activity, biographies, history, outlooks, injury/lineup advice, adaptive live polling, and automation-facing sensors.
+v0.1.50 retains the v0.1.49 live-game/matchup improvements and v0.1.48 compact diagnostics and the v0.1.41-era Fantasy card/data feature baseline: League/All-in-One, Ticker, Player, Team, Matchup, News, standings, scoreboard, roster, schedule, playoff brackets, waivers, activity, biographies, history, outlooks, injury/lineup advice, adaptive live polling, and automation-facing sensors.
 
 ## Direction
 

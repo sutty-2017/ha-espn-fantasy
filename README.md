@@ -1,11 +1,10 @@
-> **v0.1.49:** Keeps the last known-good Fantasy data available through transient ESPN refresh failures, enriches live player status with quarter/clock/score/possession plus a dedicated Live Game popup section, and upgrades every league matchup drill-down with projections, starter progress, full rosters, and an ESPN-style win-probability bar.\n\n> **v0.1.49:** Keeps the last known-good Fantasy data available through transient ESPN refresh failures, enriches live players with NFL score/quarter/clock/possession context and a dedicated Live Game popup section, and upgrades every league matchup drill-down with projections, starter progress, full rosters, and an ESPN-style win-probability bar.\n\n> **v0.1.48:** Reworks Home Assistant diagnostics into a bounded Fantasy-focused payload instead of exporting the entire multi-megabyte coordinator. Keeps league settings, team structure, matchup/schedule summaries, recent transactions, normalized standings/scoreboard/schedule/playoffs/waivers/activity, and the normalized current matchup while omitting duplicated raw roster/news/history blobs.\n\n# ESPN Fantasy Football for Home Assistant
+> **v0.1.50:** Fresh-review patch restoring the Playoff Bracket Round jump controls in both compact and expanded views, exposing stale/degraded coordinator state in diagnostics, and tightening regression validation around those paths.\n\n> **v0.1.49:** Keeps the last known-good Fantasy data available through transient ESPN refresh failures, enriches live player status with quarter/clock/score/possession plus a dedicated Live Game popup section, and upgrades every league matchup drill-down with projections, starter progress, full rosters, and an ESPN-style win-probability bar.\n\n> **v0.1.49:** Keeps the last known-good Fantasy data available through transient ESPN refresh failures, enriches live players with NFL score/quarter/clock/possession context and a dedicated Live Game popup section, and upgrades every league matchup drill-down with projections, starter progress, full rosters, and an ESPN-style win-probability bar.\n\n> **v0.1.48:** Reworks Home Assistant diagnostics into a bounded Fantasy-focused payload instead of exporting the entire multi-megabyte coordinator. Keeps league settings, team structure, matchup/schedule summaries, recent transactions, normalized standings/scoreboard/schedule/playoffs/waivers/activity, and the normalized current matchup while omitting duplicated raw roster/news/history blobs.\n\n# ESPN Fantasy Football for Home Assistant
 
 > [!CAUTION]
 > **Personal-use / early-development project.** This integration is currently built and tested primarily for the maintainer's own Home Assistant and ESPN Fantasy setup. Other leagues, scoring systems, roster formats, ESPN response changes, and Home Assistant environments may behave differently. If you install or use it, you do so **at your own risk**. Keep backups and review changes before relying on it for dashboards or automations.
 
 > [!NOTE]
 > **AI-assisted development:** This project is maintained by the repository owner with substantial coding, debugging, refactoring, documentation, and test assistance from **ChatGPT by OpenAI**. The maintainer directs the project, tests it against the real Home Assistant/ESPN environment, and decides what is merged and released. AI-generated or AI-assisted code should be reviewed and tested like any other contribution.
-
 
 Bring your ESPN Fantasy Football league into Home Assistant with native entities, automation-friendly data, and a coordinated dashboard card suite.
 
@@ -127,8 +126,7 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 ## Development status
 
-The current release candidate is **v0.1.49**, focused on richer live-game/matchup context and resilience through transient ESPN API failures. Pick’em remains intentionally removed.
-
+The current release candidate is **v0.1.50**, a focused follow-up that restores bracket round navigation and improves degraded-state diagnostics on top of v0.1.49. Pick’em remains intentionally removed.
 
 ## Help test another league format
 
@@ -158,6 +156,5 @@ regression coverage. Never post `espn_s2` or `SWID` cookie values.
 > **v0.1.33:** Adds section-based League and Ticker editors, full-season Schedule and playoff-bracket views, fixes portrait-anchored red injury badges, streamlines Fantasy Outlook, and polishes Activity ticker layout.
 
 > **v0.1.32:** Restores complete weekly history/injury normalization, expands League Activity with rich player/team identity and transaction popups, and adds automation-friendly Activity, Lineup Recommendations, and Injured Players sensors.
-
 
 > **v0.1.31:** Adds normalized league transaction activity to Home Assistant, optional Activity in the All-in-One card and ticker, reliable per-week current-season history fetching, and shared roster injury-status enrichment.
