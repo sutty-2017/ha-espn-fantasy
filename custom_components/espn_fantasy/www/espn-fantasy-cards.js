@@ -588,7 +588,7 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
       const team=view.team,players=rosterOrder(team?.roster||[]),starters=players.filter(p=>p.starter),bench=players.filter(p=>!p.starter);
       return '<div class="popup-view-title">'+teamLogo(team?.team_logo,team?.team_name)+'<div><strong>'+esc(team?.team_name||"Team")+'</strong><span>Roster</span></div></div>'+(starters.length?'<div class="popup-roster-label">Starters</div><div class="player-list">'+starters.map(p=>playerTile(p,{showSlot:true})).join("")+'</div>':"")+(bench.length?'<div class="popup-roster-label">Bench / IR</div><div class="player-list">'+bench.map(p=>playerTile(p,{showSlot:true})).join("")+'</div>':"");
     }
-    const game=view.game||{},home=game.home_team||this.teamDetail(game.home_team_id),away=game.away_team||this.teamDetail(game.away_team_id),mode=view.mode||"starters";
+    const game=view.game||{},fallbackHome=this.teamDetail(game.home_team_id),fallbackAway=this.teamDetail(game.away_team_id),home=game.home_team?{...fallbackHome,...game.home_team}:{...fallbackHome},away=game.away_team?{...fallbackAway,...game.away_team}:{...fallbackAway},mode=view.mode||"starters";
     const homePlayers=rosterOrder(mode==="bench"?(home?.roster||[]).filter(p=>!p.starter):(home?.starters||[]));
     const awayPlayers=rosterOrder(mode==="bench"?(away?.roster||[]).filter(p=>!p.starter):(away?.starters||[]));
     const awayProj=game.away_projected_score??away?.live_projected_score??away?.projected_score,homeProj=game.home_projected_score??home?.live_projected_score??home?.projected_score;
