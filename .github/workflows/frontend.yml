@@ -351,6 +351,16 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_*.py' -v
 
+      - name: Check v0.1.49 live and matchup data paths
+        run: |
+          grep -q '"game_period"' custom_components/espn_fantasy/model.py
+          grep -q '"possession_abbrev"' custom_components/espn_fantasy/model.py
+          grep -q '"home_win_probability"' custom_components/espn_fantasy/model.py
+          grep -q '"home_team": home_detail' custom_components/espn_fantasy/model.py
+          grep -q 'liveGameDetails' custom_components/espn_fantasy/www/espn-fantasy-cards.js
+          grep -q 'winProbabilityBar' custom_components/espn_fantasy/www/espn-fantasy-cards.js
+          grep -q '_serving_stale_data' custom_components/espn_fantasy/coordinator.py
+
       - name: Check adaptive live polling path
         run: |
           grep -q 'LIVE_SCAN_INTERVAL = 60' custom_components/espn_fantasy/const.py
