@@ -3,32 +3,27 @@
 ## Release state
 
 - Release candidate: **v0.1.49**
-- Base: published/tested **v0.1.48** Fantasy-only release with bounded diagnostics.
-- Pick'em remains removed and out of scope unless the maintainer explicitly reopens it.
-- Working branch: `work/v0.1.49-live-game-state`.
+- Base: published **v0.1.48** Fantasy-only release with bounded diagnostics.
+- Pick'em remains intentionally removed.
+- v0.1.49 is the current concentrated Fantasy polish/reliability release.
 
 ## v0.1.49 scope
 
-- Preserve the coordinator's last known-good Fantasy data when a later ESPN request fails transiently, preventing entities/cards from becoming unavailable during temporary ESPN outages.
-- Initial setup failures still raise `UpdateFailed`; stale data is served only after a successful dataset already exists.
-- Normalize richer NFL game state for players when ESPN supplies it: quarter/period, clock, game detail, possession, home/away abbreviations and score.
-- Expose the richer game-state fields on player entities for Home Assistant automations.
-- Keep the compact LIVE badge, with live game context alongside it on player tiles.
-- Add a dedicated Live Game section to the shared player popup with score, period/clock, and possession.
-- Enrich every current league matchup with normalized home/away team detail so Scoreboard/Schedule matchup drill-downs can show the same useful context as the configured team's matchup.
-- Matchup views show actual score, projected final score, starters done/live/left, and ESPN-provided win probability.
-- Win probability is rendered as a compact ESPN-style horizontal probability line/bar; it is omitted when ESPN does not provide probability.
-- Added permanent coordinator regression coverage for last-good-data behavior.
+- Preserve the coordinator's last known-good Fantasy payload through transient ESPN API failures instead of making entities/cards unavailable after a successful startup.
+- Rich live NFL player game state: quarter/period, clock, NFL score, possession, and team abbreviations normalized into the shared player model and exposed on player entities.
+- Compact live status remains available on player tiles; player detail popups gain a dedicated Live Game scoreboard section when a game is in progress.
+- League-wide matchup normalization now includes both teams' complete normalized roster context, projected totals, ESPN win probability, and starter done/live/left counts.
+- Scoreboard and Schedule matchup drill-downs use that enriched data for every fantasy team, not only the configured user's matchup.
+- Matchup presentation includes an ESPN-style horizontal win-probability line with numeric percentages.
+- Regression coverage added for league-wide matchup enrichment and live NFL game-state normalization.
 
-## Stable baseline retained
+## Stable Fantasy baseline retained
 
-v0.1.48 fixed diagnostics downloads by replacing the multi-megabyte coordinator dump with bounded Fantasy-focused diagnostics. Keep that diagnostics design intact.
-
-Existing Fantasy features remain: League/All-in-One sections, roster, standings, scoreboard, matchup, news, activity, waivers, schedule, playoff bracket, player/team/matchup popups, unified ticker, News card, historical stats, biographies, injury badges, lineup advice, adaptive live polling, and automation-facing sensors.
+v0.1.49 retains v0.1.48 compact diagnostics and the v0.1.41-era Fantasy card/data feature baseline: League/All-in-One, Ticker, Player, Team, Matchup, News, standings, scoreboard, roster, schedule, playoff brackets, waivers, activity, biographies, history, outlooks, injury/lineup advice, adaptive live polling, and automation-facing sensors.
 
 ## Direction
 
-Keep the project focused on ESPN Fantasy Football for the remainder of the 2026 season. Favor stability, real-world league compatibility, and existing feature polish over new ESPN competition types. Larger Game Day/intelligence ideas remain tabled for next year.
+Keep the project focused on ESPN Fantasy Football for the remainder of the 2026 season. Favor stability, real-world league compatibility, and existing feature polish over new ESPN competition types. Pick'em stays out unless explicitly reopened.
 
 ## Workflow
 
