@@ -6,7 +6,6 @@
 > [!NOTE]
 > **AI-assisted development:** This project is maintained by the repository owner with substantial coding, debugging, refactoring, documentation, and test assistance from **ChatGPT by OpenAI**. The maintainer directs the project, tests it against the real Home Assistant/ESPN environment, and decides what is merged and released. AI-generated or AI-assisted code should be reviewed and tested like any other contribution.
 
-
 Bring your ESPN Fantasy Football league into Home Assistant with native entities, automation-friendly data, and a coordinated dashboard card suite.
 
 The integration connects directly to ESPN Fantasy data and exposes league standings, your team and roster, live matchup scoring, player projections and statistics, current-season weekly history, projection-based lineup alerts, injuries, game status, fantasy outlooks, and player news.
@@ -129,7 +128,6 @@ Restart Home Assistant after updating the integration. If a browser or wall-pane
 
 The current release candidate is **v0.1.50**, a focused follow-up that restores bracket round navigation and improves degraded-state diagnostics on top of v0.1.49. Pick’em remains intentionally removed.
 
-
 ## Help test another league format
 
 ESPN Fantasy leagues can differ substantially in roster slots, scoring, waivers,
@@ -158,6 +156,5 @@ regression coverage. Never post `espn_s2` or `SWID` cookie values.
 > **v0.1.33:** Adds section-based League and Ticker editors, full-season Schedule and playoff-bracket views, fixes portrait-anchored red injury badges, streamlines Fantasy Outlook, and polishes Activity ticker layout.
 
 > **v0.1.32:** Restores complete weekly history/injury normalization, expands League Activity with rich player/team identity and transaction popups, and adds automation-friendly Activity, Lineup Recommendations, and Injured Players sensors.
-
 
 > **v0.1.31:** Adds normalized league transaction activity to Home Assistant, optional Activity in the All-in-One card and ticker, reliable per-week current-season history fetching, and shared roster injury-status enrichment.
