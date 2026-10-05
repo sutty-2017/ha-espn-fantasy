@@ -404,7 +404,7 @@ class ESPNFantasyLeagueEditor extends HTMLElement {
     if(hasNew)return Object.fromEntries(d.map(v=>[v,this._config["section_"+v]!==false]));
     const mode=this._config.display_mode||"all";
     if(mode!=="all")return Object.fromEntries(d.map(v=>[v,v===mode]));
-    return {roster:true,standings:true,scoreboard:true,matchup:true,news:this._config.include_news!==false,activity:this._config.include_activity===true,waivers:false,schedule:false,bracket:false};
+    return {roster:true,standings:true,scoreboard:true,matchup:true,highlights:true,news:this._config.include_news!==false,activity:this._config.include_activity===true,waivers:false,schedule:false,bracket:false};
   }
   order(){const d=this.defaults(),configured=d.map((_,i)=>this._config["section_"+(i+1)]).filter(v=>d.includes(v));return [...new Set([...configured,...d])];}
   visibleOrder(){const enabled=this.enabled();return this.order().filter(v=>enabled[v]);}
