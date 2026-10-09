@@ -35,6 +35,28 @@ def _transaction_summary(transaction: dict[str, Any]) -> dict[str, Any]:
 
 
 
+MAX_DIAGNOSTIC_LIST_ITEMS = 12
+MAX_DIAGNOSTIC_DEPTH = 4
+MAX_DIAGNOSTIC_STRING_LENGTH = 500
+
+
+def _bounded_diagnostic(value: Any, depth: int = 0) -> Any:
+    """Bound exported diagnostics without altering live ESPN data."""
+    if depth >= MAX_DIAGNOSTIC_DEPTH:
+        if isinstance(value, (dict, list)):
+            return {"omitted": True, "count": len(value)}
+        return value[:MAX_DIAGNOSTIC_STRING_LENGTH] if isinstance(value, str) else value
+    if isinstance(value, dict):
+        return {
+            str(key): _bounded_diagnostic(item, depth + 1)
+            for key, item in value.items()
+            if str(key).lower() not in ("espn_s2", "swid")
+        }
+    if isinstance(value, list):
+        return [_bounded_diagnostic(item, depth + 1) for item in value[:MAX_DIAGNOSTIC_LIST_ITEMS]]
+    return value[:MAX_DIAGNOSTIC_STRING_LENGTH] if isinstance(value, str) else value
+
+
 def _team_summary(team: dict[str, Any]) -> dict[str, Any]:
     """Keep league/team structure without duplicating every roster payload."""
     return {
@@ -145,7 +167,7 @@ async def async_get_config_entry_diagnostics(
         },
     }
 
-    return {
+    return _bounded_diagnostic({
         "compatibility": compatibility,
         "entry": {
             "title": entry.title,
@@ -192,4 +214,4 @@ async def async_get_config_entry_diagnostics(
                 "matchup": matchup_summary,
             },
         },
-    }
+    })
