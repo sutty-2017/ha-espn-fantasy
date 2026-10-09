@@ -34,8 +34,8 @@ def _transaction_summary(transaction: dict[str, Any]) -> dict[str, Any]:
     return summary
 
 
-
 MAX_DIAGNOSTIC_LIST_ITEMS = 12
+MAX_DIAGNOSTIC_DICT_ITEMS = 40
 MAX_DIAGNOSTIC_DEPTH = 4
 MAX_DIAGNOSTIC_STRING_LENGTH = 500
 
@@ -48,8 +48,8 @@ def _bounded_diagnostic(value: Any, depth: int = 0) -> Any:
         return value[:MAX_DIAGNOSTIC_STRING_LENGTH] if isinstance(value, str) else value
     if isinstance(value, dict):
         return {
-            str(key): _bounded_diagnostic(item, depth + 1)
-            for key, item in value.items()
+            str(key)[:MAX_DIAGNOSTIC_STRING_LENGTH]: _bounded_diagnostic(item, depth + 1)
+            for _, (key, item) in zip(range(MAX_DIAGNOSTIC_DICT_ITEMS), value.items())
             if str(key).lower() not in ("espn_s2", "swid")
         }
     if isinstance(value, list):
@@ -167,10 +167,10 @@ async def async_get_config_entry_diagnostics(
         },
     }
 
-    return _bounded_diagnostic({
+    result = {
         "compatibility": compatibility,
         "entry": {
-            "title": entry.title,
+            "title": str(entry.title)[:MAX_DIAGNOSTIC_STRING_LENGTH],
             "data": async_redact_data(dict(entry.data), TO_REDACT),
         },
         "coordinator": {
@@ -181,17 +181,17 @@ async def async_get_config_entry_diagnostics(
                 "settings": data.get("settings") or {},
                 "teams": [
                     _team_summary(team)
-                    for team in (data.get("teams") or [])
+                    for team in (data.get("teams") or [])[:MAX_DIAGNOSTIC_LIST_ITEMS]
                     if isinstance(team, dict)
                 ],
                 "current_matchup": [
                     _schedule_summary(item)
-                    for item in (data.get("current_matchup") or [])
+                    for item in (data.get("current_matchup") or [])[:MAX_DIAGNOSTIC_LIST_ITEMS]
                     if isinstance(item, dict)
                 ],
                 "season_schedule": [
                     _schedule_summary(item)
-                    for item in (data.get("season_schedule") or [])
+                    for item in (data.get("season_schedule") or [])[:MAX_DIAGNOSTIC_LIST_ITEMS]
                     if isinstance(item, dict)
                 ],
                 "transactions": [
@@ -214,4 +214,21 @@ async def async_get_config_entry_diagnostics(
                 "matchup": matchup_summary,
             },
         },
-    })
+    }
+    # Bound leaf sections rather than the export envelope. The envelope must
+    # remain navigable (and explicit transaction/activity sample limits intact).
+    result["entry"]["data"] = _bounded_diagnostic(result["entry"]["data"])
+    for key in TO_REDACT:
+        if key in entry.data:
+            result["entry"]["data"][key] = "**REDACTED**"
+    for key, value in result["coordinator"]["raw"].items():
+        if key == "transactions":
+            result["coordinator"]["raw"][key] = [_bounded_diagnostic(item) for item in value]
+        else:
+            result["coordinator"]["raw"][key] = _bounded_diagnostic(value)
+    for key, value in result["coordinator"]["normalized"]["league"].items():
+        result["coordinator"]["normalized"]["league"][key] = _bounded_diagnostic(value)
+    result["coordinator"]["normalized"]["matchup"] = _bounded_diagnostic(matchup_summary)
+    result["compatibility"]["capabilities"] = _bounded_diagnostic(compatibility["capabilities"])
+    result["coordinator"]["normalized"]["capabilities"] = _bounded_diagnostic(normalized.get("capabilities") or {})
+    return result

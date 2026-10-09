@@ -17,6 +17,7 @@ def load_helpers():
         "Any": object,
         "MAX_DIAGNOSTIC_LIST_ITEMS": 12,
         "MAX_DIAGNOSTIC_DEPTH": 4,
+        "MAX_DIAGNOSTIC_DICT_ITEMS": 40,
         "MAX_DIAGNOSTIC_STRING_LENGTH": 500,
         "MAX_TRANSACTION_ITEMS": 20,
     }
@@ -32,6 +33,12 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertEqual(len(result["players"]), 12)
         self.assertEqual(len(result["players"][0]["name"]), 500)
         self.assertEqual(len(original["players"]), 30)
+
+    def test_wide_dictionary_is_bounded(self):
+        bounded = load_helpers()["_bounded_diagnostic"]
+        result = bounded({str(index): "x" * 1000 for index in range(10000)})
+        self.assertEqual(len(result), 40)
+        self.assertTrue(all(len(value) == 500 for value in result.values()))
 
     def test_deep_payload_is_truncated(self):
         bounded = load_helpers()["_bounded_diagnostic"]

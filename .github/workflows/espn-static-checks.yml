@@ -4,6 +4,7 @@ on:
     paths:
       - 'custom_components/espn_fantasy/**'
       - '.github/workflows/espn-static-checks.yml'
+      - 'tests/**'
   workflow_dispatch:
 
 jobs:
@@ -16,10 +17,12 @@ jobs:
           python-version: '3.13'
       - name: Compile Python integration
         run: python -m compileall -q custom_components/espn_fantasy
-      - name: Run diagnostics regression tests
-        run: python -m unittest discover -s tests -p 'test_diagnostics_bounded.py' -v
+      - name: Run all integration regression tests
+        run: python -m unittest discover -s tests -v
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Check frontend JavaScript syntax
         run: node --check custom_components/espn_fantasy/www/espn-fantasy-cards.js
+      - name: Test news and popup rendering without video
+        run: node tests/test_frontend_no_video.js
