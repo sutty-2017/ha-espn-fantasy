@@ -10,6 +10,24 @@ from .const import CONF_ESPN_S2, CONF_SWID, DOMAIN
 
 TO_REDACT = {CONF_ESPN_S2, CONF_SWID}
 MAX_TRANSACTIONS = 25
+MAX_TRANSACTION_ITEMS = 20
+
+
+def _transaction_summary(transaction: dict[str, Any]) -> dict[str, Any]:
+    """Avoid embedding ESPN's potentially large player payloads in diagnostics."""
+    summary = {
+        key: transaction.get(key)
+        for key in ("id", "type", "status", "processDate", "executionType", "proposingTeamId", "acceptingTeamId")
+        if key in transaction
+    }
+    summary["items"] = [
+        {key: item.get(key) for key in ("playerId", "type", "fromTeamId", "toTeamId") if key in item}
+        for item in (transaction.get("items") or [])[:MAX_TRANSACTION_ITEMS]
+        if isinstance(item, dict)
+    ]
+    summary["item_count"] = len(transaction.get("items") or [])
+    return summary
+
 
 
 def _team_summary(team: dict[str, Any]) -> dict[str, Any]:
@@ -127,7 +145,11 @@ async def async_get_config_entry_diagnostics(
                     for item in (data.get("season_schedule") or [])
                     if isinstance(item, dict)
                 ],
-                "transactions": (data.get("transactions") or [])[:MAX_TRANSACTIONS],
+                "transactions": [
+                    _transaction_summary(item)
+                    for item in (data.get("transactions") or [])[:MAX_TRANSACTIONS]
+                    if isinstance(item, dict)
+                ],
             },
             "normalized": {
                 "capabilities": normalized.get("capabilities") or {},
