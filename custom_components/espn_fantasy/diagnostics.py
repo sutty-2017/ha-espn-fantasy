@@ -22,12 +22,15 @@ def _transaction_summary(transaction: dict[str, Any]) -> dict[str, Any]:
         for key in ("id", "type", "status", "processDate", "executionType", "proposingTeamId", "acceptingTeamId")
         if key in transaction
     }
+    items = transaction.get("items")
+    if not isinstance(items, list):
+        items = []
     summary["items"] = [
         {key: item.get(key) for key in ("playerId", "type", "fromTeamId", "toTeamId") if key in item}
-        for item in (transaction.get("items") or [])[:MAX_TRANSACTION_ITEMS]
+        for item in items[:MAX_TRANSACTION_ITEMS]
         if isinstance(item, dict)
     ]
-    summary["item_count"] = len(transaction.get("items") or [])
+    summary["item_count"] = len(items)
     return summary
 
 
@@ -107,7 +110,9 @@ async def async_get_config_entry_diagnostics(
                 if k not in ("roster", "starters") and not isinstance(v, (dict, list))
             }
             for roster_key in ("roster", "starters"):
-                players = value.get(roster_key) or []
+                players = value.get(roster_key)
+                if not isinstance(players, list):
+                    players = []
                 side[f"{roster_key}_count"] = len(players)
                 side[roster_key] = [
                     {k: player.get(k) for k in ("id", "name", "position", "lineup_slot", "actual_points", "projected_points") if k in player}
