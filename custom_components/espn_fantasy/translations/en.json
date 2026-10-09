@@ -19,5 +19,16 @@
       "team_not_found": "The team ID was not found in this league.",
       "invalid_input": "Enter valid numeric league, team, and season values."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ESPN Fantasy data options",
+        "description": "Compact league data reduces repeated player details in the league sensor. Bundled ESPN cards support this format. Leave off if custom templates or third-party cards read players directly from schedule or scoreboard attributes. Reload the dashboard after enabling.",
+        "data": {
+          "compact_league_data": "Use compact league data (bundled cards)"
+        }
+      }
+    }
   }
 }

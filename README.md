@@ -1,4 +1,6 @@
-> **v0.1.53 candidate:** Reuses player stats/history within each refresh to reduce model allocations and processing, improves bounded diagnostics, and removes NFL video highlights, their fetching/caching, and playback UI. Existing Fantasy dashboard settings remain compatible; legacy highlights attributes are empty. See [optimization validation](docs/OPTIMIZATION.md) and [release notes](docs/RELEASE_NOTES_0.1.53.md).
+> **v0.1.54 candidate:** Fixes frontend startup thread-safety and adds optional compact league data, reducing the test fixture's serialized league payload by 92%. Bundled cards support both formats. Enable it through the integration's Configure options after refreshing the updated dashboard; legacy mode remains the default for external consumers. See [release notes and activation](docs/RELEASE_NOTES_0.1.54.md).
+
+> **v0.1.53:** Reuses player stats/history within each refresh to reduce model allocations and processing, improves bounded diagnostics, and removes NFL video highlights, their fetching/caching, and playback UI. Existing Fantasy dashboard settings remain compatible; legacy highlights attributes are empty. See [optimization validation](docs/OPTIMIZATION.md) and [release notes](docs/RELEASE_NOTES_0.1.53.md).
 
 > **v0.1.52:** Fixes Highlights navigation and moves player-only Highlights into the News section with UI controls to show/hide them and place them above or below news; unattributed team/game clips remain excluded.
 

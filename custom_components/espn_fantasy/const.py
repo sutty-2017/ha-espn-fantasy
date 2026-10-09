@@ -7,6 +7,7 @@ CONF_TEAM_ID = "team_id"
 CONF_SEASON = "season"
 CONF_ESPN_S2 = "espn_s2"
 CONF_SWID = "swid"
+CONF_COMPACT_LEAGUE_DATA = "compact_league_data"
 DEFAULT_SCAN_INTERVAL = 300
 LIVE_SCAN_INTERVAL = 60
 

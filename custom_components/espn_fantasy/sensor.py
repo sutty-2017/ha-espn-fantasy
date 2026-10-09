@@ -7,8 +7,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_LEAGUE_ID, CONF_SEASON, CONF_TEAM_ID, DOMAIN
+from .const import CONF_COMPACT_LEAGUE_DATA, CONF_LEAGUE_ID, CONF_SEASON, CONF_TEAM_ID, DOMAIN
 from .coordinator import ESPNDataUpdateCoordinator
+from .transport import compact_league
 
 POSITION_NAMES = {
     1: "QB",
@@ -305,6 +306,8 @@ class ESPNBaseSensor(CoordinatorEntity[ESPNDataUpdateCoordinator], SensorEntity)
 class LeagueSensor(ESPNBaseSensor):
     def __init__(self, coordinator):
         super().__init__(coordinator, "league", "League")
+        self._export_source = None
+        self._compact_export = None
 
     @property
     def native_value(self):
@@ -315,7 +318,15 @@ class LeagueSensor(ESPNBaseSensor):
         data = self.coordinator.data
         settings = data.get("settings", {})
         league = (data.get("normalized") or {}).get("league") or {}
-        return {
+        compact = self.coordinator.entry.options.get(CONF_COMPACT_LEAGUE_DATA, False)
+        if compact:
+            if self._export_source is not league:
+                self._compact_export = compact_league(league)
+                self._export_source = league
+            league = self._compact_export
+        else:
+            self._export_source = self._compact_export = None
+        attrs = {
             "league_id": self.coordinator.entry.data[CONF_LEAGUE_ID],
             "season": self.coordinator.entry.data[CONF_SEASON],
             "team_count": len(data.get("teams", [])),
@@ -335,6 +346,11 @@ class LeagueSensor(ESPNBaseSensor):
             "matchup_period": league.get("matchup_period"),
             "highlights": [],  # Retained as an empty compatibility attribute.
         }
+        if compact:
+            attrs["player_details"] = league["player_details"]
+            attrs["payload_format"] = league["payload_format"]
+        return attrs
+
 
 
 class LeagueActivitySensor(ESPNBaseSensor):

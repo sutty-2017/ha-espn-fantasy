@@ -1,24 +1,24 @@
 # ESPN Fantasy maintainer handoff
 
-## Candidate
+## Current work
 
-- Repository: `sutty-2017/ha-espn-fantasy`
-- PR: #36, branch `optimize-memory-diagnostics-20261008`
-- Candidate: **v0.1.53**, based on main v0.1.52 (`586283581e4bd768337eb9bc063f0963bbd38d88`).
-- Merge, publish, and live Home Assistant modifications require maintainer approval. No live installation was touched.
+- Repository: `sutty-2017/ha-espn-fantasy`.
+- Published baseline: v0.1.53, PR #36, main commit `534012794a6cebb69cffbf766264ff611edb9124`.
+- Follow-up candidate: **v0.1.54**, branch `optimize-fantasy-payload-v054`.
+- Maintainer publishes releases; do not modify live HA without explicit authorization.
 
-## Completed
+## Live inspection after v0.1.53
 
-Refresh-local player normalization reuse reduces duplicate model allocations without changing serialized dashboard data. Bounded diagnostics retain useful summaries and credential redaction. Duplicate enrichment IDs are removed; malformed transaction items are skipped. NFL video highlights are fully removed at the maintainer's request (fetching, caches, matching, playback, and editor settings). Legacy sensor highlight keys remain empty for compatibility. Live-only updates retain news and clear stale status after recovery. Version identifiers, README, release notes, benchmark documentation, and CI coverage are prepared.
+HACS showed v0.1.53 installed and ESPN loaded. HA restarted at 8:17 PM Pacific on October 8. The newest OOM kill in returned host logs was 7:50 PM, before that restart. There was no dependable before/after Core RAM measurement available. League attributes serialized to about 19.2 million JSON characters, 16.4 million in the schedule. Recorder size warnings remained. ESPN and daily-puzzle both had startup task thread-safety warnings; daily-puzzle is a separate project.
 
-All 23 Python regression tests, frontend runtime checks for news/popups/legacy settings, and local shell checks from both validation workflows pass. Benchmark output is byte-for-byte equal to baseline, with retained model allocations dropping from 12.6 MB to 4.0 MB on the documented synthetic fixture. See `docs/OPTIMIZATION.md` for methodology and limitations, and `docs/RELEASE_NOTES_0.1.53.md` for release text.
+## v0.1.54 fixes
 
-## Compatibility and limits
+An async frontend startup listener prevents ESPN's executor-thread task scheduling warning, with guards for duplicate registration and stale task cleanup. Optional compact league transport shares distinct player details through references, while bundled cards transparently resolve both formats. Integration Configure exposes the option and reloads after changes. The default remains legacy mode to protect external templates/cards. Video highlights stay removed and text news remains.
 
-Keep all existing Fantasy cards, entities, attributes, schedule/bracket/team/player popups, news, activity, injury badges, history, advice, projections, probabilities, and adaptive polling. Pick'em remains removed. The frontend removes video playback and its editor controls; old Highlights YAML options are ignored. No new UI configuration or migration is required.
+All 31 Python regressions and frontend runtime comparisons pass locally. Synthetic league JSON decreases 92.1% (13.4 MB to 1.1 MB); fully expanded data and rendered popups remain equal. See `docs/OPTIMIZATION.md` for tests/limitations and `docs/RELEASE_NOTES_0.1.54.md` for publishing and activation instructions.
 
-Optimization is the objective. Do not claim this fixes the user's HA Green memory crashes. Shared references reduce in-memory model allocations but do not reduce serialized state payload size or necessarily eliminate Recorder attribute warnings. Framework tests use minimal HA stubs and fake ESPN responses; real installation remains a later maintainer step.
+## Activation and constraints
 
-## Release process
+After publication/install, refresh the dashboard to load v0.1.54 cards, then enable **Use compact league data (bundled cards)** in the integration's Configure options. No live option was enabled during development. Legacy mode preserves old league data paths; compact mode changes nested schedule/scoreboard/team roster paths for external consumers. Turning it off restores legacy exports. No card YAML or entity-ID migration is needed for bundled cards.
 
-Check PR #36's latest head and CI, summarize readiness to the maintainer, and await approval before merge or publication. After approval follow the established HACS release workflow and measure real-world behavior separately. Do not silently deploy to Home Assistant.
+Do not claim this fixes the HA Green memory crashes or eliminates all Recorder warnings. Payload-size savings are measured; installed HA process-memory savings are not. Check the latest branch/main/PR state and CI before further work. Release publication remains with the maintainer.

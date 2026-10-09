@@ -1,4 +1,4 @@
-const CARD_VERSION = "0.1.53";
+const CARD_VERSION = "0.1.54";
 const ESPN_FANTASY_ICON = `/espn_fantasy/icon.png?v=${CARD_VERSION}`;
 
 const esc = (value) => String(value ?? "").replace(/[&<>\"']/g, (char) => ({
@@ -20,6 +20,12 @@ const findByAttrs = (hass, predicate) => stateList(hass).find((s) => predicate(s
 const findRoster = (hass, entity) => { const s=entity?hass.states[entity]:null; return s && Array.isArray(s.attributes?.players) && s.attributes?.team_name && "starters_remaining" in s.attributes ? s : findByAttrs(hass, (a) => Array.isArray(a.players) && a.team_name && "starters_remaining" in a); };
 const findMatchup = (hass, entity) => { const s=entity?hass.states[entity]:null; return s && Array.isArray(s.attributes?.my_roster) && Array.isArray(s.attributes?.opponent_roster) ? s : findByAttrs(hass, (a) => Array.isArray(a.my_roster) && Array.isArray(a.opponent_roster)); };
 const findLeague = (hass, entity) => { const s=entity?hass.states[entity]:null; return s && Array.isArray(s.attributes?.standings) && Array.isArray(s.attributes?.scoreboard) && "league_id" in s.attributes ? s : findByAttrs(hass, (a) => Array.isArray(a.standings) && Array.isArray(a.scoreboard) && "league_id" in a); };
+
+function expandLeagueTeam(team, playerDetails = {}) {
+  if (!team || !Array.isArray(team.roster_refs)) return team;
+  const resolve = refs => (Array.isArray(refs) ? refs : []).map(ref => playerDetails[ref]).filter(Boolean);
+  return {...team, roster:resolve(team.roster_refs), starters:resolve(team.starter_refs)};
+}
 
 const playerEntity = (hass, id) => findByAttrs(hass, (a) => String(a.player_id) === String(id))?.entity_id;
 
@@ -586,7 +592,13 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
     if(!dialog.open)dialog.showModal();
   }
   teamDetail(teamId){
-    return (this.leagueState()?.attributes?.team_rosters||[]).find(team=>String(team.team_id)===String(teamId));
+    const a=this.leagueState()?.attributes||{};
+    return expandLeagueTeam((a.team_rosters||[]).find(team=>String(team.team_id)===String(teamId)),a.player_details||{});
+  }
+  matchupTeamDetail(game, side){
+    const a=this.leagueState()?.attributes||{},fallback=this.teamDetail(game[side+"_team_id"]);
+    const detail=expandLeagueTeam(game[side+"_team"],a.player_details||{});
+    return detail?{...fallback,...detail}:{...fallback};
   }
   leagueDialogMarkup(view){
     if(view.type==="player")return playerDetails(view.player,this._config.stats,{showLiveHalo:this._config.show_live_halo!==false,haloColor:this._config.live_halo_color,teamWatermark:this._config.show_team_logo_background!==false,sectionState:{}});
@@ -596,7 +608,7 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
       const summary='<div class="popup-roster-summary"><div><span>Score</span><strong>'+num(score,2)+'</strong></div><div><span>Projected</span><strong>'+num(projection,2)+'</strong></div><div class="popup-roster-progress">'+starterProgress(completed,playing,remaining)+'</div></div>';
       return '<div class="popup-view-title">'+teamLogo(team?.team_logo,team?.team_name)+'<div><strong>'+esc(team?.team_name||"Team")+'</strong><span>Roster</span></div></div>'+summary+(starters.length?'<div class="popup-roster-label">Starters</div><div class="player-list">'+starters.map(p=>playerTile(p,{showSlot:true})).join("")+'</div>':"")+(bench.length?'<div class="popup-roster-label">Bench / IR</div><div class="player-list">'+bench.map(p=>playerTile(p,{showSlot:true})).join("")+'</div>':"");
     }
-    const game=view.game||{},fallbackHome=this.teamDetail(game.home_team_id),fallbackAway=this.teamDetail(game.away_team_id),home=game.home_team?{...fallbackHome,...game.home_team}:{...fallbackHome},away=game.away_team?{...fallbackAway,...game.away_team}:{...fallbackAway},mode=view.mode||"starters";
+    const game=view.game||{},home=this.matchupTeamDetail(game,"home"),away=this.matchupTeamDetail(game,"away"),mode=view.mode||"starters";
     const homePlayers=rosterOrder(mode==="bench"?(home?.roster||[]).filter(p=>!p.starter):(home?.starters||[]));
     const awayPlayers=rosterOrder(mode==="bench"?(away?.roster||[]).filter(p=>!p.starter):(away?.starters||[]));
     const awayProj=game.away_projected_score??away?.live_projected_score??away?.projected_score,homeProj=game.home_projected_score??home?.live_projected_score??home?.projected_score;
@@ -610,7 +622,7 @@ class ESPNFantasyLeagueCard extends ESPNBaseCard {
     const dialog=this.shadowRoot.querySelector("dialog.player-dialog");if(!dialog||!view)return;
     this._leagueDialogStack??=[];if(push)this._leagueDialogStack.push(view);else if(this._leagueDialogStack.length)this._leagueDialogStack[this._leagueDialogStack.length-1]=view;else this._leagueDialogStack=[view];
     const current=this._leagueDialogStack[this._leagueDialogStack.length-1];dialog.classList.remove("transaction-dialog","matchup-dialog");dialog.classList.toggle("matchup-dialog",current.type==="matchup");dialog.querySelector(".dialog-content").innerHTML=this.leagueDialogMarkup(current);dialog.querySelector(".dialog-back")?.classList.toggle("visible",this._leagueDialogStack.length>1);
-    dialog.querySelectorAll(".player-tile[data-player-id]").forEach(node=>node.addEventListener("click",()=>{const pools=current.type==="roster"?(current.team?.roster||[]):current.type==="matchup"?[...(current.game?.away_team?.roster||this.teamDetail(current.game?.away_team_id)?.roster||[]),...(current.game?.home_team?.roster||this.teamDetail(current.game?.home_team_id)?.roster||[])]:[];const player=pools.find(p=>String(p.id)===String(node.dataset.playerId));if(player)this.openLeagueDialog({type:"player",player},true);}));
+    dialog.querySelectorAll(".player-tile[data-player-id]").forEach(node=>node.addEventListener("click",()=>{const pools=current.type==="roster"?(current.team?.roster||[]):current.type==="matchup"?[...(this.matchupTeamDetail(current.game||{},"away").roster||[]),...(this.matchupTeamDetail(current.game||{},"home").roster||[])]:[];const player=pools.find(p=>String(p.id)===String(node.dataset.playerId));if(player)this.openLeagueDialog({type:"player",player},true);}));
     dialog.querySelectorAll("[data-dialog-team-id]").forEach(node=>node.addEventListener("click",()=>{const team=this.teamDetail(node.dataset.dialogTeamId);if(team)this.openLeagueDialog({type:"roster",team},true);}));
     dialog.querySelectorAll("[data-popup-matchup-view]").forEach(node=>node.addEventListener("click",()=>this.openLeagueDialog({...current,mode:node.dataset.popupMatchupView},false)));
     if(!dialog.open)dialog.showModal();
