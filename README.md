@@ -1,4 +1,10 @@
-> **v0.1.52:** Fixes Highlights navigation and moves player-only Highlights into the News section with UI controls to show/hide them and place them above or below news; unattributed team/game clips remain excluded.\n\n> **v0.1.51:** Adds ESPN NFL video highlights to player popups and a My Team Highlights playlist in the All-in-One card, adds configurable player-popup height, and enriches roster popups with score/projection/starter progress. Highlights are optional and degrade cleanly when ESPN has no playable video.\n\n> **v0.1.50:** Fresh-review patch restoring the Playoff Bracket Round jump controls in both compact and expanded views, exposing stale/degraded coordinator state in diagnostics, and tightening regression validation around those paths.
+> **v0.1.53 candidate:** Reuses player stats/history within each refresh to reduce model allocations and processing, improves bounded diagnostics, and removes NFL video highlights, their fetching/caching, and playback UI. Existing Fantasy dashboard settings remain compatible; legacy highlights attributes are empty. See [optimization validation](docs/OPTIMIZATION.md) and [release notes](docs/RELEASE_NOTES_0.1.53.md).
+
+> **v0.1.52:** Fixes Highlights navigation and moves player-only Highlights into the News section with UI controls to show/hide them and place them above or below news; unattributed team/game clips remain excluded.
+
+> **v0.1.51:** Adds ESPN NFL video highlights to player popups and a My Team Highlights playlist in the All-in-One card, adds configurable player-popup height, and enriches roster popups with score/projection/starter progress. Highlights are optional and degrade cleanly when ESPN has no playable video.
+
+> **v0.1.50:** Fresh-review patch restoring the Playoff Bracket Round jump controls in both compact and expanded views, exposing stale/degraded coordinator state in diagnostics, and tightening regression validation around those paths.
 
 > **v0.1.49:** Keeps the last known-good Fantasy data available through transient ESPN refresh failures, enriches live player status with quarter/clock/score/possession plus a dedicated Live Game popup section, and upgrades every league matchup drill-down with projections, starter progress, full rosters, and an ESPN-style win-probability bar.
 
@@ -29,7 +35,7 @@ The integration connects directly to ESPN Fantasy data and exposes league standi
 - Offensive, kicker, D/ST, and IDP player support
 - Current-season weekly player history with season totals/averages
 - Projection-based starter/bench lineup alerts that respect ESPN slot eligibility
-- Player fantasy outlooks, ESPN fantasy news, and confidently matched NFL video highlights\n- Optional player-only **Week N Highlights** playlist inside the News section, positionable above or below player news
+- Player fantasy outlooks and ESPN fantasy news
 - Player **Game Active** binary sensors for live NFL games
 - Coordinated 5-minute polling with focused 60-second current-matchup updates while either side has players actively playing
 - Data exposed as Home Assistant entity attributes for dashboards and automations
@@ -153,11 +159,21 @@ regression coverage. Never post `espn_s2` or `SWID` cookie values.
 
 ## Release history
 
-> **v0.1.41:** Polishes the League card by restoring readable Waiver Order team names, keeping editor text fields focused while typing, and optionally combining Standings + Scoreboard into one reorderable Overview section.\n\n> **v0.1.40:** Fixes a v0.1.39 Playoff Bracket regression that could hide the Championship Bracket while aligning Winners Consolation to the final postseason round, adds Waiver Order team-to-roster drill-down parity, makes every Schedule matchup open the matchup drill-down, and normalizes popup/UI headings to title case.\n\n> **v0.1.39:** Adds a League-card-wide maximum height with internal scrolling, widens Scoreboard matchup drill-downs, and aligns the single Winners Consolation matchup with the second postseason round.\n\n> **v0.1.38:** Fixes a setup regression where ESPN can return HTTP 200 without a `schedule` key for optional whole-season schedule enrichment; the integration now degrades gracefully instead of failing setup.\n\n> **v0.1.37:** Adds compatibility/resilience diagnostics and fixture testing, complete postseason presentation with Winners Consolation, Roster/Matchup lineup-advice badges, and interactive Scoreboard/Standings drill-down popups with single-modal Back navigation.
+> **v0.1.41:** Polishes the League card by restoring readable Waiver Order team names, keeping editor text fields focused while typing, and optionally combining Standings + Scoreboard into one reorderable Overview section.
+
+> **v0.1.40:** Fixes a v0.1.39 Playoff Bracket regression that could hide the Championship Bracket while aligning Winners Consolation to the final postseason round, adds Waiver Order team-to-roster drill-down parity, makes every Schedule matchup open the matchup drill-down, and normalizes popup/UI headings to title case.
+
+> **v0.1.39:** Adds a League-card-wide maximum height with internal scrolling, widens Scoreboard matchup drill-downs, and aligns the single Winners Consolation matchup with the second postseason round.
+
+> **v0.1.38:** Fixes a setup regression where ESPN can return HTTP 200 without a `schedule` key for optional whole-season schedule enrichment; the integration now degrades gracefully instead of failing setup.
+
+> **v0.1.37:** Adds compatibility/resilience diagnostics and fixture testing, complete postseason presentation with Winners Consolation, Roster/Matchup lineup-advice badges, and interactive Scoreboard/Standings drill-down popups with single-modal Back navigation.
 
 > **v0.1.36:** Fixes traditional-waiver budget display, adds the enabled Consolation Ladder to pre-playoff standings projections, fixes All-in-One navigation after viewing Playoffs, and improves team-logo watermark visibility.
 
-> **v0.1.35:** Adds richer postseason schedule retrieval for consolation/ladder brackets, Waiver Order, player biographies, team-logo watermarks, and clearer Started/Benched/trade Activity semantics.\n\n> **v0.1.34:** Refines Schedule with League/My Team views and compact week arrows, exposes all ESPN postseason tiers with a cleaner expandable bracket, and adds focused 60-second live matchup polling while games are active.
+> **v0.1.35:** Adds richer postseason schedule retrieval for consolation/ladder brackets, Waiver Order, player biographies, team-logo watermarks, and clearer Started/Benched/trade Activity semantics.
+
+> **v0.1.34:** Refines Schedule with League/My Team views and compact week arrows, exposes all ESPN postseason tiers with a cleaner expandable bracket, and adds focused 60-second live matchup polling while games are active.
 
 > **v0.1.33:** Adds section-based League and Ticker editors, full-season Schedule and playoff-bracket views, fixes portrait-anchored red injury badges, streamlines Fantasy Outlook, and polishes Activity ticker layout.
 

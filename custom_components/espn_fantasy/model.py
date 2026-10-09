@@ -555,6 +555,7 @@ def _side(
     team: dict[str, Any],
     scoring_period: int | None,
     pro_teams: dict[int, dict[str, Any]],
+    player_cache: dict | None = None,
 ) -> dict[str, Any]:
     matchup_roster = (
         (side.get("rosterForCurrentScoringPeriod") or {}).get("entries") or []
@@ -565,16 +566,23 @@ def _side(
         for entry in canonical_roster
         if (player_id := _player_id_from_entry(entry)) is not None
     }
-    roster = [
-        _merge_roster_entry(entry, canonical_by_id.get(_player_id_from_entry(entry)))
-        for entry in matchup_roster
-    ]
-    # Fall back to mRoster when ESPN omits the matchup roster entirely.
-    if not roster:
-        roster = canonical_roster
-    players = [_player(entry, scoring_period, pro_teams) for entry in roster]
-    for player in players:
-        player["season_summary"] = _season_summary(player.get("weekly_history") or [])
+    # Scope reuse to one model build. ESPN matchup entries can differ from the
+    # canonical roster in lineup placement and live points, so both identities
+    # belong in the key. Never reuse across scoring periods or refreshes.
+    players = []
+    for entry in matchup_roster or canonical_roster:
+        canonical = canonical_by_id.get(_player_id_from_entry(entry)) if matchup_roster else None
+        key = (id(entry), id(canonical))
+        cached = player_cache.get(key) if player_cache is not None else None
+        if cached is None:
+            merged = _merge_roster_entry(entry, canonical) if matchup_roster else entry
+            cached = _player(merged, scoring_period, pro_teams)
+            cached["season_summary"] = _season_summary(cached.get("weekly_history") or [])
+            if player_cache is not None:
+                player_cache[key] = cached
+        # Advice and coordinator news enrichment write top-level fields.
+        # Keep those independent while sharing read-only stats/history/profile data.
+        players.append(dict(cached))
     _apply_lineup_advice(players)
     starters = [player for player in players if player.get("starter")]
     status_counts = {
@@ -805,6 +813,7 @@ def _normalize_league_game(
     current_period: int | None,
     scoring_period: int | None = None,
     pro_teams: dict[int, dict[str, Any]] | None = None,
+    player_cache: dict | None = None,
 ) -> dict[str, Any]:
     """Normalize one fantasy matchup for schedule/scoreboard/bracket use."""
     home = matchup.get("home") or {}
@@ -824,7 +833,7 @@ def _normalize_league_game(
     def enriched_side(raw_side: dict[str, Any], team: dict[str, Any]) -> dict[str, Any]:
         if not team:
             return {}
-        detail = _side(raw_side, team, scoring_period, pro_teams)
+        detail = _side(raw_side, team, scoring_period, pro_teams, player_cache)
         return {
             **detail,
             "score": _float(raw_side.get("totalPointsLive", raw_side.get("totalPoints"))),
@@ -1237,6 +1246,7 @@ def _league_model(
     matchup_period: int | None,
     scoring_period: int | None,
     pro_teams: dict[int, dict[str, Any]],
+    player_cache: dict | None = None,
 ) -> dict[str, Any]:
     """Build standings, schedule, scoreboard, bracket, and league activity."""
     normalized_teams = [_league_team(team) for team in teams.values()]
@@ -1258,7 +1268,7 @@ def _league_model(
 
     raw_schedule = data.get("season_schedule") or data.get("schedule") or []
     schedule = [
-        _normalize_league_game(matchup, teams, matchup_period, scoring_period, pro_teams)
+        _normalize_league_game(matchup, teams, matchup_period, scoring_period, pro_teams, player_cache)
         for matchup in raw_schedule
         if isinstance(matchup, dict)
     ]
@@ -1271,7 +1281,7 @@ def _league_model(
             continue
         if matchup_period is not None and _int(matchup.get("matchupPeriodId")) != matchup_period:
             continue
-        game = _normalize_league_game(matchup, teams, matchup_period, scoring_period, pro_teams)
+        game = _normalize_league_game(matchup, teams, matchup_period, scoring_period, pro_teams, player_cache)
         if game.get("home_team_id") is None and game.get("away_team_id") is None:
             continue
         scoreboard.append(game)
@@ -1321,7 +1331,7 @@ def _league_model(
         or _int((data.get("status") or {}).get("currentScoringPeriod")),
     )
     team_rosters = [
-        _side({"teamId": team_key}, team, scoring_period, pro_teams)
+        _side({"teamId": team_key}, team, scoring_period, pro_teams, player_cache)
         for team_key, team in teams.items()
     ]
     team_rosters.sort(key=lambda item: str(item.get("team_name") or ""))
@@ -1367,8 +1377,9 @@ def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]
         for team in data.get("pro_team_schedules") or []
         if _int(team.get("id")) is not None
     }
+    player_cache: dict = {}
     league = _league_model(
-        data, teams, matchup_period, scoring_period, pro_teams
+        data, teams, matchup_period, scoring_period, pro_teams, player_cache
     )
     matchup = _matchup(data, team_id, matchup_period)
     if not matchup:
@@ -1397,10 +1408,10 @@ def build_normalized_model(data: dict[str, Any], team_id: int) -> dict[str, Any]
         "matchup": {
             "id": matchup.get("id"),
             "my_team": _side(
-                my_raw, teams.get(team_id, {}), scoring_period, pro_teams
+                my_raw, teams.get(team_id, {}), scoring_period, pro_teams, player_cache
             ),
             "opponent": _side(
-                opponent_raw, teams.get(opponent_id, {}), scoring_period, pro_teams
+                opponent_raw, teams.get(opponent_id, {}), scoring_period, pro_teams, player_cache
             ),
         },
     }

@@ -126,7 +126,7 @@ class DiagnosticsTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("private-owner-id", encoded)
         self.assertEqual(result["entry"]["data"]["espn_s2"], "**REDACTED**")
         self.assertEqual(len(result["coordinator"]["raw"]["transactions"]), 25)
-        self.assertEqual(len(result["coordinator"]["normalized"]["league"]["activity"]), 25)
+        self.assertEqual(len(result["coordinator"]["normalized"]["league"]["activity"]), 10)
 
 
 if __name__ == "__main__":
