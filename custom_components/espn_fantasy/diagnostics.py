@@ -11,6 +11,8 @@ from .const import CONF_ESPN_S2, CONF_SWID, DOMAIN
 TO_REDACT = {CONF_ESPN_S2, CONF_SWID}
 MAX_TRANSACTIONS = 25
 MAX_TRANSACTION_ITEMS = 20
+MAX_DIAGNOSTIC_ROSTER_PLAYERS = 5
+MAX_DIAGNOSTIC_ACTIVITY = 10
 
 
 def _transaction_summary(transaction: dict[str, Any]) -> dict[str, Any]:
@@ -95,6 +97,23 @@ async def async_get_config_entry_diagnostics(
     normalized = data.get("normalized") or {}
     league = normalized.get("league") or {}
     matchup = normalized.get("matchup") or {}
+    # Summarize player-heavy matchup sections instead of duplicating the full
+    # normalized player graph in diagnostics. Live entities remain unchanged.
+    matchup_summary = {}
+    for key, value in matchup.items():
+        if key in ("my_team", "opponent") and isinstance(value, dict):
+            side = {k: v for k, v in value.items() if k not in ("roster", "starters")}
+            for roster_key in ("roster", "starters"):
+                players = value.get(roster_key) or []
+                side[f"{roster_key}_count"] = len(players)
+                side[roster_key] = [
+                    {k: player.get(k) for k in ("id", "name", "position", "lineup_slot", "actual_points", "projected_points") if k in player}
+                    for player in players[:MAX_DIAGNOSTIC_ROSTER_PLAYERS]
+                    if isinstance(player, dict)
+                ]
+            matchup_summary[key] = side
+        else:
+            matchup_summary[key] = value
 
     compatibility = {
         "season": entry.data.get("season"),
@@ -160,9 +179,9 @@ async def async_get_config_entry_diagnostics(
                     "schedule_periods": league.get("schedule_periods") or [],
                     "playoff_bracket": league.get("playoff_bracket") or {},
                     "waivers": league.get("waivers") or {},
-                    "activity": (league.get("activity") or [])[:MAX_TRANSACTIONS],
+                    "activity": (league.get("activity") or [])[:MAX_DIAGNOSTIC_ACTIVITY],
                 },
-                "matchup": matchup,
+                "matchup": matchup_summary,
             },
         },
     }
