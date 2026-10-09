@@ -1,0 +1,23 @@
+name: ESPN static regression checks
+on:
+  pull_request:
+    paths:
+      - 'custom_components/espn_fantasy/**'
+      - '.github/workflows/espn-static-checks.yml'
+  workflow_dispatch:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Compile Python integration
+        run: python -m compileall -q custom_components/espn_fantasy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check frontend JavaScript syntax
+        run: node --check custom_components/espn_fantasy/www/espn-fantasy-cards.js
