@@ -102,7 +102,10 @@ async def async_get_config_entry_diagnostics(
     matchup_summary = {}
     for key, value in matchup.items():
         if key in ("my_team", "opponent") and isinstance(value, dict):
-            side = {k: v for k, v in value.items() if k not in ("roster", "starters")}
+            side = {
+                k: v for k, v in value.items()
+                if k not in ("roster", "starters") and not isinstance(v, (dict, list))
+            }
             for roster_key in ("roster", "starters"):
                 players = value.get(roster_key) or []
                 side[f"{roster_key}_count"] = len(players)
@@ -112,7 +115,7 @@ async def async_get_config_entry_diagnostics(
                     if isinstance(player, dict)
                 ]
             matchup_summary[key] = side
-        else:
+        elif not isinstance(value, (dict, list)):
             matchup_summary[key] = value
 
     compatibility = {
