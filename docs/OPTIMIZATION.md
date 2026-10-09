@@ -58,3 +58,21 @@ Coordinator tests execute actual coordinator update methods with fake ESPN clien
 This candidate optimizes the in-memory model and processing while preserving Fantasy dashboard and automation compatibility. Video highlights are the explicit maintainer-requested exception. JSON serialization expands shared references, so large state attributes, WebSocket payloads, and Recorder's attribute-size warnings can remain. Addressing those further would need a separately designed data transport/compatibility change. No claim is made that this fixes Home Assistant memory crashes.
 
 No live Home Assistant settings, dashboards, integration files, or add-ons were modified. The candidate is prepared on PR #36's branch; merging and publishing remain maintainer decisions. After approval, normal installation and observation in Home Assistant are still needed to measure real-world behavior.
+
+## v0.1.54: compact transport and startup correction
+
+The live v0.1.53 inspection found approximately 19.2 million JSON characters in the league entity, including 16.4 million in its schedule. The proposed compact transport addresses this separate serialization cost without forcing a schema change on existing consumers.
+
+Compact mode is opt-in through the integration options flow, defaults off, and reloads the integration after saving. Legacy exports keep their existing structure. Compact exports add `payload_format: compact_v1` and a `player_details` dictionary; team sides replace player lists with `roster_refs` and `starter_refs`. The bundled cards resolve those references only when rendering a popup. Historical matchup-specific placement, stats, advice, and per-side totals stay distinct. A refresh-local identity signature includes every player field; shared nested data can be reused without confusing different top-level advice or placement. The normalized coordinator model itself is unchanged. The league sensor caches one compact export for the current normalized league and replaces it on the next refresh; disabling the option clears that cache.
+
+The serialized fixture league shrinks from **13,442,025 to 1,058,305 bytes (92.1%)**, including every player detail needed for a lossless round trip. Actual card markup matches between compact and legacy data for all 90 schedule games, 5 scoreboard games, both starter/bench modes, 10 roster popups, and 160 player-detail popups. A runtime test also invokes a compact schedule popup's player-click listener and verifies the selected player data. The Python suite has 31 tests, including options defaults/persistence, export cache reuse/replacement/restoration, and event-loop registration behavior. Lifecycle/options tests use minimal HA API doubles rather than a live installation.
+
+```sh
+python -m unittest discover -s tests -v
+python tests/benchmark_compact_transport.py --fixture /tmp/espn-compact-fixture.json
+node tests/test_compact_frontend.js /tmp/espn-compact-fixture.json
+```
+
+The startup listener is now an async function and re-enters the existing registration guard instead of creating an untracked duplicate retry task. The observed daily-puzzle thread warning belongs to a separate integration and is outside this fix.
+
+Before enabling compact mode, load the v0.1.54 card bundle by refreshing the dashboard. External templates and third-party cards that traverse the old nested player paths should keep legacy mode or be adapted explicitly. Roster/matchup/player sensor schemas remain unchanged. Recorder size warnings can remain even in compact mode. Real-world Core/host RAM savings remain unmeasured.

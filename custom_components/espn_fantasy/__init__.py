@@ -30,9 +30,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = ESPNDataUpdateCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
     hass.data.setdefault("espn_fantasy", {})[entry.entry_id] = coordinator
+    entry.async_on_unload(entry.add_update_listener(_async_reload_options))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     hass.async_create_task(_async_register_frontend(hass))
     return True
+
+
+async def _async_reload_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Apply transport options through the normal integration reload lifecycle."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -139,10 +145,14 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
     hass.data[task_key] = task
 
     def _clear_task(_future: asyncio.Future) -> None:
-        hass.data.pop(task_key, None)
+        if hass.data.get(task_key) is _future:
+            hass.data.pop(task_key, None)
 
     task.add_done_callback(_clear_task)
-    hass.bus.async_listen_once(
-        EVENT_HOMEASSISTANT_STARTED,
-        lambda _event: hass.async_create_task(_register_with_retries()),
-    )
+    async def _register_on_start(_event) -> None:
+        # HA schedules async listeners on its event loop. A plain lambda is
+        # treated as synchronous and can run in an executor thread instead.
+        # Re-enter the guarded helper so an active/completed task is not duplicated.
+        await _async_register_frontend(hass)
+
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _register_on_start)

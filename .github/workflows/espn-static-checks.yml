@@ -26,3 +26,7 @@ jobs:
         run: node --check custom_components/espn_fantasy/www/espn-fantasy-cards.js
       - name: Test news and popup rendering without video
         run: node tests/test_frontend_no_video.js
+      - name: Compare compact and legacy card rendering
+        run: |
+          python tests/benchmark_compact_transport.py --fixture /tmp/espn-compact-fixture.json
+          node tests/test_compact_frontend.js /tmp/espn-compact-fixture.json
