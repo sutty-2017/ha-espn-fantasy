@@ -117,6 +117,9 @@ class ESPNDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                     except (TypeError, ValueError):
                         continue
 
+            # ESPN can repeat player IDs across roster payloads. Avoid redundant
+            # history/news/status fetch work without changing player ordering.
+            player_ids = list(dict.fromkeys(player_ids))
             current_player_ids = set(player_ids)
             self._player_history = {
                 player_id: items
